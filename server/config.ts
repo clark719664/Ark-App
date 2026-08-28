@@ -40,6 +40,10 @@ const cacheDir = path.resolve(process.cwd(), str('CACHE_DIR', '.cache'))
 export const config = {
   provider: str('FF_PROVIDER', 'demo') as 'yahoo' | 'demo',
   port: int('PORT', 8787),
+  // Loopback by default. The sync endpoint can drive a browser holding a live
+  // Yahoo session, so the API must not be reachable from the network unless
+  // someone deliberately opts in by setting HOST.
+  host: str('HOST', '127.0.0.1'),
   isProduction: process.env.NODE_ENV === 'production',
 
   yahoo: {

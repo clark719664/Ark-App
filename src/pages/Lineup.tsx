@@ -2,6 +2,7 @@ import type { Player } from '@shared/types'
 import { api, useApi, type LineupAssignment, type LineupResponse } from '../lib/api'
 import { Card, Empty, ErrorState, Loading, StatTile } from '../components/ui'
 import TeamPicker from '../components/TeamPicker'
+import DataQualityNotice from '../components/DataQualityNotice'
 import { useTeamSelection } from '../lib/useTeamSelection'
 import { injuryTone, percent, points, positionTone, toneForOdds } from '../lib/format'
 
@@ -32,6 +33,8 @@ export default function Lineup() {
         </div>
         <TeamPicker teams={data.teams} value={data.team.id} onChange={setTeamId} />
       </header>
+
+      <DataQualityNotice quality={data.dataQuality} />
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <StatTile

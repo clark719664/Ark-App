@@ -39,6 +39,7 @@ function banner(): void {
     '  ╚══════════════════════════════════════════╝',
     '',
     `  API       http://localhost:${config.port}/api/health`,
+    `  Bound to  ${config.host}${config.host === '127.0.0.1' ? ' (this machine only)' : ' — reachable from your network'}`,
     `  Provider  ${status.provider}`,
   ]
 
@@ -74,5 +75,5 @@ function formatAge(seconds: number): string {
 // Only listen when run directly, so tests can import createApp() freely.
 const isMain = process.argv[1] && path.resolve(process.argv[1]) === path.resolve(fileURLToPath(import.meta.url))
 if (isMain) {
-  createApp().listen(config.port, () => banner())
+  createApp().listen(config.port, config.host, () => banner())
 }

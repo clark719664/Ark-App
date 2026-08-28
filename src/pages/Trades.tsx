@@ -2,6 +2,7 @@ import type { Player } from '@shared/types'
 import { api, useApi, type MarketSignal, type TradeIdea } from '../lib/api'
 import { Card, Empty, ErrorState, Loading, Meter, StatTile } from '../components/ui'
 import TeamPicker from '../components/TeamPicker'
+import DataQualityNotice from '../components/DataQualityNotice'
 import { useTeamSelection } from '../lib/useTeamSelection'
 import { points, positionTone, signed } from '../lib/format'
 
@@ -36,6 +37,8 @@ export default function Trades() {
         </div>
         <TeamPicker teams={data.teams} value={data.teamId} onChange={setTeamId} />
       </header>
+
+      <DataQualityNotice quality={data.dataQuality} />
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <StatTile label="Deals found" value={data.ideas.length} hint="Both sides gain" />

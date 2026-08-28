@@ -44,10 +44,26 @@ export async function extractTables(page: Page): Promise<TableDump[]> {
   return page.evaluate(() => {
     const clean = (s: string | null | undefined) => (s ?? '').replace(/\s+/g, ' ').trim()
 
+    /**
+     * textContent concatenates adjacent elements with nothing between them, so
+     * `<a>Team 2</a><span>99.30</span>` reads as "Team 299.30" and a score
+     * parses as 299.3. Walk the text nodes and join them with a space so
+     * separate elements stay separate words.
+     */
+    const textOf = (el: Element): string => {
+      const parts: string[] = []
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+      while (walker.nextNode()) {
+        const value = clean(walker.currentNode.nodeValue)
+        if (value) parts.push(value)
+      }
+      return parts.join(' ')
+    }
+
     const readCell = (el: Element) => ({
-      text: clean(el.textContent),
+      text: textOf(el),
       links: Array.from(el.querySelectorAll('a'))
-        .map((a) => ({ href: (a as HTMLAnchorElement).getAttribute('href') ?? '', text: clean(a.textContent) }))
+        .map((a) => ({ href: (a as HTMLAnchorElement).getAttribute('href') ?? '', text: textOf(a) }))
         .filter((l) => l.href !== ''),
       img: el.querySelector('img')?.getAttribute('src') ?? undefined,
       className: (el as HTMLElement).className || undefined,
@@ -62,7 +78,7 @@ export async function extractTables(page: Page): Promise<TableDump[]> {
           headerCells = Array.from(firstRow.querySelectorAll('th'))
         }
       }
-      const headers = headerCells.map((th) => clean(th.textContent))
+      const headers = headerCells.map((th) => textOf(th))
 
       const bodyRows = Array.from(
         table.querySelectorAll('tbody tr').length > 0
@@ -74,7 +90,10 @@ export async function extractTables(page: Page): Promise<TableDump[]> {
         index,
         id: table.id || '',
         className: (table as HTMLElement).className || '',
-        caption: clean(table.querySelector('caption')?.textContent),
+        caption: (() => {
+          const caption = table.querySelector('caption')
+          return caption ? textOf(caption) : ''
+        })(),
         headers,
         rows: bodyRows.map((tr) => Array.from(tr.querySelectorAll('td')).map(readCell)),
       }
@@ -86,8 +105,14 @@ export async function extractTables(page: Page): Promise<TableDump[]> {
 export interface AnchorDump {
   href: string
   text: string
-  /** Text of the closest block-ish ancestor, useful for pairing scores to teams. */
+  /** Text of the closest block-ish ancestor — the team's own row. */
   contextText: string
+  /**
+   * Text of the smallest ancestor holding two or more matching anchors: the
+   * matchup card. Status markers like "Final" sit here rather than on either
+   * team's row, so they are only visible at this level.
+   */
+  cardText: string
   /** Index of the ancestor container, so anchors can be grouped. */
   groupKey: string
 }
@@ -96,6 +121,18 @@ export async function extractAnchors(page: Page, hrefPattern: string): Promise<A
   return page.evaluate((pattern: string) => {
     const clean = (s: string | null | undefined) => (s ?? '').replace(/\s+/g, ' ').trim()
     const re = new RegExp(pattern)
+
+    // See extractTables: adjacent elements must not run together, or a team
+    // name and its score parse as one number.
+    const textOf = (el: Element): string => {
+      const parts: string[] = []
+      const walker = document.createTreeWalker(el, NodeFilter.SHOW_TEXT)
+      while (walker.nextNode()) {
+        const value = clean(walker.currentNode.nodeValue)
+        if (value) parts.push(value)
+      }
+      return parts.join(' ')
+    }
 
     // A stable-ish identifier for an element's position in the tree, so two
     // anchors inside the same matchup card share a prefix.
@@ -115,10 +152,25 @@ export async function extractAnchors(page: Page, hrefPattern: string): Promise<A
       .filter((a) => re.test(a.getAttribute('href') ?? ''))
       .map((a) => {
         const container = a.closest('li, article, section, div') ?? a.parentElement ?? a
+
+        // Climb to the smallest ancestor that holds another matching anchor —
+        // that is the matchup card, and where the status text lives.
+        let card: Element = container
+        for (let hops = 0; hops < 8; hops += 1) {
+          const parent: Element | null = card.parentElement
+          if (!parent) break
+          const matching = Array.from(parent.querySelectorAll('a')).filter((other) =>
+            re.test(other.getAttribute('href') ?? ''),
+          )
+          card = parent
+          if (matching.length >= 2) break
+        }
+
         return {
           href: a.getAttribute('href') ?? '',
-          text: clean(a.textContent),
-          contextText: clean(container.textContent).slice(0, 400),
+          text: textOf(a),
+          contextText: textOf(container).slice(0, 400),
+          cardText: textOf(card).slice(0, 600),
           groupKey: pathOf(container),
         }
       })

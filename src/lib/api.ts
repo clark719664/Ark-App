@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
-  DraftPick, League, LeagueAnalytics, LuckRating, Matchup, Player, PlayerPosition,
-  PlayoffOdds, PowerRanking, RosterEntry, ScheduleStrength, Team, TeamWeekScore,
+  DataQuality, DraftPick, League, LeagueAnalytics, LuckRating, Matchup, Player,
+  PlayerPosition, PlayoffOdds, PowerRanking, RosterEntry, ScheduleStrength, Team,
+  TeamWeekScore,
 } from '@shared/types'
 
 /** Typed client for the Ark API, plus a small hook for loading state. */
@@ -50,6 +51,7 @@ export interface HealthResponse {
   ageSeconds: number | null
   stale: boolean
   warnings: string[]
+  dataQuality: DataQuality | null
 }
 
 export interface StandingsRow {
@@ -162,6 +164,7 @@ export interface LineupResponse {
     alerts: LineupAlert[]
   }
   teams: TeamOption[]
+  dataQuality?: DataQuality | null
 }
 
 export interface WaiverTarget {
@@ -187,6 +190,7 @@ export interface WaiversResponse {
   outlook: PositionOutlook[]
   gaps: Array<{ position: PlayerPosition; reason: string }>
   teams: TeamOption[]
+  dataQuality?: DataQuality | null
 }
 
 export interface TradeIdea {
@@ -217,6 +221,7 @@ export interface TradesResponse {
   surplus: Array<{ position: PlayerPosition; depth: number; spare: Player[] }>
   needs: Array<{ position: PlayerPosition; starterProjection: number }>
   teams: TeamOption[]
+  dataQuality?: DataQuality | null
 }
 
 export const api = {

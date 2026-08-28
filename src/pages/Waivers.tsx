@@ -1,6 +1,7 @@
 import { api, useApi, type WaiverTarget } from '../lib/api'
 import { Card, Empty, ErrorState, Loading, Pill, StatTile } from '../components/ui'
 import TeamPicker from '../components/TeamPicker'
+import DataQualityNotice from '../components/DataQualityNotice'
 import { useTeamSelection } from '../lib/useTeamSelection'
 import { injuryTone, percentRaw, points, positionTone } from '../lib/format'
 
@@ -33,6 +34,8 @@ export default function Waivers() {
         </div>
         <TeamPicker teams={data.teams} value={data.teamId} onChange={setTeamId} />
       </header>
+
+      <DataQualityNotice quality={data.dataQuality} />
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <StatTile

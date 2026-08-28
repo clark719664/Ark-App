@@ -250,6 +250,7 @@ api.get('/lineup', handle((req, res) => {
         }
       : null,
     teams: snapshot.teams.map((t) => ({ id: t.id, name: t.name, isMine: t.isMine ?? false })),
+    dataQuality: snapshot.dataQuality ?? null,
   })
 }))
 
@@ -263,6 +264,7 @@ api.get('/waivers', handle((req, res) => {
     week: snapshot.league.currentWeek,
     team: snapshot.teams.find((t) => t.id === teamId) ?? null,
     teams: snapshot.teams.map((t) => ({ id: t.id, name: t.name, isMine: t.isMine ?? false })),
+    dataQuality: snapshot.dataQuality ?? null,
   })
 }))
 
@@ -276,6 +278,7 @@ api.get('/trades', handle((req, res) => {
     signals: findMarketSignals(snapshot, 8, teamId),
     team: snapshot.teams.find((t) => t.id === teamId) ?? null,
     teams: snapshot.teams.map((t) => ({ id: t.id, name: t.name, isMine: t.isMine ?? false })),
+    dataQuality: snapshot.dataQuality ?? null,
   })
 }))
 

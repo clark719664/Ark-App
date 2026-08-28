@@ -1,6 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import type { LeagueSnapshot, Matchup, Player, RosterEntry } from '../../shared/types.js'
+import type {
+  DataQuality, LeagueSnapshot, Matchup, Player, ProjectionSource, RosterEntry,
+} from '../../shared/types.js'
 import { config } from '../config.js'
 import { openSession, politeDelay } from './browser.js'
 import {
@@ -73,27 +75,43 @@ export async function syncLeague(opts: SyncOptions = {}): Promise<LeagueSnapshot
 
     let players: Player[] = []
     if (!opts.skipPlayers) {
+      const pageOption = opts.playerPages !== undefined ? { pages: opts.playerPages } : {}
+
       log('Reading the free-agent pool…')
-      const options: Parameters<typeof scrapePlayers>[1] = { status: 'A' }
-      if (opts.playerPages !== undefined) options.pages = opts.playerPages
-      players = await scrapePlayers(ctx, options)
-      log(`  ${players.length} available players`)
+      const freeAgents = await scrapePlayers(ctx, { status: 'A', ...pageOption })
+      log(`  ${freeAgents.length} available players`)
       await politeDelay()
+
+      // Also walk the rostered players. The players page reliably carries the
+      // projection and ownership columns that a team page may not, and without
+      // this every rostered player can end up with no numbers at all — which
+      // makes start/sit, waivers and trades quietly meaningless.
+      log('Reading stats for rostered players…')
+      const taken = await scrapePlayers(ctx, { status: 'T', pages: opts.playerPages ?? 12 })
+      log(`  ${taken.length} rostered players`)
+      await politeDelay()
+
+      players = [...freeAgents, ...taken]
     }
 
     log('Reading draft results…')
     const draft = await scrapeDraft(ctx)
     log(`  ${draft.length} picks`)
 
+    const merged = mergeRosteredPlayers(players, rosters)
+    const dataQuality = assessDataQuality(rosters)
+    for (const note of dataQuality.notes) warnings.push(note)
+
     const snapshot: LeagueSnapshot = {
       league,
       teams,
       matchups,
       rosters,
-      players: mergeRosteredPlayers(players, rosters),
+      players: merged,
       draft,
       fetchedAt: new Date().toISOString(),
       warnings,
+      dataQuality,
     }
 
     writeSnapshot(snapshot)
@@ -124,6 +142,15 @@ export function mergeRosteredPlayers(
         // Keep pool stats, but trust the roster for who actually owns them.
         existing.ownerTeamId = entry.player.ownerTeamId ?? existing.ownerTeamId
         if (existing.injury === undefined && entry.player.injury) existing.injury = entry.player.injury
+        if (existing.byeWeek === undefined && entry.player.byeWeek !== undefined) {
+          existing.byeWeek = entry.player.byeWeek
+        }
+        // Push the richer pool numbers back onto the roster entry, so the
+        // lineup tools see them even when the team page had no such column.
+        entry.player = { ...entry.player, points: mergePoints(existing.points, entry.player.points) }
+        if (entry.projected === undefined && existing.points?.projected !== undefined) {
+          entry.projected = existing.points.projected
+        }
       } else {
         byId.set(entry.player.id, entry.player)
       }
@@ -131,6 +158,65 @@ export function mergeRosteredPlayers(
   }
 
   return Array.from(byId.values())
+}
+
+/** Prefer whichever source actually has a value, field by field. */
+function mergePoints(
+  pool: Player['points'],
+  roster: Player['points'],
+): Player['points'] {
+  return {
+    ...(roster ?? {}),
+    ...Object.fromEntries(
+      Object.entries(pool ?? {}).filter(([, value]) => value !== undefined),
+    ),
+  }
+}
+
+/**
+ * Grade the snapshot on the one thing every manager tool depends on: whether
+ * rostered players carry a number worth ranking them by.
+ */
+export function assessDataQuality(rosters: Record<string, RosterEntry[]>): DataQuality {
+  const players = Object.values(rosters)
+    .flat()
+    .map((entry) => entry.player)
+    .filter((player): player is Player => player !== null)
+
+  const withProjection = players.filter(
+    (player) => (player.points?.projected ?? 0) > 0,
+  ).length
+  const withAverage = players.filter((player) => (player.points?.average ?? 0) > 0).length
+
+  const total = players.length
+  const notes: string[] = []
+  let projections: ProjectionSource = 'none'
+
+  // Require most of the league, not just a handful: a few stragglers are normal,
+  // but a mostly-empty column means the parser missed it entirely.
+  if (total > 0 && withProjection / total >= 0.6) {
+    projections = 'provider'
+  } else if (total > 0 && withAverage / total >= 0.6) {
+    projections = 'season-average'
+    notes.push(
+      'No weekly projections were found, so start/sit, waiver and trade rankings ' +
+        'fall back to each player\'s season average. Those are still useful, but ' +
+        'they cannot see this week\'s matchup.',
+    )
+  } else if (total > 0) {
+    notes.push(
+      'Rostered players came back with no scoring data at all, so lineup, waiver ' +
+        'and trade rankings are not meaningful. Run `npm run yahoo:capture` and ' +
+        'check .cache/raw/ to see what the team and player pages actually returned.',
+    )
+  }
+
+  return {
+    projections,
+    playersWithProjections: withProjection,
+    totalRosteredPlayers: total,
+    notes,
+  }
 }
 
 export function writeSnapshot(snapshot: LeagueSnapshot): void {

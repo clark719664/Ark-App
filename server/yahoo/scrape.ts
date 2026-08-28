@@ -275,7 +275,8 @@ export async function scrapeScoreboard(ctx: ScrapeContext, week: number): Promis
     if (!away || !home) continue
     const awayScore = scoreFromContext(away.contextText)
     const homeScore = scoreFromContext(home.contextText)
-    const final = /final/i.test(`${away.contextText} ${home.contextText}`)
+    // "Final" is written on the matchup card, not on either team's own row.
+    const final = /\bfinal\b/i.test(`${away.cardText} ${home.cardText}`)
 
     matchups.push({
       week,
@@ -296,7 +297,12 @@ export async function scrapeScoreboard(ctx: ScrapeContext, week: number): Promis
   return matchups
 }
 
-interface TeamAnchor { teamId: string; groupKey: string; contextText: string }
+interface TeamAnchor {
+  teamId: string
+  groupKey: string
+  contextText: string
+  cardText: string
+}
 
 /**
  * Choose the DOM depth at which team links resolve into two-team containers,
@@ -364,6 +370,22 @@ export async function scrapeRoster(
       const playerCell = row[playerIdx]
       const parsed = parsePlayerCell(playerCell)
 
+      const points = num(cellText(table, row, ['fan pts', 'fanpts', 'points', 'pts']))
+      const projected = num(cellText(table, row, ['proj pts', 'projpts', 'proj', 'projected']))
+      const seasonPoints = num(cellText(table, row, ['season pts', 'total pts', 'season']))
+      const averagePoints = num(cellText(table, row, ['avg pts', 'avgpts', 'average', 'ppg']))
+
+      // Attach the scoring numbers to the player, not just to the roster row.
+      // Everything downstream values players, and a Player with no points at
+      // all silently projects zero — which would make the whole start/sit and
+      // waiver model produce confident nonsense.
+      const playerPoints: Player['points'] = {
+        ...(seasonPoints !== undefined ? { season: seasonPoints } : {}),
+        ...(averagePoints !== undefined ? { average: averagePoints } : {}),
+        ...(points !== undefined ? { lastWeek: points } : {}),
+        ...(projected !== undefined ? { projected } : {}),
+      }
+
       const entry: RosterEntry = {
         slot,
         starter: isStarterSlot(slot),
@@ -376,13 +398,12 @@ export async function scrapeRoster(
               ownerTeamId: teamId,
               ...(parsed.eligiblePositions ? { eligiblePositions: parsed.eligiblePositions } : {}),
               ...(parsed.injury ? { injury: parsed.injury } : {}),
+              ...(Object.keys(playerPoints).length > 0 ? { points: playerPoints } : {}),
             }
           : null,
       }
 
-      const points = num(cellText(table, row, ['fan pts', 'fanpts', 'points', 'pts']))
       if (points !== undefined) entry.points = points
-      const projected = num(cellText(table, row, ['proj pts', 'projpts', 'proj', 'projected']))
       if (projected !== undefined) entry.projected = projected
       const bye = parseBye(cellText(table, row, ['bye']))
       if (bye !== undefined && entry.player) entry.player.byeWeek = bye

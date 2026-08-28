@@ -1,4 +1,4 @@
-import type { LeagueAnalytics, LeagueSnapshot } from '../shared/types.js'
+import type { DataQuality, LeagueAnalytics, LeagueSnapshot } from '../shared/types.js'
 import { computeAnalytics } from './analytics/index.js'
 import { config } from './config.js'
 import { buildDemoSnapshot } from './providers/demo.js'
@@ -66,6 +66,7 @@ export interface StatusReport {
   ageSeconds: number | null
   stale: boolean
   warnings: string[]
+  dataQuality: DataQuality | null
 }
 
 export function getStatus(): StatusReport {
@@ -80,6 +81,7 @@ export function getStatus(): StatusReport {
     ageSeconds: null,
     stale: true,
     warnings: [],
+    dataQuality: null,
   }
 
   try {
@@ -95,6 +97,7 @@ export function getStatus(): StatusReport {
       ageSeconds: age,
       stale: age !== null && age > config.cache.ttlSeconds,
       warnings: snapshot.warnings,
+      dataQuality: snapshot.dataQuality ?? null,
     }
   } catch {
     return base

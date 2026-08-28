@@ -370,6 +370,12 @@ export function buildDemoSnapshot(seed = 20260828): LeagueSnapshot {
     warnings: [
       'This is generated demo data, not a real league. Set FF_PROVIDER=yahoo in .env to use yours.',
     ],
+    dataQuality: {
+      projections: 'provider',
+      playersWithProjections: Object.values(rosters).flat().length,
+      totalRosteredPlayers: Object.values(rosters).flat().length,
+      notes: [],
+    },
   }
 }
 

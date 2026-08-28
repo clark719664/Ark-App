@@ -162,6 +162,31 @@ export interface League {
 }
 
 /**
+ * Where the numbers driving start/sit, waivers and trades came from.
+ *
+ * Every manager tool ranks players by a projection. When the provider does not
+ * expose one, Ark falls back to season form — which is a materially worse basis
+ * for a weekly decision, and the user has a right to know it happened rather
+ * than being handed confident-looking output built on a guess.
+ */
+export type ProjectionSource =
+  /** The provider gave real per-week projections. */
+  | 'provider'
+  /** No projections found; ranking by each player's season average instead. */
+  | 'season-average'
+  /** Neither available — rankings are not meaningful. */
+  | 'none'
+
+export interface DataQuality {
+  projections: ProjectionSource
+  /** How many rostered players carry a usable number. */
+  playersWithProjections: number
+  totalRosteredPlayers: number
+  /** Human-readable explanation when quality is degraded. */
+  notes: string[]
+}
+
+/**
  * Everything Ark knows about a league at a point in time. This is what gets
  * written to disk by the sync command and served by the API.
  */
@@ -179,6 +204,8 @@ export interface LeagueSnapshot {
   fetchedAt: string
   /** Non-fatal problems hit while building the snapshot. */
   warnings: string[]
+  /** How much to trust the numbers in this snapshot. */
+  dataQuality?: DataQuality
 }
 
 // --- Analytics --------------------------------------------------------------
