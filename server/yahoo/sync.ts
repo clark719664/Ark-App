@@ -1,7 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import type {
-  DataQuality, LeagueSnapshot, Matchup, Player, ProjectionSource, RosterEntry,
+  DataQuality, DraftPick, League, LeagueSnapshot, Matchup, Player, ProjectionSource,
+  RosterEntry, Team,
 } from '../../shared/types.js'
 import { config } from '../config.js'
 import { openSession, politeDelay } from './browser.js'
@@ -26,6 +27,68 @@ export interface SyncOptions {
   playerPages?: number
   headed?: boolean
   onProgress?: (message: string) => void
+  /**
+   * Start over rather than continuing from a partial run. A sync writes its
+   * progress as it goes, so an interrupted one resumes by default instead of
+   * re-walking pages Yahoo already served.
+   */
+  fresh?: boolean
+}
+
+/**
+ * A sync in progress.
+ *
+ * Walking a league is a few dozen page loads at a deliberate pace, so losing
+ * all of it to one failure at week nine is a genuinely annoying outcome. Each
+ * stage is written to disk as it completes, and the next run picks up from
+ * there unless asked not to.
+ */
+interface SyncProgress {
+  leagueId: string
+  season: number
+  startedAt: string
+  league?: League
+  teams?: Team[]
+  matchupsByWeek?: Record<string, Matchup[]>
+  rosters?: Record<string, RosterEntry[]>
+  players?: Player[]
+  draft?: DraftPick[]
+  warnings?: string[]
+}
+
+const progressFile = () => path.join(config.cache.dir, 'sync-progress.json')
+
+/** Exposed for tests: resume rules are worth covering directly. */
+export function readSyncProgressForTests(): SyncProgress | null {
+  return readProgress()
+}
+
+function readProgress(): SyncProgress | null {
+  try {
+    const raw = JSON.parse(fs.readFileSync(progressFile(), 'utf8')) as SyncProgress
+    // Progress from a different league or season is not resumable.
+    if (raw.leagueId !== config.yahoo.leagueId || raw.season !== config.yahoo.season) return null
+    return raw
+  } catch {
+    return null
+  }
+}
+
+function writeProgress(progress: SyncProgress): void {
+  try {
+    fs.mkdirSync(config.cache.dir, { recursive: true })
+    fs.writeFileSync(progressFile(), JSON.stringify(progress))
+  } catch {
+    // A checkpoint that cannot be written is not worth failing the sync over.
+  }
+}
+
+function clearProgress(): void {
+  try {
+    fs.rmSync(progressFile(), { force: true })
+  } catch {
+    // Nothing to clean up.
+  }
 }
 
 export async function syncLeague(opts: SyncOptions = {}): Promise<LeagueSnapshot> {
@@ -41,40 +104,94 @@ export async function syncLeague(opts: SyncOptions = {}): Promise<LeagueSnapshot
     log(`  ! ${message}`)
   }
 
+  const resumed = opts.fresh ? null : readProgress()
+  const progress: SyncProgress = resumed ?? {
+    leagueId,
+    season: config.yahoo.season,
+    startedAt: new Date().toISOString(),
+  }
+  if (resumed) {
+    log(`Resuming an interrupted sync from ${resumed.startedAt}.`)
+    log('Pass --fresh to start over instead.\n')
+    warnings.push(...(resumed.warnings ?? []))
+  }
+
+  const checkpoint = () => {
+    progress.warnings = warnings
+    writeProgress(progress)
+  }
+
   const session = await openSession(opts.headed !== undefined ? { headed: opts.headed } : {})
   const ctx: ScrapeContext = { page: session.page, leagueId, warn }
 
   try {
-    log('Reading league settings…')
-    const league = await scrapeLeagueMeta(ctx)
-    await politeDelay()
+    let league = progress.league
+    if (league) {
+      log('League settings: already read, skipping.')
+    } else {
+      log('Reading league settings…')
+      league = await scrapeLeagueMeta(ctx)
+      progress.league = league
+      checkpoint()
+      await politeDelay()
+    }
 
-    log('Reading standings…')
-    const teams = await scrapeStandings(ctx)
-    if (league.numTeams === 0) league.numTeams = teams.length
-    await politeDelay()
+    let teams = progress.teams
+    if (teams) {
+      log(`Standings: already read (${teams.length} teams), skipping.`)
+    } else {
+      log('Reading standings…')
+      teams = await scrapeStandings(ctx)
+      if (league.numTeams === 0) league.numTeams = teams.length
+      progress.teams = teams
+      progress.league = league
+      checkpoint()
+      await politeDelay()
+    }
 
     // Walk the whole regular season, not just the weeks already played: the
     // remaining schedule is what playoff odds are computed from.
     const lastWeek = Math.max(league.currentWeek, league.regularSeasonWeeks)
-    log(`Reading scoreboards for weeks 1–${lastWeek}…`)
-    const matchups: Matchup[] = []
-    for (let week = 1; week <= lastWeek; week += 1) {
-      const weekly = await scrapeScoreboard(ctx, week)
-      matchups.push(...weekly)
-      log(`  week ${week}: ${weekly.length} matchups`)
-      await politeDelay()
+    const matchupsByWeek = progress.matchupsByWeek ?? {}
+    const pendingWeeks = Array.from({ length: lastWeek }, (_, i) => i + 1).filter(
+      (week) => matchupsByWeek[String(week)] === undefined,
+    )
+
+    if (pendingWeeks.length === 0) {
+      log(`Scoreboards: all ${lastWeek} weeks already read, skipping.`)
+    } else {
+      log(`Reading scoreboards for ${pendingWeeks.length} of ${lastWeek} weeks…`)
+      for (const week of pendingWeeks) {
+        const weekly = await scrapeScoreboard(ctx, week)
+        matchupsByWeek[String(week)] = weekly
+        progress.matchupsByWeek = matchupsByWeek
+        checkpoint()
+        log(`  week ${week}: ${weekly.length} matchups`)
+        await politeDelay()
+      }
+    }
+    const matchups: Matchup[] = Object.values(matchupsByWeek).flat()
+
+    const rosters: Record<string, RosterEntry[]> = progress.rosters ?? {}
+    const pendingTeams = teams.filter((team) => rosters[team.id] === undefined)
+    if (pendingTeams.length === 0) {
+      log(`Rosters: all ${teams.length} already read, skipping.`)
+    } else {
+      log(`Reading ${pendingTeams.length} of ${teams.length} rosters…`)
+      for (const team of pendingTeams) {
+        rosters[team.id] = await scrapeRoster(ctx, team.id)
+        progress.rosters = rosters
+        checkpoint()
+        await politeDelay()
+      }
     }
 
-    log(`Reading ${teams.length} rosters…`)
-    const rosters: Record<string, RosterEntry[]> = {}
-    for (const team of teams) {
-      rosters[team.id] = await scrapeRoster(ctx, team.id)
-      await politeDelay()
-    }
-
-    let players: Player[] = []
-    if (!opts.skipPlayers) {
+    let players: Player[] = progress.players ?? []
+    if (opts.skipPlayers) {
+      players = []
+    } else if (progress.players) {
+      log(`Player pool: already read (${players.length} players), skipping.`)
+    } else {
       const pageOption = opts.playerPages !== undefined ? { pages: opts.playerPages } : {}
 
       log('Reading the free-agent pool…')
@@ -92,11 +209,20 @@ export async function syncLeague(opts: SyncOptions = {}): Promise<LeagueSnapshot
       await politeDelay()
 
       players = [...freeAgents, ...taken]
+      progress.players = players
+      checkpoint()
     }
 
-    log('Reading draft results…')
-    const draft = await scrapeDraft(ctx)
-    log(`  ${draft.length} picks`)
+    let draft = progress.draft
+    if (draft) {
+      log(`Draft: already read (${draft.length} picks), skipping.`)
+    } else {
+      log('Reading draft results…')
+      draft = await scrapeDraft(ctx)
+      progress.draft = draft
+      checkpoint()
+      log(`  ${draft.length} picks`)
+    }
 
     const merged = mergeRosteredPlayers(players, rosters)
     const dataQuality = assessDataQuality(rosters)
@@ -115,8 +241,14 @@ export async function syncLeague(opts: SyncOptions = {}): Promise<LeagueSnapshot
     }
 
     writeSnapshot(snapshot)
+    clearProgress()
     log(`\nSaved snapshot to ${config.cache.snapshotFile}`)
     return snapshot
+  } catch (err) {
+    // Keep whatever was gathered so the next run picks up where this stopped.
+    checkpoint()
+    log('\nProgress so far has been saved. Re-run `npm run yahoo:sync` to continue.')
+    throw err
   } finally {
     await session.close()
   }

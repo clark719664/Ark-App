@@ -222,7 +222,13 @@ app for those. Ark is the analysis layer on top.
 | `npm start` | Serve the production build on one port |
 
 `yahoo:sync` takes `--skip-players` to skip the free-agent pool (much faster when
-you only want scores) and `--headed` to watch it work.
+you only want scores), `--headed` to watch it work, and `--fresh` to start over
+rather than resume.
+
+A sync is a few dozen page loads at a deliberate pace, so it checkpoints as it
+goes. If one fails partway through — a lapsed session, a flaky page, a closed
+laptop — re-running it picks up from the last completed stage instead of walking
+everything again.
 
 ## Configuration
 

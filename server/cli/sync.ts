@@ -8,6 +8,17 @@ import { syncLeague } from '../yahoo/sync.js'
 async function main(): Promise<void> {
   const args = new Set(process.argv.slice(2))
 
+  if (args.has('--help') || args.has('-h')) {
+    console.log(`
+Usage: npm run yahoo:sync [-- flags]
+
+  --fresh           Start over instead of resuming an interrupted sync
+  --skip-players    Skip the player pool; much faster when you only want scores
+  --headed          Show the browser window while it works
+`)
+    return
+  }
+
   if (!config.yahoo.leagueId) {
     console.error(
       '\nYAHOO_LEAGUE_ID is not set.\n\n' +
@@ -23,6 +34,7 @@ async function main(): Promise<void> {
   const snapshot = await syncLeague({
     skipPlayers: args.has('--skip-players'),
     headed: args.has('--headed') ? true : undefined,
+    fresh: args.has('--fresh'),
     onProgress: (message) => console.log(message),
   })
 

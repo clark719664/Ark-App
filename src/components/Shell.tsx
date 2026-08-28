@@ -1,6 +1,7 @@
-import { NavLink, Outlet } from 'react-router-dom'
+import { NavLink, Outlet, useLocation } from 'react-router-dom'
 import { api, useApi, type HealthResponse } from '../lib/api'
 import { relativeTime } from '../lib/format'
+import ErrorBoundary from './ErrorBoundary'
 
 /**
  * Navigation is grouped by what you are doing: managing your own team first,
@@ -39,6 +40,7 @@ const NAV_GROUPS: Array<{
 
 export default function Shell() {
   const { data: health, reload } = useApi(() => api.health(), [])
+  const location = useLocation()
 
   return (
     <div className="flex min-h-full flex-col">
@@ -98,7 +100,11 @@ export default function Shell() {
       {health?.provider === 'demo' && <DemoBanner />}
 
       <main className="mx-auto w-full max-w-[1400px] flex-1 px-4 py-6">
-        <Outlet />
+        {/* Keyed on the route so recovering from an error on one page does not
+            leave the boundary latched when navigating to another. */}
+        <ErrorBoundary key={location.pathname} label="This page">
+          <Outlet />
+        </ErrorBoundary>
       </main>
 
       <footer className="border-t border-ink-800 px-4 py-4 text-center text-xs leading-relaxed text-ink-500">

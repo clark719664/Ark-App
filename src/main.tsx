@@ -1,18 +1,26 @@
-import { StrictMode } from 'react'
+import { lazy, StrictMode, Suspense, type ReactNode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { createBrowserRouter, RouterProvider } from 'react-router-dom'
 import Shell from './components/Shell'
+import { Loading } from './components/ui'
 import Dashboard from './pages/Dashboard'
 import Standings from './pages/Standings'
 import Matchups from './pages/Matchups'
 import Lineup from './pages/Lineup'
 import Waivers from './pages/Waivers'
 import Trades from './pages/Trades'
-import TeamPage from './pages/TeamPage'
 import Players from './pages/Players'
 import DraftBoard from './pages/DraftBoard'
-import Analytics from './pages/Analytics'
 import './index.css'
+
+// The charting library is by far the largest dependency and only two pages
+// need it, so they load on demand rather than in everyone's first paint.
+const Analytics = lazy(() => import('./pages/Analytics'))
+const TeamPage = lazy(() => import('./pages/TeamPage'))
+
+function deferred(node: ReactNode): ReactNode {
+  return <Suspense fallback={<Loading label="Loading charts…" />}>{node}</Suspense>
+}
 
 const router = createBrowserRouter([
   {
@@ -25,10 +33,10 @@ const router = createBrowserRouter([
       { path: 'lineup', element: <Lineup /> },
       { path: 'waivers', element: <Waivers /> },
       { path: 'trades', element: <Trades /> },
-      { path: 'analytics', element: <Analytics /> },
+      { path: 'analytics', element: deferred(<Analytics />) },
       { path: 'players', element: <Players /> },
       { path: 'draft', element: <DraftBoard /> },
-      { path: 'teams/:id', element: <TeamPage /> },
+      { path: 'teams/:id', element: deferred(<TeamPage />) },
     ],
   },
 ])
