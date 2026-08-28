@@ -15,7 +15,8 @@
     "preview": "vite preview",
     "yahoo:login": "tsx server/cli/login.ts",
     "yahoo:sync": "tsx server/cli/sync.ts",
-    "yahoo:capture": "tsx server/cli/capture.ts"
+    "yahoo:capture": "tsx server/cli/capture.ts",
+    "sim": "tsx sim/run.ts"
   },
   "dependencies": {
     "compression": "^1.8.1",

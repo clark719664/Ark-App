@@ -279,6 +279,83 @@ npm run yahoo:capture   # save your real pages
 npm test                # check the parsers against them
 ```
 
+## Does any of this actually win?
+
+Fair question, and one most fantasy tools never answer. `sim/` runs the shipped
+analytics as a manager against rival strategies over thousands of simulated
+seasons.
+
+```bash
+npm run sim 2500
+```
+
+Twelve teams: three running Ark's recommendations, three running a competent
+conventional tool (always start the highest projection, claim the best-projected
+free agent), two churning the wire, two who set a lineup in week one and never
+looked again, and two picking at random. Same information for everyone, seat
+rotation each season so nobody keeps a favourable draft slot, and a snake draft
+that leaves every seat within about 2% of the same talent.
+
+The world is built to be able to prove Ark wrong:
+
+- **Agents never see the truth.** Every player has a hidden talent level and
+  hidden volatility. What agents get is a noisy weekly projection, and an injury
+  tag that is only a hint at whether the player will suit up.
+- **Ark's assumptions are deliberately wrong.** Ark's risk model assumes normal
+  scores and fixed per-position volatility priors. The world generates
+  right-skewed scores from a gamma distribution and draws each player's true
+  volatility around position means that do not match those priors. A model that
+  only wins when handed its own assumptions has proved nothing.
+
+Over 2,500 seasons — 7,500 team-seasons per strategy — against a 1-in-12
+baseline of 8.3%:
+
+| Strategy | Titles | Playoffs | Wins | Points | Bench waste |
+| --- | --- | --- | --- | --- | --- |
+| **Ark** | **13.1%** | **73.2%** | 8.16 | 1866 | 191 |
+| Streamer | 9.8% | 55.7% | 7.34 | 1779 | 275 |
+| Conventional tool | 9.0% | 55.3% | 7.29 | 1781 | 279 |
+| Set and forget | 6.4% | 41.5% | 6.67 | 1709 | 344 |
+| Random | 0.6% | 10.0% | 4.82 | 1525 | 531 |
+
+At that sample size the gap over a conventional tool is roughly eight standard
+errors, so it is not noise.
+
+### The simulation found a real bug
+
+The first run was worse than that, and the interesting part is why. Ark
+dominated the regular season — 71.9% playoff rate against 52.4% — and then
+*underperformed in the playoffs*, winning fewer titles than the manager who set
+one lineup in August and stopped paying attention.
+
+Adding a diagnostic for hidden roster talent showed it immediately: Ark's roster
+lost **12.9 points of true talent** over a season while every other transacting
+strategy gained a little.
+
+The cause was the optimizer's curse. Waiver claims were ranked by maximising
+marginal lineup value across dozens of candidates using a single week's
+projection. Taking the maximum of many noisy estimates systematically selects
+for whichever one got the luckiest reading — so Ark added players whose
+projection happened to be flattering and dropped whoever drew a bad week. Do
+that fourteen times and the roster erodes, invisibly, while the weekly numbers
+all look fine.
+
+The fix was to separate two questions that had been sharing one number. *Who do
+I start this week* is answered by this week's projection. *Who do I add or drop*
+is a question about the rest of the season, and is now answered by a value that
+blends the projection with the player's season-long form, weighted by how much
+of that season has actually been observed — plus a margin a claim has to clear
+before it is worth making at all.
+
+Result: talent drift went from −12.9 to −0.2 a season, and the title rate went
+from 10.4% to 13.1%, moving Ark from behind the do-nothing manager to clearly
+ahead of everyone.
+
+That bug was invisible to every other form of testing in this repo. The unit
+tests passed, the numbers on screen looked reasonable, and the recommendations
+were individually defensible. It took playing the season out to see that
+following them for fourteen weeks made your team worse.
+
 ## What Ark deliberately does not do
 
 Ark is read-only. It never sets your lineup, submits a waiver claim, or proposes
@@ -299,6 +376,7 @@ app for those. Ark is the analysis layer on top.
 | `npm run yahoo:login` | Sign in to Yahoo, once |
 | `npm run yahoo:sync` | Pull your league into `.cache/league.json` |
 | `npm run yahoo:capture` | Record what Yahoo actually serves, for debugging |
+| `npm run sim 2500` | Play out simulated seasons and score the strategies |
 | `npm test` | Run the test suite |
 | `npm run typecheck` | Typecheck client and server |
 | `npm run build` | Build for production |
@@ -361,6 +439,11 @@ server/
     impact.ts          Transactions priced in playoff and title probability
     leverage.ts        What each remaining game is worth; clinch and elimination
     risk.ts            Win-probability-optimal lineups
+sim/
+  world.ts             Hidden player talent, noisy projections, injuries
+  agents.ts            Competing manager strategies, Ark among them
+  season.ts            Draft, weeks, waivers, playoffs
+  run.ts               Many seasons, scored by strategy
     lineup.ts          The shared "best legal lineup" solver
     waivers.ts         Free agents scored by marginal lineup value
     trades.ts          Two-sided trade search, buy-low / sell-high

@@ -1,6 +1,8 @@
 import type { LeagueSnapshot, Player, PlayerPosition, RosterEntry } from '../../shared/types.js'
 import type { Impact, ImpactCalculator } from './impact.js'
-import { bestLineup, effectiveProjection, projectionOf } from './lineup.js'
+import {
+  bestLineup, bestLineupByRosterValue, effectiveProjection, projectionOf, rosterValue,
+} from './lineup.js'
 import { round } from './stats.js'
 
 /**
@@ -17,8 +19,13 @@ import { round } from './stats.js'
 
 export interface WaiverTarget {
   player: Player
-  /** Projected points per week this player adds to your best lineup. */
+  /** Projected points per week this player adds to your best lineup this week. */
   upgrade: number
+  /**
+   * The same, valued for the rest of the season rather than one week. This is
+   * what the ranking uses, because adding and dropping is a season decision.
+   */
+  seasonUpgrade: number
   /** The player he pushes out of the starting lineup, if any. */
   replaces: Player | null
   rank: number
@@ -76,6 +83,9 @@ export function buildWaiverReport(
     .filter((player): player is Player => player !== null)
 
   const base = bestLineup(myPlayers, slots, currentWeek)
+  // Roster decisions are about the rest of the season, so they are scored on a
+  // stabilised value rather than on one week's projection. See rosterValue.
+  const baseSeasonValue = bestLineupByRosterValue(myPlayers, slots)
 
   const rosteredIds = new Set(
     Object.values(snapshot.rosters).flatMap((entries) =>
@@ -97,6 +107,7 @@ export function buildWaiverReport(
     .map((player) => {
       const after = bestLineup([...myPlayers, player], slots, currentWeek)
       const upgrade = after.total - base.total
+      const seasonUpgrade = bestLineupByRosterValue([...myPlayers, player], slots) - baseSeasonValue
 
       // Whoever was starting before and isn't now is the man he displaces.
       const displaced =
@@ -104,10 +115,17 @@ export function buildWaiverReport(
           ? (myPlayers.find((p) => base.chosenIds.has(p.id) && !after.chosenIds.has(p.id)) ?? null)
           : null
 
-      return { player, upgrade, replaces: displaced }
+      return { player, upgrade, seasonUpgrade, replaces: displaced }
     })
     .filter((candidate) => projectionOf(candidate.player) > 0)
-    .sort((a, b) => b.upgrade - a.upgrade || projectionOf(b.player) - projectionOf(a.player))
+    // Rank on rest-of-season value; this week's upgrade breaks ties, so a
+    // player who only helps this week still surfaces for a bye-week hole.
+    .sort(
+      (a, b) =>
+        b.seasonUpgrade - a.seasonUpgrade ||
+        b.upgrade - a.upgrade ||
+        rosterValue(b.player) - rosterValue(a.player),
+    )
 
   const outlook = buildOutlook(scored)
 
@@ -123,6 +141,7 @@ export function buildWaiverReport(
     targets.push({
       player: candidate.player,
       upgrade: round(candidate.upgrade, 1),
+      seasonUpgrade: round(candidate.seasonUpgrade, 1),
       replaces: candidate.replaces,
       rank: targets.length + 1,
       reasons: buildReasons(candidate.player, candidate.upgrade, gapPositions, currentWeek),
@@ -161,12 +180,12 @@ function priceTargets(
 }
 
 function buildOutlook(
-  scored: Array<{ player: Player; upgrade: number }>,
+  scored: Array<{ player: Player; upgrade: number; seasonUpgrade: number }>,
 ): PositionOutlook[] {
-  const best = new Map<PlayerPosition, { player: Player; upgrade: number }>()
+  const best = new Map<PlayerPosition, { player: Player; upgrade: number; seasonUpgrade: number }>()
   for (const candidate of scored) {
     const current = best.get(candidate.player.position)
-    if (!current || candidate.upgrade > current.upgrade) {
+    if (!current || candidate.seasonUpgrade > current.seasonUpgrade) {
       best.set(candidate.player.position, candidate)
     }
   }
@@ -175,7 +194,7 @@ function buildOutlook(
     const entry = best.get(position)
     return {
       position,
-      bestUpgrade: round(entry?.upgrade ?? 0, 1),
+      bestUpgrade: round(entry?.seasonUpgrade ?? 0, 1),
       bestPlayer: entry?.player ?? null,
     }
   }).sort((a, b) => b.bestUpgrade - a.bestUpgrade)

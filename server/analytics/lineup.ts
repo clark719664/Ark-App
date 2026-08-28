@@ -281,3 +281,69 @@ export function resolveSlots(
   const fromRoster = roster.filter((entry) => entry.starter).map((entry) => entry.slot)
   return fromRoster.length > 0 ? fromRoster : DEFAULT_SLOTS
 }
+
+/**
+ * A player's value for *roster* decisions, as opposed to lineup decisions.
+ *
+ * These are two different questions and they want two different numbers. Whom
+ * to start this week is answered by this week's projection. Whom to add or drop
+ * is a question about the rest of the season, and answering it with a single
+ * week's projection is a mistake with a name: ranking candidates by a noisy
+ * estimate and taking the maximum systematically selects for players whose
+ * noise happened to be favourable, and drops players whose noise happened to be
+ * bad. Do that every week and the roster decays.
+ *
+ * It is not a hypothetical. In a 600-season simulation, ranking waiver claims
+ * on weekly projections alone cost about 13 points of true roster talent over a
+ * season while strategies that transacted less actually gained. So a roster
+ * decision blends the current projection with the player's season-long form,
+ * weighted by how much of that season has actually been observed.
+ */
+const ROSTER_VALUE_PRIOR_GAMES = 3
+
+export function rosterValue(player: Player | null): number {
+  if (!player) return 0
+
+  const projection = player.points?.projected
+  const average = player.points?.average
+  const season = player.points?.season
+
+  if (average === undefined) return projection ?? 0
+  if (projection === undefined) return average
+
+  // Infer how many games the average is built on; more evidence, more weight.
+  const games = season !== undefined && average > 0 ? Math.max(1, Math.round(season / average)) : 1
+  const weight = games / (games + ROSTER_VALUE_PRIOR_GAMES)
+
+  return weight * average + (1 - weight) * projection
+}
+
+/**
+ * The best lineup a set of players supports, valued for the rest of the season
+ * rather than for one week. Bye weeks and short-term injury tags are ignored on
+ * purpose: a player is not worth less to a roster because he is off this Sunday.
+ */
+export function bestLineupByRosterValue(players: Player[], slots: string[]): number {
+  const ordered = slots
+    .map((slot, index) => ({ slot, index, width: slotEligibility(slot)?.length ?? 99 }))
+    .sort((a, b) => a.width - b.width || a.index - b.index)
+
+  const used = new Set<string>()
+  let total = 0
+
+  for (const { slot } of ordered) {
+    let best: { id: string; value: number } | null = null
+    for (const player of players) {
+      if (used.has(player.id)) continue
+      if (!canFill(slot, player.position, player.eligiblePositions)) continue
+      const value = rosterValue(player)
+      if (!best || value > best.value) best = { id: player.id, value }
+    }
+    if (best && best.value > 0) {
+      used.add(best.id)
+      total += best.value
+    }
+  }
+
+  return total
+}
