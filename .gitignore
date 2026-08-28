@@ -1,0 +1,14 @@
+node_modules/
+dist/
+.env
+.env.local
+*.log
+.DS_Store
+.vite/
+coverage/
+
+# Browser profile with your live Yahoo login — NEVER commit this.
+.browser-profile/
+
+# Scraped data, raw HTML captures and network dumps — may contain personal data.
+.cache/

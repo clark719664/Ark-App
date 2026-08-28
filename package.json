@@ -1,0 +1,46 @@
+{
+  "name": "ark-app",
+  "private": true,
+  "version": "0.1.0",
+  "type": "module",
+  "description": "Fantasy football hub - league dashboard, player research, draft board, and analytics",
+  "scripts": {
+    "dev": "concurrently -n server,web -c cyan,magenta \"npm:dev:server\" \"npm:dev:web\"",
+    "dev:server": "tsx watch server/index.ts",
+    "dev:web": "vite",
+    "build": "tsc -p tsconfig.server.json --noEmit && vite build",
+    "start": "cross-env NODE_ENV=production tsx server/index.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.server.json --noEmit",
+    "test": "vitest run",
+    "preview": "vite preview",
+    "yahoo:login": "tsx server/cli/login.ts",
+    "yahoo:sync": "tsx server/cli/sync.ts",
+    "yahoo:capture": "tsx server/cli/capture.ts"
+  },
+  "dependencies": {
+    "compression": "^1.8.1",
+    "express": "^5.2.1",
+    "playwright": "^1.62.1",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "react-router-dom": "^7.18.3",
+    "recharts": "^3.10.1"
+  },
+  "devDependencies": {
+    "@types/compression": "^1.8.1",
+    "@types/express": "^5.0.6",
+    "@types/node": "^26.4.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.5",
+    "@vitejs/plugin-react": "^6.1.1",
+    "autoprefixer": "^10.5.4",
+    "concurrently": "^10.0.5",
+    "cross-env": "^10.1.0",
+    "postcss": "^8.5.26",
+    "tailwindcss": "^3.4.19",
+    "tsx": "^4.23.12",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  }
+}
