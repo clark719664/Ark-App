@@ -1,0 +1,85 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body,
+  #root {
+    height: 100%;
+  }
+
+  body {
+    @apply bg-ink-950 text-ink-100 antialiased;
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'tnum';
+  }
+
+  /* Numbers in tables should line up. */
+  .tabular {
+    font-variant-numeric: tabular-nums;
+  }
+
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    @apply bg-ink-900;
+  }
+  ::-webkit-scrollbar-thumb {
+    @apply bg-ink-700 rounded-full;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    @apply bg-ink-600;
+  }
+}
+
+@layer components {
+  .card {
+    @apply bg-ink-900 border border-ink-800 rounded-xl;
+  }
+
+  .card-header {
+    @apply px-4 py-3 border-b border-ink-800 flex items-center justify-between gap-3;
+  }
+
+  .table-base {
+    @apply w-full text-sm tabular;
+  }
+
+  .table-base thead th {
+    @apply text-left font-semibold text-ink-400 text-xs uppercase tracking-wide px-3 py-2 whitespace-nowrap;
+  }
+
+  .table-base tbody td {
+    @apply px-3 py-2 border-t border-ink-800/70 whitespace-nowrap;
+  }
+
+  .table-base tbody tr:hover {
+    @apply bg-ink-850/60;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-semibold;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg px-3 py-1.5 text-sm font-semibold
+           border border-ink-700 bg-ink-850 text-ink-100 transition-colors
+           hover:bg-ink-800 hover:border-ink-600
+           disabled:opacity-40 disabled:cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply border-turf-600 bg-turf-600 text-ink-950 hover:bg-turf-500 hover:border-turf-500;
+  }
+
+  .input {
+    @apply rounded-lg border border-ink-700 bg-ink-850 px-3 py-1.5 text-sm text-ink-100
+           placeholder:text-ink-500 focus:border-chalk-500 focus:outline-none;
+  }
+}

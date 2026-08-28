@@ -160,7 +160,29 @@ export async function isLoginWall(page: Page): Promise<boolean> {
  * Throws a YahooAuthError with recovery instructions when the session is gone.
  */
 export async function gotoAuthed(page: Page, url: string): Promise<void> {
-  await page.goto(url, { waitUntil: 'domcontentloaded' })
+  try {
+    await page.goto(url, { waitUntil: 'domcontentloaded' })
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err)
+    // Distinguish "can't reach Yahoo" from "Yahoo said no" — they need
+    // completely different fixes, and the raw Chrome error says neither.
+    if (/ERR_(TUNNEL_CONNECTION_FAILED|NAME_NOT_RESOLVED|INTERNET_DISCONNECTED|CONNECTION_(REFUSED|RESET|TIMED_OUT)|PROXY)/.test(message)) {
+      throw new Error(
+        `Couldn't reach Yahoo at ${url}\n` +
+          `This looks like a network problem rather than a login one — check your ` +
+          `internet connection, VPN, or proxy settings.\n` +
+          `Original error: ${message.split('\n')[0]}`,
+      )
+    }
+    if (/Timeout .* exceeded/i.test(message)) {
+      throw new Error(
+        `Timed out loading ${url}\n` +
+          `Yahoo may be slow right now. Raise SCRAPE_TIMEOUT_MS in .env and try again.`,
+      )
+    }
+    throw err
+  }
+
   if (await isLoginWall(page)) {
     throw new YahooAuthError(
       `Yahoo asked for a login when loading ${url}\n` +
