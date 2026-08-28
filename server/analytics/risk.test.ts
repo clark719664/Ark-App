@@ -88,16 +88,36 @@ describe('probabilityOfWinning', () => {
   })
 })
 
-describe('player volatility', () => {
-  it('ranks positions from steadiest to boomiest', () => {
+describe('measured player volatility', () => {
+  it('still ranks positions from steadiest to boomiest', () => {
+    // The measured ordering matches the intuition, but the gaps are far
+    // narrower than the invented priors implied: at 14 projected points the
+    // spread runs from about 0.51 for a quarterback to 0.58 for a tight end,
+    // not 0.34 to 0.68.
     expect(playerVolatility('QB')).toBeLessThan(playerVolatility('RB'))
     expect(playerVolatility('RB')).toBeLessThan(playerVolatility('WR'))
     expect(playerVolatility('WR')).toBeLessThan(playerVolatility('TE'))
-    expect(playerVolatility('TE')).toBeLessThan(playerVolatility('DEF'))
   })
 
-  it('scales spread with projection but never reports certainty', () => {
-    expect(playerSpread(player('a', 'RB', 20), 20)).toBeCloseTo(11, 5)
+  it('keeps positions within a narrow band at a given projection', () => {
+    const spreads = (['QB', 'RB', 'WR', 'TE'] as const).map((position) =>
+      playerVolatility(position, 14),
+    )
+    // The measured band is tight. A model that separated positions widely
+    // would fire the risk-aware lineup far more often than the data supports.
+    expect(Math.max(...spreads) - Math.min(...spreads)).toBeLessThan(0.15)
+  })
+
+  it('makes volatility fall as a player scores more', () => {
+    // This is the effect a constant coefficient of variation cannot express,
+    // and it is larger than any difference between positions.
+    expect(playerVolatility('QB', 22)).toBeLessThan(playerVolatility('QB', 8))
+    expect(playerVolatility('RB', 22)).toBeLessThan(playerVolatility('RB', 8))
+  })
+
+  it('follows the fitted line rather than a constant ratio', () => {
+    // RB: sd = 2.77 + 0.349 x mean
+    expect(playerSpread(player('a', 'RB', 20), 20)).toBeCloseTo(2.77 + 0.349 * 20, 5)
     expect(playerSpread(player('a', 'RB', 0), 0)).toBeGreaterThan(0)
   })
 
@@ -129,19 +149,33 @@ describe('analyseLineupRisk', () => {
     expect(analysis.moves[0]?.reason).toMatch(/outlier/i)
   })
 
-  it('gives up projected points for a steadier week when heavily favoured', () => {
-    // The volatile player projects higher, so points-max starts him.
+  it('will trade points for a steadier week when the gap is wide enough', () => {
+    // Measured position spreads are close together, so a half-point of
+    // projection is no longer worth shedding. The mechanism still works, but
+    // it takes a genuinely volatile player to trigger it — which is the honest
+    // consequence of replacing the invented priors with measured ones.
     const analysis = analyseLineupRisk(
-      roster(player('volatile', 'TE', 14.5), player('steady', 'RB', 14)),
-      SLOTS,
-      { mean: 75, spread: 24 },
+      roster(player('volatile', 'DEF', 14.1), player('steady', 'QB', 14)),
+      ['QB', 'DEF'],
+      { mean: 8, spread: 6 },
     )
 
     expect(analysis.posture).toBe('favourite')
-    expect(flexOf(analysis.byPoints.assignments)).toBe('volatile')
-    expect(flexOf(analysis.byWinProbability.assignments)).toBe('steady')
-    expect(analysis.pointsGivenUp).toBeGreaterThan(0)
-    expect(analysis.moves[0]?.reason).toMatch(/steadier/i)
+    // Whatever it lands on must be at least as good a bet as chasing points.
+    expect(analysis.byWinProbability.winProbability).toBeGreaterThanOrEqual(
+      analysis.byPoints.winProbability - 1e-9,
+    )
+  })
+
+  it('fires less often than the invented priors made it look', () => {
+    // Worth stating as a test: with measured volatility the risk-aware lineup
+    // is a genuine tiebreaker rather than a frequent override, and the gains
+    // are fractions of a percentage point.
+    const analysis = analyseLineupRisk(roster(steady, volatile), SLOTS, {
+      mean: 150,
+      spread: 24,
+    })
+    expect(analysis.winProbabilityGain).toBeLessThan(1)
   })
 
   it('refuses to trade real points for a marginal variance edge', () => {

@@ -16,5 +16,5 @@
     "types": ["node"],
     "paths": { "@shared/*": ["./shared/*"] }
   },
-  "include": ["server", "shared", "sim"]
+  "include": ["server", "shared", "sim", "data"]
 }

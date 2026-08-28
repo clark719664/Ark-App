@@ -16,7 +16,9 @@
     "yahoo:login": "tsx server/cli/login.ts",
     "yahoo:sync": "tsx server/cli/sync.ts",
     "yahoo:capture": "tsx server/cli/capture.ts",
-    "sim": "tsx sim/run.ts"
+    "sim": "tsx sim/run.ts",
+    "data:fetch": "tsx data/cli/fetch.ts",
+    "data:analyse": "tsx data/cli/analyse.ts"
   },
   "dependencies": {
     "compression": "^1.8.1",

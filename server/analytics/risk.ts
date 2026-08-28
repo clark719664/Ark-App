@@ -26,36 +26,64 @@ import { probabilityOfWinning, round } from './stats.js'
  */
 
 /**
- * Weekly coefficient of variation by position — spread as a fraction of a
- * player's own projection.
+ * Measured weekly spread, from 26 seasons of nflverse data.
  *
- * These are priors, not measurements: quarterbacks touch the ball every drive
- * and regress to their mean quickly, while a tight end's week is often decided
- * by whether one red-zone target arrived. When per-player game logs are
- * available these should be replaced by observed variance; until then a
- * position prior is far better than pretending every player is equally
- * predictable, which is what using expected points alone assumes.
+ * These replace a set of invented per-position coefficients of variation. They
+ * were wrong in two ways, and the second mattered more than the first.
+ *
+ * The values were too low — the guesses were QB 0.34, RB 0.55, WR 0.62,
+ * TE 0.68 against measured medians of 0.51, 0.71, 0.70 and 0.75. But the shape
+ * was wrong too. A constant coefficient of variation assumes spread is
+ * proportional to a player's average, which forces the fit through the origin.
+ * The data says otherwise: every position has a large positive intercept, and
+ * for quarterbacks it dominates.
+ *
+ * The practical consequence is that volatility tracks how much a player scores
+ * far more than it tracks what position he plays. A marginal quarterback's
+ * coefficient of variation is 1.10 against an elite one's 0.38 — a wider gap
+ * than any two positions — and the old model could not represent that at all.
+ *
+ * Rebuild with `npm run data:fetch && npm run data:analyse`.
  */
-const POSITION_VOLATILITY: Record<string, number> = {
-  QB: 0.34,
-  RB: 0.55,
-  WR: 0.62,
-  TE: 0.68,
-  K: 0.45,
-  DEF: 0.75,
+interface SpreadModel {
+  intercept: number
+  slope: number
 }
 
-const DEFAULT_VOLATILITY = 0.6
+const MEASURED_SPREAD: Record<string, SpreadModel> = {
+  QB: { intercept: 5.26, slope: 0.131 },
+  RB: { intercept: 2.77, slope: 0.349 },
+  WR: { intercept: 2.4, slope: 0.401 },
+  TE: { intercept: 1.58, slope: 0.47 },
+}
+
+/**
+ * Kickers and defenses are not in the fitted sample — nflverse does not carry
+ * weekly team-defense scoring in the player table — so they keep a
+ * conservative constant, wider than any measured position.
+ */
+const FALLBACK_SPREAD: SpreadModel = { intercept: 3.0, slope: 0.45 }
+
 /** Even a projected-zero player is not a certainty. */
 const MINIMUM_SPREAD = 1.5
 
-export function playerVolatility(position: PlayerPosition): number {
-  return POSITION_VOLATILITY[position] ?? DEFAULT_VOLATILITY
+export function spreadModelFor(position: PlayerPosition): SpreadModel {
+  return MEASURED_SPREAD[position] ?? FALLBACK_SPREAD
+}
+
+/**
+ * Implied coefficient of variation at a given projection. Kept because it is
+ * the intuitive way to talk about volatility, even though the model itself is
+ * not a constant ratio.
+ */
+export function playerVolatility(position: PlayerPosition, projection = 12): number {
+  return playerSpread({ position } as Player, projection) / Math.max(projection, 1)
 }
 
 /** Standard deviation of a single player's week. */
 export function playerSpread(player: Player, projection: number): number {
-  return Math.max(MINIMUM_SPREAD, projection * playerVolatility(player.position))
+  const model = spreadModelFor(player.position)
+  return Math.max(MINIMUM_SPREAD, model.intercept + model.slope * Math.max(0, projection))
 }
 
 export interface LineupDistribution {

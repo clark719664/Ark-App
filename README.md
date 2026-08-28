@@ -279,6 +279,126 @@ npm run yahoo:capture   # save your real pages
 npm test                # check the parsers against them
 ```
 
+## Measured, not assumed
+
+Several numbers in this app started life as plausible guesses. They are now
+measured against 26 seasons of real NFL data — 128,878 weekly player rows, 25,066
+player biographies and 90,752 injury reports, from
+[nflverse](https://github.com/nflverse/nflverse-data).
+
+```bash
+npm run data:fetch      # ~50 MB, gitignored
+npm run data:analyse    # rebuilds data/derived/football.json
+```
+
+The raw data stays out of the repository; the small derived file is committed, so
+the app ships with measured constants and does not need the dataset to run.
+
+A note on scope: open weekly data begins in 1999, not the Super Bowl era. That is
+a real limit, but it is also the right window — PPR scoring did not exist for most
+of NFL history, passing rates were far lower, and 1970s running back usage would
+actively mislead a model predicting 2026 fantasy.
+
+### Volatility: wrong value, wrong shape
+
+The start/sit risk model needs a spread for every player. It used invented
+per-position coefficients of variation, and they were wrong twice over.
+
+| Position | Guessed CV | Measured median CV |
+| --- | --- | --- |
+| QB | 0.34 | **0.51** |
+| RB | 0.55 | **0.71** |
+| WR | 0.62 | **0.70** |
+| TE | 0.68 | **0.75** |
+
+The values were all too low. More importantly the *shape* was wrong: a constant
+coefficient of variation assumes spread is proportional to a player's average,
+forcing the fit through the origin. Every position has a large positive
+intercept instead.
+
+```
+QB   sd = 5.26 + 0.131 x mean      RB   sd = 2.77 + 0.349 x mean
+WR   sd = 2.40 + 0.401 x mean      TE   sd = 1.58 + 0.470 x mean
+```
+
+What that means in practice is the opposite of what the model assumed. Volatility
+tracks how much a player scores far more than what position he plays:
+
+| | elite (18+ ppg) | strong (12–18) | startable (7–12) | marginal (<7) |
+| --- | --- | --- | --- | --- |
+| QB | 0.38 | 0.46 | 0.68 | 1.10 |
+| RB | 0.44 | 0.52 | 0.68 | 0.93 |
+| WR | 0.46 | 0.56 | 0.68 | 0.88 |
+
+A marginal quarterback is nearly three times as volatile as an elite one — a
+wider gap than exists between any two positions. The old model could not
+represent that at all.
+
+**This made the risk-aware lineup weaker, not stronger.** With measured spreads,
+comparable players differ by far less than the invented priors implied, so the
+feature fires less often and gains fractions of a percentage point rather than
+whole ones. It is a genuine tiebreaker for close calls, not the frequent
+override the earlier numbers suggested. That is worth saying plainly, because
+the guessed constants flattered it.
+
+### Hot and cold streaks are not mirror images
+
+Buy-low and sell-high fired on any swing over 35% from a player's baseline and
+treated the two directions identically. Measuring what actually happens next:
+
+- **24%** of a hot stretch survives into the following three games
+- **57%** of a cold one does
+
+A player running hot gives back roughly three quarters of it. A player running
+cold keeps more than half the decline, because a cold stretch often means a lost
+role or a body that is not right, and those do not bounce. Selling into a hot
+streak is a much better bet than buying a cold one, and the app now says which is
+which instead of presenting them as symmetric.
+
+### The running back cliff, measured
+
+Cross-sectional age curves are useless here — they show receivers peaking at 35,
+which only means that bad 35-year-olds are not in the league. Measuring the same
+player's year-over-year change instead:
+
+| Position | Improving through | Decline begins | Decline by 33 |
+| --- | --- | --- | --- |
+| RB | 23 | **25** | −1.7 ppg/yr |
+| WR | 23 | 27 | −1.6 ppg/yr |
+| TE | 25 | 26 | −0.4 ppg/yr |
+
+### What predicts a breakout
+
+A breakout here is a gain of 4+ points per game that also clears 10 ppg, measured
+against signals visible beforehand.
+
+| Signal | Breakout rate | Baseline | Lift |
+| --- | --- | --- | --- |
+| Age 24 or under, drafted round 1–2 | 20.3% | 8.7% | **2.33×** |
+| Age 24 or under | 16.3% | 8.2% | 1.98× |
+| Drafted round 1–2 | 12.0% | 8.3% | 1.43× |
+| Target share rose last season | 7.4% | 10.7% | **0.69×** |
+
+That last row is the interesting one: rising usage is a *negative* signal. By the
+time a player's role has visibly grown, the jump has already happened and is
+priced in. The players worth buying are the ones whose opportunity has not
+arrived yet.
+
+### Coming back from injury
+
+The app used to treat a returning player as though nothing had happened. It costs
+more than that:
+
+| Missed | First game back | First three games |
+| --- | --- | --- |
+| 2 weeks | 89% | 91% |
+| 3–4 weeks | 80–86% | 89% |
+| 5–7 weeks | **66%** | 80% |
+
+And the injury matters as much as the time: foot 79%, knee 80%, shoulder 84%,
+hamstring 92%, concussion 94%, **ankle 98%**. A knee is worth discounting for
+weeks; an ankle barely at all.
+
 ## Does any of this actually win?
 
 Fair question, and one most fantasy tools never answer. `sim/` runs the shipped
@@ -377,6 +497,8 @@ app for those. Ark is the analysis layer on top.
 | `npm run yahoo:login` | Sign in to Yahoo, once |
 | `npm run yahoo:sync` | Pull your league into `.cache/league.json` |
 | `npm run yahoo:capture` | Record what Yahoo actually serves, for debugging |
+| `npm run data:fetch` | Download 26 seasons of open NFL data |
+| `npm run data:analyse` | Rebuild the measured constants from it |
 | `npm run sim 2500` | Play out simulated seasons and score the strategies |
 | `npm test` | Run the test suite |
 | `npm run typecheck` | Typecheck client and server |
@@ -440,6 +562,11 @@ server/
     impact.ts          Transactions priced in playoff and title probability
     leverage.ts        What each remaining game is worth; clinch and elimination
     risk.ts            Win-probability-optimal lineups
+    recovery.ts        What a player returning from injury is worth
+data/
+  fetch.ts             Downloads open NFL data from nflverse
+  analysis/            Volatility, regression, career arcs, injury recovery
+  derived/             The measured constants the app ships with
 sim/
   world.ts             Hidden player talent, noisy projections, injuries
   agents.ts            Competing manager strategies, Ark among them

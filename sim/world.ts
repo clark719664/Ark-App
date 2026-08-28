@@ -49,18 +49,31 @@ export interface PlayerState {
 }
 
 /**
- * Ark's own priors, for reference:
- *   QB 0.34, RB 0.55, WR 0.62, TE 0.68, K 0.45, DEF 0.75
- * These differ on purpose.
+ * Weekly spread, from the measured fit in data/derived/football.json:
+ *
+ *     sd = intercept + slope x mean
+ *
+ * The simulation used to invent these too, which made the whole exercise a
+ * test of one guess against another. They are now the real relationship, with
+ * per-player noise around it — so Ark faces a world whose *shape* it models
+ * correctly and whose individual players it does not, which is the situation a
+ * real manager is actually in.
+ *
+ * Misspecification is preserved where it belongs: scores are drawn from a
+ * right-skewed gamma rather than the normal Ark's risk model assumes, and each
+ * player's spread is drawn around the fitted line rather than sitting on it.
  */
-const TRUE_VOLATILITY: Record<string, { mean: number; spread: number }> = {
-  QB: { mean: 0.30, spread: 0.06 },
-  RB: { mean: 0.60, spread: 0.12 },
-  WR: { mean: 0.66, spread: 0.14 },
-  TE: { mean: 0.62, spread: 0.15 },
-  K: { mean: 0.52, spread: 0.08 },
-  DEF: { mean: 0.80, spread: 0.15 },
+const SPREAD_MODEL: Record<string, { intercept: number; slope: number }> = {
+  QB: { intercept: 5.26, slope: 0.131 },
+  RB: { intercept: 2.77, slope: 0.349 },
+  WR: { intercept: 2.4, slope: 0.401 },
+  TE: { intercept: 1.58, slope: 0.47 },
+  K: { intercept: 3.0, slope: 0.45 },
+  DEF: { intercept: 3.0, slope: 0.45 },
 }
+
+/** How much each player's own spread strays from the fitted line. */
+const SPREAD_NOISE = 0.18
 
 /** How wrong a weekly projection is, as a fraction of true talent. */
 const PROJECTION_NOISE = 0.18
@@ -163,8 +176,12 @@ export function buildPlayerPool(rng: Rng): TruePlayer[] {
       const base = group.top - (group.top - group.floor) * Math.pow(tier, 0.85)
       const trueMean = Math.max(1, base + normal(rng, 0, 1.3))
 
-      const volatility = TRUE_VOLATILITY[group.position] ?? { mean: 0.6, spread: 0.12 }
-      const trueCv = Math.max(0.15, normal(rng, volatility.mean, volatility.spread))
+      // Spread follows the measured line for the position, then each player
+      // is scattered around it so no two are exactly as predictable.
+      const model = SPREAD_MODEL[group.position] ?? { intercept: 3, slope: 0.45 }
+      const fittedSd = model.intercept + model.slope * trueMean
+      const playerSd = Math.max(1, fittedSd * (1 + normal(rng, 0, SPREAD_NOISE)))
+      const trueCv = Math.max(0.15, playerSd / trueMean)
 
       const first = FIRST_NAMES[Math.floor(rng() * FIRST_NAMES.length)]!
       const last = LAST_NAMES[Math.floor(rng() * LAST_NAMES.length)]!

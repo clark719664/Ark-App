@@ -358,16 +358,43 @@ export interface MarketSignal {
   swing: number
   kind: 'buy-low' | 'sell-high'
   note: string
+  /**
+   * Where the player is expected to settle, from the measured persistence of
+   * hot and cold stretches rather than an assumption that form fully reverts.
+   */
+  expectedGoingForward: number
+  /** How much of the swing is expected to evaporate, 0-1. */
+  expectedRegression: number
+  /**
+   * Confidence in acting on it. Selling a hot player is a far better bet than
+   * buying a cold one, and the label says which is which.
+   */
+  reliability: 'strong' | 'moderate'
 }
 
 /**
  * Players whose recent form has pulled away from their season baseline.
  *
- * A hot streak inflates a player's perceived value above what he'll actually
- * produce, and a cold one deflates it. Those two gaps are where trades get
- * made, and the swing is measured against the player's own season rather than
- * against the league so a consistent low scorer never shows up as a bargain.
+ * How much of that gap is real was, until recently, a guess: the signal fired
+ * on any swing over 35% and treated hot and cold as mirror images. Measured
+ * across 26 seasons, they are nothing of the sort.
+ *
+ * Of a deviation from a player's own baseline, roughly 24% of a hot stretch
+ * survives into the following three games — but 57% of a cold one does. A
+ * player running hot gives back three quarters of it; a player running cold
+ * keeps more than half of the decline, because a cold stretch often means a
+ * lost role or a body that is not right, and those do not bounce.
+ *
+ * So the two sides are not equally exploitable. Selling a hot player is a much
+ * better bet than buying a cold one, and the app now says so instead of
+ * presenting them as symmetric opportunities.
  */
+
+/** Fraction of a hot stretch that survives into the next three games. */
+const HOT_PERSISTENCE = 0.235
+/** Fraction of a cold stretch that survives. Cold carries far more signal. */
+const COLD_PERSISTENCE = 0.571
+
 export function findMarketSignals(
   snapshot: LeagueSnapshot,
   limit = 8,
@@ -388,6 +415,7 @@ export function findMarketSignals(
 
     const kind = swing > 0 ? 'sell-high' : 'buy-low'
     const owner = player.ownerTeamId ? (teamNames.get(player.ownerTeamId) ?? null) : null
+    const persistence = kind === 'sell-high' ? HOT_PERSISTENCE : COLD_PERSISTENCE
     signals.push({
       player,
       teamId: player.ownerTeamId ?? null,
@@ -397,6 +425,11 @@ export function findMarketSignals(
       swing: round(swing, 1),
       kind,
       note: buildSignalNote(kind, recent, season, owner, player.ownerTeamId === viewerTeamId),
+      expectedGoingForward: round(season + swing * persistence, 1),
+      expectedRegression: round(1 - persistence, 2),
+      // A hot streak mostly evaporates, which makes selling into it reliable.
+      // A cold one mostly does not, which makes buying it a weaker bet.
+      reliability: kind === 'sell-high' ? 'strong' : 'moderate',
     })
   }
 
@@ -412,17 +445,22 @@ function buildSignalNote(
   owner: string | null,
   isYours: boolean,
 ): string {
-  const line = `Scored ${recent.toFixed(1)} last week against a ${season.toFixed(1)} season average.`
+  const settle = season + (recent - season) * (kind === 'sell-high' ? HOT_PERSISTENCE : COLD_PERSISTENCE)
+  const line =
+    `Scored ${recent.toFixed(1)} last week against a ${season.toFixed(1)} season average; ` +
+    `history says he settles near ${settle.toFixed(1)}.`
 
   if (kind === 'sell-high') {
-    if (isYours) return `${line} This is the most he will ever be worth in a trade — move him now.`
+    // Roughly three quarters of a hot stretch evaporates, so this is the side
+    // of the market worth acting on.
+    if (isYours) return `${line} Hot stretches mostly do not hold — this is the window to move him.`
     return owner === null
       ? `${line} One week does not make him this good. Do not overpay.`
-      : `${line} ${owner} will want full price. Let someone else pay it.`
+      : `${line} ${owner} will want full price for a run that usually fades.`
   }
 
-  if (isYours) return `${line} Hold. One bad week is noise, and selling now is selling the bottom.`
+  if (isYours) return `${line} Cold stretches hold more than hot ones do, so check the role before writing it off as noise.`
   return owner === null
-    ? `${line} Free, and the drop looks like noise rather than decline.`
-    : `${line} ${owner} may take less for him than he is worth.`
+    ? `${line} Free, though more than half of a slump like this typically persists.`
+    : `${line} ${owner} may sell cheap, but cold form carries real signal — check his role first.`
 }

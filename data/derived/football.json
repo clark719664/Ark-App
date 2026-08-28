@@ -1,0 +1,707 @@
+{
+  "generatedAt": "2026-08-28T22:35:09.529Z",
+  "source": "nflverse-data, https://github.com/nflverse/nflverse-data",
+  "seasons": {
+    "from": 1999,
+    "to": 2024,
+    "count": 26
+  },
+  "weeklyRows": 128878,
+  "volatility": {
+    "note": "Weekly standard deviation fitted on weekly mean: sd = intercept + slope x mean. A constant coefficient of variation forces this line through the origin, which the data does not support — the intercepts are large and positive.",
+    "byPosition": {
+      "QB": {
+        "slope": 0.1306,
+        "intercept": 5.256,
+        "medianCv": 0.5102,
+        "rSquared": 0.135,
+        "playerSeasons": 930
+      },
+      "RB": {
+        "slope": 0.3491,
+        "intercept": 2.769,
+        "medianCv": 0.7087,
+        "rSquared": 0.593,
+        "playerSeasons": 2150
+      },
+      "WR": {
+        "slope": 0.4006,
+        "intercept": 2.401,
+        "medianCv": 0.6989,
+        "rSquared": 0.643,
+        "playerSeasons": 3205
+      },
+      "TE": {
+        "slope": 0.4696,
+        "intercept": 1.576,
+        "medianCv": 0.7474,
+        "rSquared": 0.703,
+        "playerSeasons": 1548
+      }
+    },
+    "byTier": [
+      {
+        "position": "QB",
+        "tier": "elite (18+ ppg)",
+        "medianCv": 0.382,
+        "playerSeasons": 153
+      },
+      {
+        "position": "QB",
+        "tier": "strong (12-18)",
+        "medianCv": 0.464,
+        "playerSeasons": 448
+      },
+      {
+        "position": "QB",
+        "tier": "startable (7-12)",
+        "medianCv": 0.675,
+        "playerSeasons": 273
+      },
+      {
+        "position": "QB",
+        "tier": "marginal (<7)",
+        "medianCv": 1.103,
+        "playerSeasons": 56
+      },
+      {
+        "position": "RB",
+        "tier": "elite (18+ ppg)",
+        "medianCv": 0.442,
+        "playerSeasons": 151
+      },
+      {
+        "position": "RB",
+        "tier": "strong (12-18)",
+        "medianCv": 0.522,
+        "playerSeasons": 457
+      },
+      {
+        "position": "RB",
+        "tier": "startable (7-12)",
+        "medianCv": 0.684,
+        "playerSeasons": 668
+      },
+      {
+        "position": "RB",
+        "tier": "marginal (<7)",
+        "medianCv": 0.933,
+        "playerSeasons": 874
+      },
+      {
+        "position": "WR",
+        "tier": "elite (18+ ppg)",
+        "medianCv": 0.456,
+        "playerSeasons": 134
+      },
+      {
+        "position": "WR",
+        "tier": "strong (12-18)",
+        "medianCv": 0.555,
+        "playerSeasons": 692
+      },
+      {
+        "position": "WR",
+        "tier": "startable (7-12)",
+        "medianCv": 0.683,
+        "playerSeasons": 1149
+      },
+      {
+        "position": "WR",
+        "tier": "marginal (<7)",
+        "medianCv": 0.88,
+        "playerSeasons": 1230
+      },
+      {
+        "position": "TE",
+        "tier": "strong (12-18)",
+        "medianCv": 0.565,
+        "playerSeasons": 123
+      },
+      {
+        "position": "TE",
+        "tier": "startable (7-12)",
+        "medianCv": 0.655,
+        "playerSeasons": 419
+      },
+      {
+        "position": "TE",
+        "tier": "marginal (<7)",
+        "medianCv": 0.836,
+        "playerSeasons": 998
+      }
+    ]
+  },
+  "persistence": {
+    "note": "Fraction of a deviation from a player's own baseline that survives into the next three games. Hot and cold streaks behave differently, so they are reported separately.",
+    "byPosition": {
+      "QB": {
+        "persistence": 0.3831,
+        "observations": 4218
+      },
+      "RB": {
+        "persistence": 0.4278,
+        "observations": 8353
+      },
+      "WR": {
+        "persistence": 0.3727,
+        "observations": 13351
+      },
+      "TE": {
+        "persistence": 0.3641,
+        "observations": 5201
+      }
+    },
+    "hot": {
+      "persistence": 0.2353,
+      "observations": 7259
+    },
+    "cold": {
+      "persistence": 0.571,
+      "observations": 6566
+    }
+  },
+  "ageCurves": {
+    "note": "Median year-over-year change for the same player, which controls for survivorship. A cross-sectional curve would show receivers peaking at 35 purely because only good ones are still playing.",
+    "points": [
+      {
+        "position": "QB",
+        "age": 22,
+        "medianChange": 8.2,
+        "medianPpg": 11.71,
+        "playerSeasons": 33
+      },
+      {
+        "position": "QB",
+        "age": 23,
+        "medianChange": 1.01,
+        "medianPpg": 12.25,
+        "playerSeasons": 71
+      },
+      {
+        "position": "QB",
+        "age": 24,
+        "medianChange": 0.03,
+        "medianPpg": 12.04,
+        "playerSeasons": 104
+      },
+      {
+        "position": "QB",
+        "age": 25,
+        "medianChange": 1.15,
+        "medianPpg": 12.92,
+        "playerSeasons": 109
+      },
+      {
+        "position": "QB",
+        "age": 26,
+        "medianChange": -0.37,
+        "medianPpg": 12.62,
+        "playerSeasons": 102
+      },
+      {
+        "position": "QB",
+        "age": 27,
+        "medianChange": -0.36,
+        "medianPpg": 12.96,
+        "playerSeasons": 88
+      },
+      {
+        "position": "QB",
+        "age": 28,
+        "medianChange": 1.08,
+        "medianPpg": 13.65,
+        "playerSeasons": 91
+      },
+      {
+        "position": "QB",
+        "age": 29,
+        "medianChange": -0.94,
+        "medianPpg": 12.88,
+        "playerSeasons": 81
+      },
+      {
+        "position": "QB",
+        "age": 30,
+        "medianChange": 0.1,
+        "medianPpg": 13.48,
+        "playerSeasons": 74
+      },
+      {
+        "position": "QB",
+        "age": 31,
+        "medianChange": -0.4,
+        "medianPpg": 13.73,
+        "playerSeasons": 60
+      },
+      {
+        "position": "QB",
+        "age": 32,
+        "medianChange": -1.04,
+        "medianPpg": 13.61,
+        "playerSeasons": 63
+      },
+      {
+        "position": "QB",
+        "age": 33,
+        "medianChange": -0.32,
+        "medianPpg": 13.88,
+        "playerSeasons": 45
+      },
+      {
+        "position": "QB",
+        "age": 34,
+        "medianChange": -0.76,
+        "medianPpg": 13.8,
+        "playerSeasons": 43
+      },
+      {
+        "position": "QB",
+        "age": 35,
+        "medianChange": -1.38,
+        "medianPpg": 11.93,
+        "playerSeasons": 37
+      },
+      {
+        "position": "QB",
+        "age": 36,
+        "medianChange": -1.37,
+        "medianPpg": 13.11,
+        "playerSeasons": 29
+      },
+      {
+        "position": "QB",
+        "age": 37,
+        "medianChange": 0.91,
+        "medianPpg": 12.71,
+        "playerSeasons": 26
+      },
+      {
+        "position": "RB",
+        "age": 21,
+        "medianChange": 0,
+        "medianPpg": 9.1,
+        "playerSeasons": 40
+      },
+      {
+        "position": "RB",
+        "age": 22,
+        "medianChange": 0.77,
+        "medianPpg": 8.23,
+        "playerSeasons": 157
+      },
+      {
+        "position": "RB",
+        "age": 23,
+        "medianChange": 1.18,
+        "medianPpg": 7.43,
+        "playerSeasons": 286
+      },
+      {
+        "position": "RB",
+        "age": 24,
+        "medianChange": 0.04,
+        "medianPpg": 7.53,
+        "playerSeasons": 370
+      },
+      {
+        "position": "RB",
+        "age": 25,
+        "medianChange": -0.12,
+        "medianPpg": 7.26,
+        "playerSeasons": 343
+      },
+      {
+        "position": "RB",
+        "age": 26,
+        "medianChange": -0.5,
+        "medianPpg": 8.19,
+        "playerSeasons": 305
+      },
+      {
+        "position": "RB",
+        "age": 27,
+        "medianChange": -0.49,
+        "medianPpg": 7.67,
+        "playerSeasons": 263
+      },
+      {
+        "position": "RB",
+        "age": 28,
+        "medianChange": -1.11,
+        "medianPpg": 7.73,
+        "playerSeasons": 220
+      },
+      {
+        "position": "RB",
+        "age": 29,
+        "medianChange": -0.88,
+        "medianPpg": 7.78,
+        "playerSeasons": 171
+      },
+      {
+        "position": "RB",
+        "age": 30,
+        "medianChange": -1.08,
+        "medianPpg": 8.45,
+        "playerSeasons": 109
+      },
+      {
+        "position": "RB",
+        "age": 31,
+        "medianChange": -1.32,
+        "medianPpg": 8.76,
+        "playerSeasons": 76
+      },
+      {
+        "position": "RB",
+        "age": 32,
+        "medianChange": -1.57,
+        "medianPpg": 7.7,
+        "playerSeasons": 61
+      },
+      {
+        "position": "RB",
+        "age": 33,
+        "medianChange": -1.73,
+        "medianPpg": 7.15,
+        "playerSeasons": 35
+      },
+      {
+        "position": "WR",
+        "age": 21,
+        "medianChange": 0,
+        "medianPpg": 8.58,
+        "playerSeasons": 49
+      },
+      {
+        "position": "WR",
+        "age": 22,
+        "medianChange": 2.34,
+        "medianPpg": 7.07,
+        "playerSeasons": 211
+      },
+      {
+        "position": "WR",
+        "age": 23,
+        "medianChange": 1.41,
+        "medianPpg": 7.07,
+        "playerSeasons": 408
+      },
+      {
+        "position": "WR",
+        "age": 24,
+        "medianChange": 0.1,
+        "medianPpg": 6.82,
+        "playerSeasons": 498
+      },
+      {
+        "position": "WR",
+        "age": 25,
+        "medianChange": 0.43,
+        "medianPpg": 7.08,
+        "playerSeasons": 476
+      },
+      {
+        "position": "WR",
+        "age": 26,
+        "medianChange": -0.02,
+        "medianPpg": 7.93,
+        "playerSeasons": 417
+      },
+      {
+        "position": "WR",
+        "age": 27,
+        "medianChange": -0.72,
+        "medianPpg": 8.52,
+        "playerSeasons": 361
+      },
+      {
+        "position": "WR",
+        "age": 28,
+        "medianChange": -1.04,
+        "medianPpg": 7.95,
+        "playerSeasons": 307
+      },
+      {
+        "position": "WR",
+        "age": 29,
+        "medianChange": -1.12,
+        "medianPpg": 8.05,
+        "playerSeasons": 253
+      },
+      {
+        "position": "WR",
+        "age": 30,
+        "medianChange": -1.24,
+        "medianPpg": 8.96,
+        "playerSeasons": 198
+      },
+      {
+        "position": "WR",
+        "age": 31,
+        "medianChange": -1.32,
+        "medianPpg": 9.64,
+        "playerSeasons": 145
+      },
+      {
+        "position": "WR",
+        "age": 32,
+        "medianChange": -1.94,
+        "medianPpg": 9.77,
+        "playerSeasons": 105
+      },
+      {
+        "position": "WR",
+        "age": 33,
+        "medianChange": -1.55,
+        "medianPpg": 10.53,
+        "playerSeasons": 64
+      },
+      {
+        "position": "WR",
+        "age": 34,
+        "medianChange": -1.64,
+        "medianPpg": 9.37,
+        "playerSeasons": 53
+      },
+      {
+        "position": "WR",
+        "age": 35,
+        "medianChange": -1.59,
+        "medianPpg": 11.59,
+        "playerSeasons": 30
+      },
+      {
+        "position": "WR",
+        "age": 36,
+        "medianChange": -1.94,
+        "medianPpg": 10.11,
+        "playerSeasons": 25
+      },
+      {
+        "position": "TE",
+        "age": 22,
+        "medianChange": 2.56,
+        "medianPpg": 5.9,
+        "playerSeasons": 63
+      },
+      {
+        "position": "TE",
+        "age": 23,
+        "medianChange": 1.34,
+        "medianPpg": 4.57,
+        "playerSeasons": 147
+      },
+      {
+        "position": "TE",
+        "age": 24,
+        "medianChange": 0.53,
+        "medianPpg": 4.67,
+        "playerSeasons": 222
+      },
+      {
+        "position": "TE",
+        "age": 25,
+        "medianChange": 0.27,
+        "medianPpg": 4.78,
+        "playerSeasons": 259
+      },
+      {
+        "position": "TE",
+        "age": 26,
+        "medianChange": -0.08,
+        "medianPpg": 5.04,
+        "playerSeasons": 229
+      },
+      {
+        "position": "TE",
+        "age": 27,
+        "medianChange": -0.23,
+        "medianPpg": 4.92,
+        "playerSeasons": 212
+      },
+      {
+        "position": "TE",
+        "age": 28,
+        "medianChange": -0.33,
+        "medianPpg": 5.23,
+        "playerSeasons": 182
+      },
+      {
+        "position": "TE",
+        "age": 29,
+        "medianChange": -0.04,
+        "medianPpg": 5.61,
+        "playerSeasons": 155
+      },
+      {
+        "position": "TE",
+        "age": 30,
+        "medianChange": -0.54,
+        "medianPpg": 4.97,
+        "playerSeasons": 129
+      },
+      {
+        "position": "TE",
+        "age": 31,
+        "medianChange": -1.14,
+        "medianPpg": 5.02,
+        "playerSeasons": 87
+      },
+      {
+        "position": "TE",
+        "age": 32,
+        "medianChange": -0.22,
+        "medianPpg": 5.06,
+        "playerSeasons": 55
+      },
+      {
+        "position": "TE",
+        "age": 33,
+        "medianChange": -0.4,
+        "medianPpg": 5.49,
+        "playerSeasons": 41
+      },
+      {
+        "position": "TE",
+        "age": 34,
+        "medianChange": -0.04,
+        "medianPpg": 7.61,
+        "playerSeasons": 25
+      }
+    ]
+  },
+  "breakouts": {
+    "note": "A breakout is a gain of at least 4 points per game that also clears 10 points per game, measured against signals visible beforehand.",
+    "factors": [
+      {
+        "factor": "age 24 or under",
+        "description": "Still on the early part of the curve",
+        "withSignal": 0.1629,
+        "withoutSignal": 0.0822,
+        "lift": 1.983,
+        "sample": 1025
+      },
+      {
+        "factor": "drafted round 1-2",
+        "description": "Draft capital the team is invested in",
+        "withSignal": 0.1195,
+        "withoutSignal": 0.0833,
+        "lift": 1.434,
+        "sample": 2117
+      },
+      {
+        "factor": "target share rising",
+        "description": "Role grew last season versus the one before",
+        "withSignal": 0.074,
+        "withoutSignal": 0.1074,
+        "lift": 0.689,
+        "sample": 1554
+      },
+      {
+        "factor": "limited prior role",
+        "description": "Scored under 9 points a game last season",
+        "withSignal": 0.1057,
+        "withoutSignal": 0.0882,
+        "lift": 1.199,
+        "sample": 2895
+      },
+      {
+        "factor": "young and early pick",
+        "description": "Both signals together",
+        "withSignal": 0.2029,
+        "withoutSignal": 0.0871,
+        "lift": 2.329,
+        "sample": 488
+      },
+      {
+        "factor": "young, early pick, rising role",
+        "description": "All three signals together",
+        "withSignal": 0.1284,
+        "withoutSignal": 0.097,
+        "lift": 1.324,
+        "sample": 109
+      }
+    ]
+  },
+  "injuryReturns": {
+    "note": "Production after returning, as a fraction of the three games before the absence.",
+    "byWeeksMissed": [
+      {
+        "weeksMissed": 2,
+        "firstGameRatio": 0.885,
+        "firstThreeRatio": 0.906,
+        "returns": 673
+      },
+      {
+        "weeksMissed": 3,
+        "firstGameRatio": 0.803,
+        "firstThreeRatio": 0.891,
+        "returns": 316
+      },
+      {
+        "weeksMissed": 4,
+        "firstGameRatio": 0.864,
+        "firstThreeRatio": 0.886,
+        "returns": 150
+      },
+      {
+        "weeksMissed": 6,
+        "firstGameRatio": 0.657,
+        "firstThreeRatio": 0.8,
+        "returns": 154
+      },
+      {
+        "weeksMissed": 10,
+        "firstGameRatio": 0.803,
+        "firstThreeRatio": 0.815,
+        "returns": 21
+      }
+    ],
+    "byType": [
+      {
+        "injury": "foot",
+        "firstThreeRatio": 0.794,
+        "medianWeeksMissed": 3,
+        "returns": 23
+      },
+      {
+        "injury": "knee",
+        "firstThreeRatio": 0.799,
+        "medianWeeksMissed": 3,
+        "returns": 103
+      },
+      {
+        "injury": "shoulder",
+        "firstThreeRatio": 0.845,
+        "medianWeeksMissed": 3,
+        "returns": 26
+      },
+      {
+        "injury": "groin",
+        "firstThreeRatio": 0.851,
+        "medianWeeksMissed": 2,
+        "returns": 26
+      },
+      {
+        "injury": "hamstring",
+        "firstThreeRatio": 0.924,
+        "medianWeeksMissed": 3,
+        "returns": 101
+      },
+      {
+        "injury": "concussion",
+        "firstThreeRatio": 0.943,
+        "medianWeeksMissed": 2,
+        "returns": 50
+      },
+      {
+        "injury": "ankle",
+        "firstThreeRatio": 0.98,
+        "medianWeeksMissed": 3,
+        "returns": 102
+      }
+    ]
+  }
+}
