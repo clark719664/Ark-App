@@ -118,9 +118,31 @@ non-event; a renamed one produces a named warning instead of wrong numbers.
 
 ## What's in the hub
 
-**Dashboard** — your record, power rank, playoff odds and luck at a glance, the
-live scoreboard, and a few plain-language reads on what the numbers say about
-the league.
+### Managing your team
+
+**Dashboard** — your record, power rank, playoff odds and luck at a glance, a
+"before kickoff" list of the few things actually worth doing this week, the live
+scoreboard, and plain-language reads on what the numbers say about the league.
+
+**Start / Sit** — the highest-value screen here, because over a season lineup
+mistakes cost more than every waiver claim combined. Ark solves for the best
+legal lineup your roster can produce, tells you exactly which changes to make
+and what each is worth, flags starters who are on bye or ruled out, and gives
+you a win probability for the week.
+
+**Waiver wire** — every free agent scored by how much he raises your best
+possible lineup, not by raw projection. A great receiver is worth nothing to you
+if you already start three better ones, and a mediocre defense is worth a lot
+the week yours is on bye. Targets say why they matter, who they'd displace, and
+how likely they are to clear waivers.
+
+**Trades** — deals where *both* rosters end up projecting more points, which is
+the only kind anyone accepts. Each idea shows what both sides gain and how
+evenly, with a plain-English reason. Alongside it: buy-low and sell-high
+candidates, based on how far a player's last week has pulled away from his own
+season baseline.
+
+### Looking at the league
 
 **Standings** — the usual columns, plus the ones that matter:
 
@@ -138,6 +160,8 @@ the league.
 consistency plot, weekly scoring for every team, and remaining strength of
 schedule.
 
+### Research
+
 **Players** — the pool, searchable and filterable by position, availability and
 season/average/projected points.
 
@@ -147,6 +171,18 @@ best-available ranked by **value over replacement**, so cross-position
 comparison means something; one click to cross a player off, one to claim him.
 State is kept in `localStorage`, so a refresh mid-draft costs you nothing. Past
 draft results show up in a second tab.
+
+### One value function, used everywhere
+
+Start/Sit, the waiver wire and the trade finder all ask the same question: *what
+is the best legal lineup these players can produce this week?* A free agent is
+worth the amount he raises that number; a trade is worth taking when it raises
+it for both sides.
+
+Doing it this way rather than with per-position rules of thumb is what makes the
+answers trustworthy in the awkward cases — a flex spot the new player would take
+instead, a starter on bye, a second tight end who cannot start because there is
+only one slot for him.
 
 ### How playoff odds are computed
 
@@ -159,6 +195,18 @@ single-elimination bracket is played out, with byes for the top seeds. That runs
 
 The result is deterministic for a given snapshot: the same data always produces
 the same odds.
+
+## What Ark deliberately does not do
+
+Ark is read-only. It never sets your lineup, submits a waiver claim, or proposes
+a trade on your behalf — it tells you what to do and you do it in Yahoo. Driving
+a browser to *read* your own league is one thing; having software take roster
+actions on your account without you watching is another, and it is not a line
+worth crossing for a few saved clicks.
+
+It also doesn't try to replace the parts of Yahoo that are Yahoo: live scoring
+push notifications, league chat, mock drafts, or the transaction log. Keep the
+app for those. Ark is the analysis layer on top.
 
 ## Commands
 
@@ -216,11 +264,17 @@ server/
     dom.ts             Header-driven table extraction
     scrape.ts          Standings, scoreboards, rosters, players, draft
     sync.ts            Orchestrates a full sync into a snapshot
-  analytics/           Power rankings, luck, schedule strength, playoff odds
+  analytics/
+    index.ts           Power rankings, luck, schedule strength, playoff odds
+    lineup.ts          The shared "best legal lineup" solver
+    waivers.ts         Free agents scored by marginal lineup value
+    trades.ts          Two-sided trade search, buy-low / sell-high
+    slots.ts           Lineup slot eligibility (FLEX, superflex, IDP)
   providers/demo.ts    The deterministic fake league
   routes.ts            HTTP API
 src/
-  pages/               Dashboard, Standings, Matchups, Team, Players, Draft, Analytics
+  pages/               Dashboard, Start/Sit, Waivers, Trades, Standings,
+                       Matchups, Team, Players, Draft board, Analytics
   lib/tiers.ts         Tier breaks and value over replacement
 ```
 

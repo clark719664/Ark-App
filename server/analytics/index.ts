@@ -272,7 +272,7 @@ export function computeScheduleStrength(snapshot: LeagueSnapshot): ScheduleStren
 
 // --- Playoff odds -----------------------------------------------------------
 
-interface TeamModel {
+export interface TeamModel {
   id: string
   mu: number
   sigma: number
@@ -290,7 +290,7 @@ interface TeamModel {
  */
 const SHRINK_GAMES = 4
 
-function buildTeamModels(snapshot: LeagueSnapshot): TeamModel[] {
+export function buildTeamModels(snapshot: LeagueSnapshot): TeamModel[] {
   const weekly = buildWeeklyScores(snapshot)
   const byTeam = scoresByTeam(weekly)
 

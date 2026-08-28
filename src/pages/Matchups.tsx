@@ -18,13 +18,13 @@ export default function Matchups() {
         title={`Week ${data.week}`}
         subtitle={data.week === data.currentWeek ? 'Current week' : undefined}
         actions={
-          <div className="flex items-center gap-1 overflow-x-auto max-w-full">
+          <div className="flex min-w-0 max-w-full items-center gap-1 overflow-x-auto scrollbar-none">
             {data.weeks.map((w) => (
               <button
                 key={w}
                 type="button"
                 onClick={() => setWeek(w)}
-                className={`rounded px-2 py-1 text-xs font-semibold tabular transition-colors ${
+                className={`shrink-0 rounded px-2 py-1 text-xs font-semibold tabular transition-colors ${
                   w === data.week
                     ? 'bg-turf-600 text-ink-950'
                     : w === data.currentWeek

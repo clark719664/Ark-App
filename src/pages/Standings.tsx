@@ -32,7 +32,7 @@ export default function Standings() {
                 <th title="Points scored">PF</th>
                 <th title="Points allowed">PA</th>
                 <th title="Record if this team played every other team every week">All-Play</th>
-                <th title="Wins above or below what this team's scoring deserved">Luck</th>
+                <th title="Wins above or below what this team's scoring supports">Luck</th>
                 <th title="Composite strength score, 0-100">Power</th>
                 <th title="Chance of making the playoffs">Playoffs</th>
                 <th title="Chance of winning the title">Title</th>

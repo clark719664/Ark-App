@@ -35,23 +35,23 @@ export default function TeamPage() {
       </div>
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-5">
-        <StatTile label="Record" value={record(team.record)} hint={`rank #${team.rank ?? '—'}`} />
-        <StatTile label="Points for" value={points(team.pointsFor)} hint={`${points(team.pointsAgainst)} against`} />
+        <StatTile label="Record" value={record(team.record)} hint={`Standings rank ${team.rank ?? '—'}`} />
+        <StatTile label="Points for" value={points(team.pointsFor)} hint={`${points(team.pointsAgainst)} allowed`} />
         <StatTile
           label="Power rank"
           value={power ? `#${power.rank}` : '—'}
-          hint={power ? `score ${power.score.toFixed(0)}` : undefined}
+          hint={power ? `Score ${power.score.toFixed(0)} of 100` : undefined}
         />
         <StatTile
           label="Playoff odds"
           value={odds ? percent(odds.makePlayoffs) : '—'}
           tone={odds ? toneForOdds(odds.makePlayoffs) : undefined}
-          hint={odds ? `title ${percent(odds.winTitle)}` : undefined}
+          hint={odds ? `Title odds ${percent(odds.winTitle)}` : undefined}
         />
         <StatTile
           label="Luck"
           value={luck ? signed(luck.luckWins) : '—'}
-          hint={luck ? `all-play ${record(luck.allPlay)}` : undefined}
+          hint={luck ? `All-play record ${record(luck.allPlay)}` : undefined}
         />
       </div>
 

@@ -20,7 +20,7 @@ export function Card({
             {title && <h2 className="font-semibold text-ink-100 truncate">{title}</h2>}
             {subtitle && <p className="text-xs text-ink-400 mt-0.5">{subtitle}</p>}
           </div>
-          {actions && <div className="flex items-center gap-2 shrink-0">{actions}</div>}
+          {actions && <div className="flex min-w-0 items-center gap-2">{actions}</div>}
         </header>
       )}
       {children}

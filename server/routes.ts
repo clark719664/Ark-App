@@ -1,6 +1,10 @@
 import { Router, type Request, type Response, type NextFunction } from 'express'
 import type { Player, RosterEntry } from '../shared/types.js'
 import { config } from './config.js'
+import { computeMatchupOdds } from './analytics/matchup.js'
+import { optimizeLineup, resolveSlots } from './analytics/lineup.js'
+import { findMarketSignals, findTrades } from './analytics/trades.js'
+import { buildWaiverReport } from './analytics/waivers.js'
 import { getAnalytics, getSnapshot, getStatus, invalidate, NoSnapshotError } from './store.js'
 import { YahooAuthError } from './yahoo/browser.js'
 
@@ -186,6 +190,100 @@ api.get('/draft', handle((_req, res) => {
 api.get('/analytics', handle((_req, res) => {
   const snapshot = getSnapshot()
   res.json({ league: snapshot.league, teams: snapshot.teams, ...getAnalytics() })
+}))
+
+// --- Manager tools ----------------------------------------------------------
+
+/**
+ * Resolve which team the tools should act for: an explicit ?team=, else the
+ * team flagged as the user's own, else the first team in the league so the
+ * pages always have something to show.
+ */
+function resolveTeamId(snapshot: ReturnType<typeof getSnapshot>, requested: unknown): string {
+  const asked = typeof requested === 'string' ? requested.trim() : ''
+  if (asked && snapshot.teams.some((team) => team.id === asked)) return asked
+  return snapshot.teams.find((team) => team.isMine)?.id ?? snapshot.teams[0]?.id ?? ''
+}
+
+function slotsFor(snapshot: ReturnType<typeof getSnapshot>, teamId: string): string[] {
+  return resolveSlots(snapshot.league.rosterSlots, snapshot.rosters[teamId] ?? [])
+}
+
+api.get('/lineup', handle((req, res) => {
+  const snapshot = getSnapshot()
+  const teamId = resolveTeamId(snapshot, req.query['team'])
+  const team = snapshot.teams.find((t) => t.id === teamId)
+  if (!team) {
+    res.status(404).json({ error: 'No teams in this league yet.' })
+    return
+  }
+
+  const roster = snapshot.rosters[teamId] ?? []
+  const slots = slotsFor(snapshot, teamId)
+  const week = snapshot.league.currentWeek
+
+  const matchup = snapshot.matchups.find(
+    (m) => m.week === week && (m.home.teamId === teamId || m.away.teamId === teamId),
+  )
+  const odds = computeMatchupOdds(snapshot, week).find(
+    (o) => o.homeTeamId === teamId || o.awayTeamId === teamId,
+  )
+  const opponentId = matchup
+    ? matchup.home.teamId === teamId
+      ? matchup.away.teamId
+      : matchup.home.teamId
+    : null
+
+  res.json({
+    team,
+    week,
+    slots,
+    lineup: optimizeLineup(roster, slots, week),
+    roster,
+    opponent: opponentId ? (snapshot.teams.find((t) => t.id === opponentId) ?? null) : null,
+    odds: odds
+      ? {
+          winProbability: odds.homeTeamId === teamId ? odds.homeWinProbability : odds.awayWinProbability,
+          projected: odds.homeTeamId === teamId ? odds.homeProjected : odds.awayProjected,
+          opponentProjected: odds.homeTeamId === teamId ? odds.awayProjected : odds.homeProjected,
+          margin: odds.projectedMargin,
+        }
+      : null,
+    teams: snapshot.teams.map((t) => ({ id: t.id, name: t.name, isMine: t.isMine ?? false })),
+  })
+}))
+
+api.get('/waivers', handle((req, res) => {
+  const snapshot = getSnapshot()
+  const teamId = resolveTeamId(snapshot, req.query['team'])
+  const limit = clamp(Number.parseInt(String(req.query['limit'] ?? '30'), 10) || 30, 1, 100)
+
+  res.json({
+    ...buildWaiverReport(snapshot, teamId, slotsFor(snapshot, teamId), limit),
+    week: snapshot.league.currentWeek,
+    team: snapshot.teams.find((t) => t.id === teamId) ?? null,
+    teams: snapshot.teams.map((t) => ({ id: t.id, name: t.name, isMine: t.isMine ?? false })),
+  })
+}))
+
+api.get('/trades', handle((req, res) => {
+  const snapshot = getSnapshot()
+  const teamId = resolveTeamId(snapshot, req.query['team'])
+  const limit = clamp(Number.parseInt(String(req.query['limit'] ?? '12'), 10) || 12, 1, 40)
+
+  res.json({
+    ...findTrades(snapshot, teamId, slotsFor(snapshot, teamId), { limit }),
+    signals: findMarketSignals(snapshot, 8, teamId),
+    team: snapshot.teams.find((t) => t.id === teamId) ?? null,
+    teams: snapshot.teams.map((t) => ({ id: t.id, name: t.name, isMine: t.isMine ?? false })),
+  })
+}))
+
+api.get('/matchup-odds', handle((req, res) => {
+  const snapshot = getSnapshot()
+  const requested = Number.parseInt(String(req.query['week'] ?? ''), 10)
+  const week = Number.isFinite(requested) ? requested : snapshot.league.currentWeek
+  res.json({ week, odds: computeMatchupOdds(snapshot, week) })
 }))
 
 // --- Sync -------------------------------------------------------------------

@@ -5,6 +5,9 @@ import Shell from './components/Shell'
 import Dashboard from './pages/Dashboard'
 import Standings from './pages/Standings'
 import Matchups from './pages/Matchups'
+import Lineup from './pages/Lineup'
+import Waivers from './pages/Waivers'
+import Trades from './pages/Trades'
 import TeamPage from './pages/TeamPage'
 import Players from './pages/Players'
 import DraftBoard from './pages/DraftBoard'
@@ -19,6 +22,9 @@ const router = createBrowserRouter([
       { index: true, element: <Dashboard /> },
       { path: 'standings', element: <Standings /> },
       { path: 'matchups', element: <Matchups /> },
+      { path: 'lineup', element: <Lineup /> },
+      { path: 'waivers', element: <Waivers /> },
+      { path: 'trades', element: <Trades /> },
       { path: 'analytics', element: <Analytics /> },
       { path: 'players', element: <Players /> },
       { path: 'draft', element: <DraftBoard /> },

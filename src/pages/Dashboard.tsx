@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
-import { api, useApi, type StandingsRow } from '../lib/api'
+import { api, useApi, type LineupResponse, type StandingsRow, type WaiversResponse } from '../lib/api'
 import { Card, Empty, ErrorState, Loading, Meter, StatTile } from '../components/ui'
-import { percent, points, record, signed, toneForOdds } from '../lib/format'
+import { percent, points, positionTone, record, signed, toneForOdds } from '../lib/format'
 
 /**
  * The one screen to open on a Sunday morning: where you stand, what this week
@@ -10,6 +10,8 @@ import { percent, points, record, signed, toneForOdds } from '../lib/format'
 export default function Dashboard() {
   const standings = useApi(() => api.standings(), [])
   const matchups = useApi(() => api.matchups(), [])
+  const lineup = useApi(() => api.lineup(), [])
+  const waivers = useApi(() => api.waivers(), [])
 
   if (standings.error) return <ErrorState error={standings.error} onRetry={standings.reload} />
   if (standings.loading || !standings.data) return <Loading label="Loading your league…" />
@@ -23,12 +25,14 @@ export default function Dashboard() {
       <div>
         <h1 className="text-2xl font-bold tracking-tight">{league.name}</h1>
         <p className="text-sm text-ink-400 mt-1">
-          {league.season} season · week {league.currentWeek} of {league.regularSeasonWeeks}
+          {league.season} season · Week {league.currentWeek} of {league.regularSeasonWeeks}
           {league.scoringType ? ` · ${league.scoringType}` : ''}
         </p>
       </div>
 
       {mine ? <MyTeamTiles row={mine} playoffTeams={league.playoffTeams} /> : null}
+
+      <ActionList lineup={lineup.data} waivers={waivers.data} />
 
       <div className="grid gap-4 lg:grid-cols-3">
         <Card
@@ -77,7 +81,6 @@ export default function Dashboard() {
             {[...rows]
               .filter((row) => row.power)
               .sort((a, b) => (a.power!.rank ?? 99) - (b.power!.rank ?? 99))
-              .slice(0, 8)
               .map((row) => (
                 <li key={row.team.id} className="px-4 py-2 flex items-center gap-3 text-sm">
                   <span className="w-5 text-ink-500 tabular">{row.power!.rank}</span>
@@ -104,6 +107,120 @@ export default function Dashboard() {
   )
 }
 
+
+/**
+ * The short list of things that are actually worth doing before kickoff,
+ * pulled from the lineup optimizer and the waiver wire. Anything already
+ * handled drops off the list rather than sitting there as a green tick.
+ */
+function ActionList({
+  lineup,
+  waivers,
+}: {
+  lineup: LineupResponse | null
+  waivers: WaiversResponse | null
+}) {
+  if (!lineup && !waivers) return null
+
+  const items: Array<{ key: string; to: string; label: string; body: React.ReactNode }> = []
+
+  if (lineup && lineup.lineup.pointsLeftOnBench > 0) {
+    const count = lineup.lineup.swaps.length
+    items.push({
+      key: 'lineup',
+      to: '/lineup',
+      label: 'Fix your lineup',
+      body: (
+        <>
+          You are leaving{' '}
+          <strong className="text-flag-400">
+            {points(lineup.lineup.pointsLeftOnBench)} projected points
+          </strong>{' '}
+          on the bench across {count} change{count === 1 ? '' : 's'}.
+        </>
+      ),
+    })
+  }
+
+  const blocking = lineup?.lineup.alerts.filter((alert) => alert.severity === 'high') ?? []
+  if (blocking.length > 0) {
+    items.push({
+      key: 'alerts',
+      to: '/lineup',
+      label: 'Starters who cannot play',
+      body: (
+        <>
+          {blocking.map((alert, index) => (
+            <span key={alert.player.id}>
+              {index > 0 ? ', ' : ''}
+              <strong>{alert.player.name}</strong> ({alert.reason.toLowerCase()})
+            </span>
+          ))}
+          .
+        </>
+      ),
+    })
+  }
+
+  const topClaim = waivers?.targets.find((target) => target.upgrade > 0)
+  if (topClaim) {
+    items.push({
+      key: 'waiver',
+      to: '/waivers',
+      label: 'Best claim on the wire',
+      body: (
+        <>
+          <span className={`pill mr-1.5 ${positionTone(topClaim.player.position)}`}>
+            {topClaim.player.position}
+          </span>
+          <strong>{topClaim.player.name}</strong> projects{' '}
+          <strong className="text-turf-400">+{points(topClaim.upgrade)} a week</strong> over your
+          weakest starter at the position.
+        </>
+      ),
+    })
+  }
+
+  if (items.length === 0) {
+    return (
+      <Card title="Before kickoff" subtitle="Everything the tools would change">
+        <Empty>
+          Your lineup is optimal, nobody is on bye or ruled out, and nothing on the waiver wire
+          beats a player you already start. Nothing to do.
+        </Empty>
+      </Card>
+    )
+  }
+
+  return (
+    <Card title="Before kickoff" subtitle={`${items.length} thing${items.length === 1 ? '' : 's'} worth doing`}>
+      <ul className="divide-y divide-ink-800">
+        {items.map((item) => (
+          <li key={item.key}>
+            <Link
+              to={item.to}
+              className="flex items-start gap-3 px-4 py-3 transition-colors hover:bg-ink-850/60"
+            >
+              <span className="mt-1.5 h-2 w-2 shrink-0 rounded-full bg-flag-500" aria-hidden />
+              <span className="min-w-0">
+                <span className="block text-xs font-semibold uppercase tracking-wide text-ink-500">
+                  {item.label}
+                </span>
+                <span className="mt-0.5 block text-sm leading-relaxed text-ink-200">
+                  {item.body}
+                </span>
+              </span>
+              <span className="ml-auto shrink-0 self-center text-ink-600" aria-hidden>
+                →
+              </span>
+            </Link>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )
+}
+
 function MyTeamTiles({ row, playoffTeams }: { row: StandingsRow; playoffTeams: number }) {
   const { team, power, luck, odds, schedule } = row
 
@@ -117,28 +234,28 @@ function MyTeamTiles({ row, playoffTeams }: { row: StandingsRow; playoffTeams: n
         <StatTile
           label="Record"
           value={record(team.record)}
-          hint={`${points(team.pointsFor)} PF · ${points(team.pointsAgainst)} PA`}
+          hint={`${points(team.pointsFor)} scored · ${points(team.pointsAgainst)} allowed`}
         />
         <StatTile
           label="Power rank"
           value={power ? `#${power.rank}` : '—'}
-          hint={power ? `score ${power.score.toFixed(0)}/100` : undefined}
+          hint={power ? `Score ${power.score.toFixed(0)} of 100` : undefined}
         />
         <StatTile
           label="Playoff odds"
           value={odds ? percent(odds.makePlayoffs) : '—'}
           tone={odds ? toneForOdds(odds.makePlayoffs) : undefined}
-          hint={`top ${playoffTeams} qualify`}
+          hint={`Top ${playoffTeams} teams qualify`}
         />
         <StatTile
           label="Luck"
           value={luck ? signed(luck.luckWins) : '—'}
-          hint={luck ? `all-play ${record(luck.allPlay)}` : undefined}
+          hint={luck ? `All-play record ${record(luck.allPlay)}` : undefined}
         />
         <StatTile
           label="Remaining SoS"
           value={schedule ? `#${schedule.futureRank}` : '—'}
-          hint={schedule ? `opponents avg ${points(schedule.futureOpponentAvg)}` : undefined}
+          hint={schedule ? `Opponents average ${points(schedule.futureOpponentAvg)}` : undefined}
         />
       </div>
     </div>

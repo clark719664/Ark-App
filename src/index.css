@@ -39,12 +39,17 @@
 }
 
 @layer components {
+  /* min-w-0 lets a card holding a wide table shrink inside a grid or flex
+     parent, so the table's own overflow-x-auto scrolls instead of pushing the
+     page sideways. */
   .card {
-    @apply bg-ink-900 border border-ink-800 rounded-xl;
+    @apply min-w-0 rounded-xl border border-ink-800 bg-ink-900;
   }
 
+  /* Wraps rather than overflows: on a narrow screen the header's actions drop
+     onto their own line instead of pushing the page sideways. */
   .card-header {
-    @apply px-4 py-3 border-b border-ink-800 flex items-center justify-between gap-3;
+    @apply flex flex-wrap items-center justify-between gap-3 border-b border-ink-800 px-4 py-3;
   }
 
   .table-base {
@@ -81,5 +86,15 @@
   .input {
     @apply rounded-lg border border-ink-700 bg-ink-850 px-3 py-1.5 text-sm text-ink-100
            placeholder:text-ink-500 focus:border-chalk-500 focus:outline-none;
+  }
+}
+
+@layer utilities {
+  /* Horizontal nav scrolls on narrow screens without showing a scrollbar. */
+  .scrollbar-none {
+    scrollbar-width: none;
+  }
+  .scrollbar-none::-webkit-scrollbar {
+    display: none;
   }
 }

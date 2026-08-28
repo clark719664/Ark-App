@@ -80,7 +80,7 @@ export default function DraftBoard() {
 
         {tab === 'board' && (
           <div className="ml-auto flex items-center gap-2">
-            <span className="text-xs text-ink-400 tabular">
+            <span className="text-xs tabular text-ink-400">
               {state.drafted.length} off the board · {state.mine.length} yours
             </span>
             <button type="button" className="btn py-1 text-xs" onClick={undo} disabled={state.order.length === 0}>
@@ -193,11 +193,19 @@ function LiveBoard({
   return (
     <div className="space-y-4">
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
-        <StatTile label="Available" value={available.length} hint={`${players.length} total`} />
+        <StatTile
+          label="Available"
+          value={available.length}
+          hint={`${players.length} players in the pool`}
+        />
         <StatTile
           label="Your picks"
           value={myRoster.length}
-          hint={needs.filter((n) => n.have < n.need).map((n) => n.position).join(' ') || 'starters filled'}
+          hint={
+            needs.filter((n) => n.have < n.need).length > 0
+              ? `Still need ${needs.filter((n) => n.have < n.need).map((n) => n.position).join(', ')}`
+              : 'Every starting spot filled'
+          }
         />
         <StatTile
           label="Best available"
@@ -206,12 +214,16 @@ function LiveBoard({
               {bestAvailable[0]?.name ?? '—'}
             </span>
           }
-          hint={bestAvailable[0] ? `${bestAvailable[0].position} · ${points(playerValue(bestAvailable[0]))} proj` : undefined}
+                    hint={
+            bestAvailable[0]
+              ? `${bestAvailable[0].position} · ${points(playerValue(bestAvailable[0]))} projected`
+              : undefined
+          }
         />
         <StatTile
           label="Thinnest position"
           value={thinnestPosition(tiers)}
-          hint="fewest players left in the top tier"
+          hint="Fewest players left in the top tier"
         />
       </div>
 

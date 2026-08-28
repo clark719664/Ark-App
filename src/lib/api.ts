@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type {
-  DraftPick, League, LeagueAnalytics, LuckRating, Matchup, Player, PlayoffOdds,
-  PowerRanking, RosterEntry, ScheduleStrength, Team, TeamWeekScore,
+  DraftPick, League, LeagueAnalytics, LuckRating, Matchup, Player, PlayerPosition,
+  PlayoffOdds, PowerRanking, RosterEntry, ScheduleStrength, Team, TeamWeekScore,
 } from '@shared/types'
 
 /** Typed client for the Ark API, plus a small hook for loading state. */
@@ -114,6 +114,111 @@ export interface AnalyticsResponse extends LeagueAnalytics {
   teams: Team[]
 }
 
+
+export interface TeamOption {
+  id: string
+  name: string
+  isMine: boolean
+}
+
+export interface LineupAssignment {
+  slot: string
+  player: Player | null
+  projected: number
+  changed: boolean
+}
+
+export interface LineupSwap {
+  slot: string
+  out: Player
+  in: Player
+  gain: number
+}
+
+export interface LineupAlert {
+  player: Player
+  reason: string
+  severity: 'high' | 'medium'
+}
+
+export interface LineupResponse {
+  team: Team
+  week: number
+  slots: string[]
+  roster: RosterEntry[]
+  opponent: Team | null
+  odds: {
+    winProbability: number
+    projected: number
+    opponentProjected: number
+    margin: number
+  } | null
+  lineup: {
+    optimal: LineupAssignment[]
+    currentProjected: number
+    optimalProjected: number
+    pointsLeftOnBench: number
+    swaps: LineupSwap[]
+    alerts: LineupAlert[]
+  }
+  teams: TeamOption[]
+}
+
+export interface WaiverTarget {
+  player: Player
+  upgrade: number
+  replaces: Player | null
+  rank: number
+  reasons: string[]
+  priority: 'high' | 'medium' | 'low'
+}
+
+export interface PositionOutlook {
+  position: PlayerPosition
+  bestUpgrade: number
+  bestPlayer: Player | null
+}
+
+export interface WaiversResponse {
+  teamId: string
+  week: number
+  team: Team | null
+  targets: WaiverTarget[]
+  outlook: PositionOutlook[]
+  gaps: Array<{ position: PlayerPosition; reason: string }>
+  teams: TeamOption[]
+}
+
+export interface TradeIdea {
+  id: string
+  you: { teamId: string; teamName: string; sends: Player[]; receives: Player[]; gain: number }
+  them: { teamId: string; teamName: string; sends: Player[]; receives: Player[]; gain: number }
+  totalGain: number
+  fairness: number
+  rationale: string
+}
+
+export interface MarketSignal {
+  player: Player
+  teamId: string | null
+  teamName: string | null
+  seasonAverage: number
+  recentAverage: number
+  swing: number
+  kind: 'buy-low' | 'sell-high'
+  note: string
+}
+
+export interface TradesResponse {
+  teamId: string
+  team: Team | null
+  ideas: TradeIdea[]
+  signals: MarketSignal[]
+  surplus: Array<{ position: PlayerPosition; depth: number; spare: Player[] }>
+  needs: Array<{ position: PlayerPosition; starterProjection: number }>
+  teams: TeamOption[]
+}
+
 export const api = {
   health: () => request<HealthResponse>('/health'),
   league: () => request<{ league: League; teams: Team[]; fetchedAt: string; warnings: string[] }>('/league'),
@@ -130,6 +235,12 @@ export const api = {
   },
   draft: () => request<DraftResponse>('/draft'),
   analytics: () => request<AnalyticsResponse>('/analytics'),
+  lineup: (teamId?: string) =>
+    request<LineupResponse>(teamId ? `/lineup?team=${encodeURIComponent(teamId)}` : '/lineup'),
+  waivers: (teamId?: string) =>
+    request<WaiversResponse>(teamId ? `/waivers?team=${encodeURIComponent(teamId)}` : '/waivers'),
+  trades: (teamId?: string) =>
+    request<TradesResponse>(teamId ? `/trades?team=${encodeURIComponent(teamId)}` : '/trades'),
   startSync: () => request<{ started: boolean }>('/sync', { method: 'POST' }),
   syncStatus: () => request<{ running: boolean; log: string[] }>('/sync/status'),
 }
