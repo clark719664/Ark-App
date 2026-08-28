@@ -154,6 +154,8 @@ export interface LineupResponse {
     projected: number
     opponentProjected: number
     margin: number
+    /** Whether the forecast came from this week's lineups or season form. */
+    basis: 'lineup' | 'season-form'
   } | null
   lineup: {
     optimal: LineupAssignment[]

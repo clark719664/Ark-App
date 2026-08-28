@@ -5,6 +5,7 @@ import type {
   RosterEntry, Team,
 } from '../../shared/types.js'
 import { config } from '../config.js'
+import { archiveSnapshot } from '../history.js'
 import { openSession, politeDelay } from './browser.js'
 import {
   scrapeDraft, scrapeLeagueMeta, scrapePlayers, scrapeRoster, scrapeScoreboard,
@@ -241,6 +242,7 @@ export async function syncLeague(opts: SyncOptions = {}): Promise<LeagueSnapshot
     }
 
     writeSnapshot(snapshot)
+    archiveSnapshot(snapshot)
     clearProgress()
     log(`\nSaved snapshot to ${config.cache.snapshotFile}`)
     return snapshot

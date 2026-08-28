@@ -247,6 +247,7 @@ api.get('/lineup', handle((req, res) => {
           projected: odds.homeTeamId === teamId ? odds.homeProjected : odds.awayProjected,
           opponentProjected: odds.homeTeamId === teamId ? odds.awayProjected : odds.homeProjected,
           margin: odds.projectedMargin,
+          basis: odds.basis,
         }
       : null,
     teams: snapshot.teams.map((t) => ({ id: t.id, name: t.name, isMine: t.isMine ?? false })),

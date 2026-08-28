@@ -502,6 +502,100 @@ describe('matchup odds', () => {
     }
   })
 
+  it('projects from the lineup a team can actually field', () => {
+    // Two identical teams by season scoring, but one has its best player on
+    // bye this week. The season model cannot see that; the lineup model must.
+    const base = buildDemoSnapshot()
+    const custom: LeagueSnapshot = {
+      ...base,
+      league: { ...base.league, currentWeek: 50, rosterSlots: [{ slot: 'RB', count: 2 }] },
+      teams: [
+        { id: 'healthy', name: 'Healthy', record: { wins: 0, losses: 0, ties: 0 }, pointsFor: 0, pointsAgainst: 0 },
+        { id: 'depleted', name: 'Depleted', record: { wins: 0, losses: 0, ties: 0 }, pointsFor: 0, pointsAgainst: 0 },
+      ],
+      rosters: {
+        healthy: [
+          entry('RB', true, player('h1', 'RB', 20)),
+          entry('RB', true, player('h2', 'RB', 18)),
+        ],
+        depleted: [
+          entry('RB', true, player('d1', 'RB', 20, { byeWeek: 50 })),
+          entry('RB', true, player('d2', 'RB', 18, { injury: { code: 'O', label: 'Out' } })),
+        ],
+      },
+      matchups: [
+        {
+          week: 50,
+          home: { teamId: 'healthy', score: 0 },
+          away: { teamId: 'depleted', score: 0 },
+          winnerTeamId: null,
+          final: false,
+        },
+      ],
+    }
+
+    const result = computeMatchupOdds(custom, 50)[0]!
+    expect(result.basis).toBe('season-form')
+    // The depleted side can field nobody, so it falls back rather than
+    // claiming a zero-point forecast.
+    expect(result.homeProjected).toBeGreaterThan(0)
+
+    // With one usable starter each side, the lineup basis kicks in.
+    const partial: LeagueSnapshot = {
+      ...custom,
+      rosters: {
+        ...custom.rosters,
+        depleted: [
+          entry('RB', true, player('d1', 'RB', 20, { byeWeek: 50 })),
+          entry('RB', true, player('d3', 'RB', 4)),
+        ],
+      },
+    }
+    const partialResult = computeMatchupOdds(partial, 50)[0]!
+    expect(partialResult.basis).toBe('lineup')
+    expect(partialResult.homeProjected).toBe(38)
+    expect(partialResult.awayProjected).toBe(4)
+    // A 34-point edge against these teams' scoring spread is decisive but not
+    // a certainty, which is the right shape for the answer.
+    expect(partialResult.homeWinProbability).toBeGreaterThan(0.85)
+    expect(partialResult.favouriteTeamId).toBe('healthy')
+  })
+
+  it('falls back to season form when there are no projections to work from', () => {
+    const base = buildDemoSnapshot()
+    const custom: LeagueSnapshot = {
+      ...base,
+      league: { ...base.league, currentWeek: 60 },
+      teams: [
+        { id: 'a', name: 'A', record: { wins: 0, losses: 0, ties: 0 }, pointsFor: 0, pointsAgainst: 0 },
+        { id: 'b', name: 'B', record: { wins: 0, losses: 0, ties: 0 }, pointsFor: 0, pointsAgainst: 0 },
+      ],
+      // Players with no points at all — the degraded-scrape case.
+      rosters: {
+        a: [{ slot: 'RB', starter: true, player: { id: 'x', name: 'X', position: 'RB', nflTeam: 'KC', ownerTeamId: 'a' } }],
+        b: [{ slot: 'RB', starter: true, player: { id: 'y', name: 'Y', position: 'RB', nflTeam: 'KC', ownerTeamId: 'b' } }],
+      },
+      matchups: [
+        {
+          week: 60,
+          home: { teamId: 'a', score: 0 },
+          away: { teamId: 'b', score: 0 },
+          winnerTeamId: null,
+          final: false,
+        },
+      ],
+    }
+
+    const result = computeMatchupOdds(custom, 60)[0]!
+    expect(result.basis).toBe('season-form')
+    // Never forecast zero points: that is missing information, not a prediction.
+    expect(result.homeProjected).toBeGreaterThan(0)
+    expect(result.awayProjected).toBeGreaterThan(0)
+    // With nothing to separate them, the honest answer is a coin flip.
+    expect(result.homeWinProbability).toBeCloseTo(0.5, 1)
+    expect(result.homeWinProbability + result.awayWinProbability).toBeCloseTo(1, 3)
+  })
+
   it('makes a far stronger team an overwhelming favourite', () => {
     const strong = [...snapshot.teams].sort((a, b) => b.pointsFor - a.pointsFor)[0]!
     const weak = [...snapshot.teams].sort((a, b) => a.pointsFor - b.pointsFor)[0]!

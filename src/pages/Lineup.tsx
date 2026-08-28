@@ -59,7 +59,12 @@ export default function Lineup() {
           tone={odds ? toneForOdds(odds.winProbability) : undefined}
           hint={
             odds && opponent
-              ? `${points(odds.projected)} projected against their ${points(odds.opponentProjected)}`
+              ? odds.basis === 'lineup'
+                // Both sides are projected from their best available lineup, so
+                // this is the answer to "if we both start our best team" —
+                // which is why it can differ from the lineup-as-set number.
+                ? `${points(odds.projected)} to ${points(odds.opponentProjected)} if both start their best lineup`
+                : `${points(odds.projected)} to ${points(odds.opponentProjected)}, projected from season form`
               : 'No matchup scheduled this week'
           }
         />

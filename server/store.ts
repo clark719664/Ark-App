@@ -1,6 +1,7 @@
 import type { DataQuality, LeagueAnalytics, LeagueSnapshot } from '../shared/types.js'
 import { computeAnalytics } from './analytics/index.js'
 import { config } from './config.js'
+import { previousWeekSnapshot } from './history.js'
 import { buildDemoSnapshot } from './providers/demo.js'
 import { readSnapshot, snapshotAgeSeconds, writeSnapshot } from './yahoo/sync.js'
 
@@ -44,7 +45,10 @@ export function getAnalytics(): LeagueAnalytics {
   const key = `${snapshot.league.id}:${snapshot.fetchedAt}`
   if (analyticsCache?.key === key) return analyticsCache.value
 
-  const value = computeAnalytics(snapshot)
+  // Demo data has no history on disk, and none is wanted: it is regenerated
+  // identically every run.
+  const previous = config.provider === 'demo' ? null : previousWeekSnapshot(snapshot)
+  const value = computeAnalytics(snapshot, { previous })
   analyticsCache = { key, value }
   return value
 }

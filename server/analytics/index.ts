@@ -65,7 +65,10 @@ const RECENT_WEEKS = 3
  * Components are each scaled 0-100 across the league so the UI can show why a
  * team sits where it does rather than just asserting a number.
  */
-export function computePowerRankings(snapshot: LeagueSnapshot): PowerRanking[] {
+export function computePowerRankings(
+  snapshot: LeagueSnapshot,
+  previous?: LeagueSnapshot | null,
+): PowerRanking[] {
   const weekly = buildWeeklyScores(snapshot)
   const byTeam = scoresByTeam(weekly)
   const teams = snapshot.teams
@@ -84,7 +87,11 @@ export function computePowerRankings(snapshot: LeagueSnapshot): PowerRanking[] {
   const recentScaled = scaleToPercent(recent)
   const winScaled = scaleToPercent(winPct)
 
-  const previous = computePreviousPowerScores(snapshot)
+  // Prefer an actual earlier sync: recomputing from today's roster assumes
+  // nothing was traded or claimed, which is exactly what movement is about.
+  const priorRanks = previous
+    ? new Map(computeRankingsWithoutDelta(previous).map((entry) => [entry.teamId, entry.rank]))
+    : computePreviousPowerScores(snapshot)
 
   const ranked = teams.map((team, i) => {
     const components = {
@@ -105,7 +112,7 @@ export function computePowerRankings(snapshot: LeagueSnapshot): PowerRanking[] {
   ranked.sort((a, b) => b.score - a.score)
   ranked.forEach((entry, i) => {
     entry.rank = i + 1
-    const priorRank = previous.get(entry.teamId)
+    const priorRank = priorRanks.get(entry.teamId)
     // Positive delta means the team climbed.
     entry.delta = priorRank === undefined ? null : priorRank - entry.rank
   })
@@ -482,11 +489,11 @@ function playGame(
 
 export function computeAnalytics(
   snapshot: LeagueSnapshot,
-  opts: PlayoffOddsOptions = {},
+  opts: PlayoffOddsOptions & { previous?: LeagueSnapshot | null } = {},
 ): LeagueAnalytics {
   const { odds, simulations } = computePlayoffOdds(snapshot, opts)
   return {
-    powerRankings: computePowerRankings(snapshot),
+    powerRankings: computePowerRankings(snapshot, opts.previous ?? null),
     luck: computeLuck(snapshot),
     scheduleStrength: computeScheduleStrength(snapshot),
     playoffOdds: odds,

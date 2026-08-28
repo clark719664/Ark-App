@@ -128,7 +128,8 @@ scoreboard, and plain-language reads on what the numbers say about the league.
 mistakes cost more than every waiver claim combined. Ark solves for the best
 legal lineup your roster can produce, tells you exactly which changes to make
 and what each is worth, flags starters who are on bye or ruled out, and gives
-you a win probability for the week.
+you a win probability for the week — projected from the lineups both teams can
+actually field, so an opponent with three starters out is priced accordingly.
 
 **Waiver wire** — every free agent scored by how much he raises your best
 possible lineup, not by raw projection. A great receiver is worth nothing to you
@@ -172,6 +173,15 @@ comparison means something; one click to cross a player off, one to claim him.
 State is kept in `localStorage`, so a refresh mid-draft costs you nothing. Past
 draft results show up in a second tab.
 
+### When the numbers aren't there
+
+Every ranking depends on a projection, and a scrape can come back without one.
+Rather than quietly ranking everyone at zero, Ark grades each sync: if weekly
+projections are missing it falls back to season averages and says so on the
+page; if there is no scoring data at all it says the rankings are not reliable
+and points you at `yahoo:capture`. A tool that is wrong is worse than a tool
+that admits it does not know.
+
 ### One value function, used everywhere
 
 Start/Sit, the waiver wire and the trade finder all ask the same question: *what
@@ -195,6 +205,26 @@ single-elimination bracket is played out, with byes for the top seeds. That runs
 
 The result is deterministic for a given snapshot: the same data always produces
 the same odds.
+
+## Trusting the output
+
+The Yahoo scrapers are the one part of Ark that cannot be verified against the
+real thing by its author, so they are built to be checkable by you:
+
+- **Fixture tests** run every scraper in a real browser against synthetic
+  Yahoo-shaped pages, including the awkward cases — renamed columns, reordered
+  columns, missing projections, and minified markup where adjacent elements run
+  together. These caught two genuine bugs that fixtures with friendlier
+  whitespace had hidden.
+- **Calibration tests** run those same scrapers against *your* captured pages in
+  `.cache/raw/`. They skip until you have run `yahoo:capture`, and once you have,
+  a failure names the page and the field rather than leaving you to guess.
+- **Data-quality grading** on every sync, surfaced in the app.
+
+```bash
+npm run yahoo:capture   # save your real pages
+npm test                # check the parsers against them
+```
 
 ## What Ark deliberately does not do
 
@@ -270,8 +300,10 @@ server/
     dom.ts             Header-driven table extraction
     scrape.ts          Standings, scoreboards, rosters, players, draft
     sync.ts            Orchestrates a full sync into a snapshot
+  history.ts           Archive of past syncs, for real week-over-week movement
   analytics/
     index.ts           Power rankings, luck, schedule strength, playoff odds
+    matchup.ts         Weekly win probability from each side's actual lineup
     lineup.ts          The shared "best legal lineup" solver
     waivers.ts         Free agents scored by marginal lineup value
     trades.ts          Two-sided trade search, buy-low / sell-high
