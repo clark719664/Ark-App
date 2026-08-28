@@ -36,6 +36,9 @@ jobs:
 
       - name: Test
         run: npm test
+        # The suite includes browser-driven scraper tests and a short run of the
+        # season simulation, so it is slower than a pure unit suite.
+        timeout-minutes: 10
 
       - name: Build
         run: npm run build

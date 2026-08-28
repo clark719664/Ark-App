@@ -310,16 +310,17 @@ The world is built to be able to prove Ark wrong:
 Over 2,500 seasons — 7,500 team-seasons per strategy — against a 1-in-12
 baseline of 8.3%:
 
-| Strategy | Titles | Playoffs | Wins | Points | Bench waste |
-| --- | --- | --- | --- | --- | --- |
-| **Ark** | **13.1%** | **73.2%** | 8.16 | 1866 | 191 |
-| Streamer | 9.8% | 55.7% | 7.34 | 1779 | 275 |
-| Conventional tool | 9.0% | 55.3% | 7.29 | 1781 | 279 |
-| Set and forget | 6.4% | 41.5% | 6.67 | 1709 | 344 |
-| Random | 0.6% | 10.0% | 4.82 | 1525 | 531 |
+| Strategy | Titles | Playoffs | Wins | Points | Bench waste | Talent drift |
+| --- | --- | --- | --- | --- | --- | --- |
+| **Ark** | **13.9%** | **76.9%** | 8.36 | 1850 | 214 | −0.0 |
+| Streamer | 8.8% | 54.3% | 7.28 | 1739 | 277 | +2.4 |
+| Conventional tool | 8.4% | 53.6% | 7.25 | 1741 | 279 | +2.5 |
+| Set and forget | 7.3% | 41.3% | 6.65 | 1674 | 375 | +0.0 |
+| Random | 0.5% | 8.5% | 4.66 | 1477 | 574 | +0.0 |
 
 At that sample size the gap over a conventional tool is roughly eight standard
-errors, so it is not noise.
+errors, so it is not noise. "Talent drift" is the change in the hidden true
+value of a roster over the season — the diagnostic that caught the bug below.
 
 ### The simulation found a real bug
 
@@ -347,8 +348,8 @@ blends the projection with the player's season-long form, weighted by how much
 of that season has actually been observed — plus a margin a claim has to clear
 before it is worth making at all.
 
-Result: talent drift went from −12.9 to −0.2 a season, and the title rate went
-from 10.4% to 13.1%, moving Ark from behind the do-nothing manager to clearly
+Result: talent drift went from −12.9 to roughly zero, and the title rate went
+from 10.4% to 13.9%, moving Ark from behind the do-nothing manager to clearly
 ahead of everyone.
 
 That bug was invisible to every other form of testing in this repo. The unit
