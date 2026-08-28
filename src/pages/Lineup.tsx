@@ -3,6 +3,7 @@ import { api, useApi, type LineupAssignment, type LineupResponse } from '../lib/
 import { Card, Empty, ErrorState, Loading, StatTile } from '../components/ui'
 import TeamPicker from '../components/TeamPicker'
 import DataQualityNotice from '../components/DataQualityNotice'
+import RiskPanel from '../components/RiskPanel'
 import { useTeamSelection } from '../lib/useTeamSelection'
 import { injuryTone, percent, points, positionTone, toneForOdds } from '../lib/format'
 
@@ -71,6 +72,8 @@ export default function Lineup() {
       </div>
 
       {lineup.alerts.length > 0 && <Alerts alerts={lineup.alerts} />}
+
+      <RiskPanel risk={data.risk} />
 
       {lineup.swaps.length > 0 ? (
         <Card

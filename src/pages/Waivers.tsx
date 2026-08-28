@@ -2,6 +2,7 @@ import { api, useApi, type WaiverTarget } from '../lib/api'
 import { Card, Empty, ErrorState, Loading, Pill, StatTile } from '../components/ui'
 import TeamPicker from '../components/TeamPicker'
 import DataQualityNotice from '../components/DataQualityNotice'
+import { OddsSwing, PostureBanner } from '../components/OddsImpact'
 import { useTeamSelection } from '../lib/useTeamSelection'
 import { injuryTone, percentRaw, points, positionTone } from '../lib/format'
 
@@ -36,6 +37,8 @@ export default function Waivers() {
       </header>
 
       <DataQualityNotice quality={data.dataQuality} />
+
+      <PostureBanner posture={data.posture} />
 
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <StatTile
@@ -224,6 +227,12 @@ function TargetRow({ target }: { target: WaiverTarget }) {
           <span className="block text-[11px] text-ink-500">per week</span>
         </span>
       </div>
+
+      {target.impact && (
+        <div className="mt-1.5 pl-9">
+          <OddsSwing impact={target.impact} compact />
+        </div>
+      )}
 
       <ul className="mt-2 space-y-1 pl-9">
         {target.reasons.map((reason) => (

@@ -9,6 +9,7 @@ import Matchups from './pages/Matchups'
 import Lineup from './pages/Lineup'
 import Waivers from './pages/Waivers'
 import Trades from './pages/Trades'
+import Path from './pages/Path'
 import Players from './pages/Players'
 import DraftBoard from './pages/DraftBoard'
 import './index.css'
@@ -33,6 +34,7 @@ const router = createBrowserRouter([
       { path: 'lineup', element: <Lineup /> },
       { path: 'waivers', element: <Waivers /> },
       { path: 'trades', element: <Trades /> },
+      { path: 'path', element: <Path /> },
       { path: 'analytics', element: deferred(<Analytics />) },
       { path: 'players', element: <Players /> },
       { path: 'draft', element: <DraftBoard /> },

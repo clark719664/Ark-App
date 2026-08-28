@@ -117,6 +117,69 @@ export interface AnalyticsResponse extends LeagueAnalytics {
 }
 
 
+export interface Impact {
+  before: { makePlayoffs: number; winTitle: number; projectedWins: number; projectedSeed: number }
+  after: { makePlayoffs: number; winTitle: number; projectedWins: number; projectedSeed: number }
+  playoffSwing: number
+  titleSwing: number
+}
+
+export interface PostureAdvice {
+  posture: 'contend' | 'push' | 'sell'
+  playoffOdds: number
+  headline: string
+  detail: string
+}
+
+export interface RiskLineupSlot {
+  slot: string
+  player: Player | null
+  projection: number
+}
+
+export interface RiskLineup {
+  assignments: RiskLineupSlot[]
+  mean: number
+  spread: number
+  winProbability: number
+}
+
+export interface RiskAnalysis {
+  byPoints: RiskLineup
+  byWinProbability: RiskLineup
+  differ: boolean
+  winProbabilityGain: number
+  pointsGivenUp: number
+  posture: 'underdog' | 'favourite' | 'even'
+  moves: Array<{ slot: string; out: Player; in: Player; reason: string }>
+  opponent: { mean: number; spread: number }
+}
+
+export interface GameLeverage {
+  week: number
+  opponentTeamId: string
+  oddsIfWin: number
+  oddsIfLose: number
+  swing: number
+  mustWin: boolean
+}
+
+export interface PathResponse {
+  teamId: string
+  playoffOdds: number
+  gamesRemaining: number
+  winsToClinch: number | null
+  winsToStayAlive: number | null
+  clinched: boolean
+  eliminated: boolean
+  games: GameLeverage[]
+  summary: string
+  team: Team | null
+  teams: TeamOption[]
+  opponents: Record<string, string>
+}
+
+
 export interface TeamOption {
   id: string
   name: string
@@ -157,6 +220,7 @@ export interface LineupResponse {
     /** Whether the forecast came from this week's lineups or season form. */
     basis: 'lineup' | 'season-form'
   } | null
+  risk: RiskAnalysis | null
   lineup: {
     optimal: LineupAssignment[]
     currentProjected: number
@@ -176,6 +240,7 @@ export interface WaiverTarget {
   rank: number
   reasons: string[]
   priority: 'high' | 'medium' | 'low'
+  impact?: Impact
 }
 
 export interface PositionOutlook {
@@ -187,6 +252,7 @@ export interface PositionOutlook {
 export interface WaiversResponse {
   teamId: string
   week: number
+  posture: PostureAdvice
   team: Team | null
   targets: WaiverTarget[]
   outlook: PositionOutlook[]
@@ -202,6 +268,7 @@ export interface TradeIdea {
   totalGain: number
   fairness: number
   rationale: string
+  impact?: Impact
 }
 
 export interface MarketSignal {
@@ -217,6 +284,7 @@ export interface MarketSignal {
 
 export interface TradesResponse {
   teamId: string
+  posture: PostureAdvice
   team: Team | null
   ideas: TradeIdea[]
   signals: MarketSignal[]
@@ -248,6 +316,8 @@ export const api = {
     request<WaiversResponse>(teamId ? `/waivers?team=${encodeURIComponent(teamId)}` : '/waivers'),
   trades: (teamId?: string) =>
     request<TradesResponse>(teamId ? `/trades?team=${encodeURIComponent(teamId)}` : '/trades'),
+  path: (teamId?: string) =>
+    request<PathResponse>(teamId ? `/path?team=${encodeURIComponent(teamId)}` : '/path'),
   startSync: () => request<{ started: boolean }>('/sync', { method: 'POST' }),
   syncStatus: () => request<{ running: boolean; log: string[] }>('/sync/status'),
 }

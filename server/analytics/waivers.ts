@@ -1,4 +1,5 @@
 import type { LeagueSnapshot, Player, PlayerPosition, RosterEntry } from '../../shared/types.js'
+import type { Impact, ImpactCalculator } from './impact.js'
 import { bestLineup, effectiveProjection, projectionOf } from './lineup.js'
 import { round } from './stats.js'
 
@@ -23,6 +24,12 @@ export interface WaiverTarget {
   rank: number
   reasons: string[]
   priority: 'high' | 'medium' | 'low'
+  /**
+   * What the claim does to your season. Priced only for the targets that would
+   * actually start for you, since a season simulation per bench stash is a lot
+   * of arithmetic to establish that nothing happens.
+   */
+  impact?: Impact
 }
 
 export interface PositionOutlook {
@@ -59,6 +66,7 @@ export function buildWaiverReport(
   teamId: string,
   slots: string[],
   limit = 30,
+  calculator?: ImpactCalculator,
 ): WaiverReport {
   const roster = snapshot.rosters[teamId] ?? []
   const currentWeek = snapshot.league.currentWeek
@@ -122,7 +130,34 @@ export function buildWaiverReport(
     })
   }
 
+  if (calculator) priceTargets(targets, myPlayers, teamId, calculator)
+
   return { teamId, targets, outlook, gaps }
+}
+
+/**
+ * Price the real upgrades in playoff probability.
+ *
+ * A pickup replaces the weakest player on the roster, so the roster keeps its
+ * size — dropping nobody would flatter the claim by measuring an extra man
+ * rather than a swap.
+ */
+function priceTargets(
+  targets: WaiverTarget[],
+  roster: Player[],
+  teamId: string,
+  calculator: ImpactCalculator,
+): void {
+  const weakest = [...roster].sort((a, b) => projectionOf(a) - projectionOf(b))[0]
+
+  for (const target of targets) {
+    if (target.upgrade <= 0) continue
+    const after = [
+      ...roster.filter((player) => player.id !== weakest?.id),
+      target.player,
+    ]
+    target.impact = calculator.impactOf([{ teamId, players: after }], teamId)
+  }
 }
 
 function buildOutlook(

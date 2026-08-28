@@ -3,6 +3,7 @@ import { api, useApi, type MarketSignal, type TradeIdea } from '../lib/api'
 import { Card, Empty, ErrorState, Loading, Meter, StatTile } from '../components/ui'
 import TeamPicker from '../components/TeamPicker'
 import DataQualityNotice from '../components/DataQualityNotice'
+import { OddsSwing, PostureBanner } from '../components/OddsImpact'
 import { useTeamSelection } from '../lib/useTeamSelection'
 import { points, positionTone, signed } from '../lib/format'
 
@@ -40,6 +41,8 @@ export default function Trades() {
 
       <DataQualityNotice quality={data.dataQuality} />
 
+      <PostureBanner posture={data.posture} />
+
       <div className="grid gap-3 grid-cols-2 lg:grid-cols-4">
         <StatTile label="Deals found" value={data.ideas.length} hint="Both sides gain" />
         <StatTile
@@ -54,15 +57,27 @@ export default function Trades() {
         />
         <StatTile
           label="Best deal"
-          value={bestIdea ? `+${points(bestIdea.you.gain)}` : '—'}
+          value={
+            bestIdea?.impact && Math.abs(bestIdea.impact.playoffSwing) >= 0.1
+              ? `${bestIdea.impact.playoffSwing > 0 ? '+' : ''}${bestIdea.impact.playoffSwing.toFixed(1)}pp`
+              : bestIdea
+                ? `+${points(bestIdea.you.gain)}`
+                : '—'
+          }
           tone={bestIdea ? 'text-turf-400' : undefined}
-          hint={bestIdea ? `Per week, with ${bestIdea.them.teamName}` : 'Nothing worth proposing'}
+          hint={
+            bestIdea?.impact && Math.abs(bestIdea.impact.playoffSwing) >= 0.1
+              ? `Playoff odds, with ${bestIdea.them.teamName}`
+              : bestIdea
+                ? `Points per week, with ${bestIdea.them.teamName}`
+                : 'Nothing worth proposing'
+          }
         />
       </div>
 
       <Card
         title="Suggested trades"
-        subtitle="Ranked by total value created, then by how evenly it is split"
+        subtitle="Ranked by total value created, then by how evenly it is split. Each is priced by what it does to your season."
       >
         {data.ideas.length === 0 ? (
           <Empty>
@@ -141,6 +156,10 @@ function TradeCard({ idea }: { idea: TradeIdea }) {
             </span>
           </span>
         </span>
+      </div>
+
+      <div className="mt-2">
+        <OddsSwing impact={idea.impact} />
       </div>
 
       <div className="mt-3 grid gap-3 sm:grid-cols-2">

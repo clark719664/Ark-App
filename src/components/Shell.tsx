@@ -19,6 +19,7 @@ const NAV_GROUPS: Array<{
       { to: '/lineup', label: 'Start / Sit' },
       { to: '/waivers', label: 'Waivers' },
       { to: '/trades', label: 'Trades' },
+      { to: '/path', label: 'Season path' },
     ],
   },
   {

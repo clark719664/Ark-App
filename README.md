@@ -138,10 +138,16 @@ the week yours is on bye. Targets say why they matter, who they'd displace, and
 how likely they are to clear waivers.
 
 **Trades** — deals where *both* rosters end up projecting more points, which is
-the only kind anyone accepts. Each idea shows what both sides gain and how
-evenly, with a plain-English reason. Alongside it: buy-low and sell-high
-candidates, based on how far a player's last week has pulled away from his own
-season baseline.
+the only kind anyone accepts. Each idea shows what both sides gain, how evenly,
+and what it does to your playoff and title odds. The page opens with a posture:
+contend, push or sell, derived from where you actually stand, because the same
+trade is a good idea for a bubble team and a waste of a roster spot for one
+already through. Alongside it: buy-low and sell-high candidates, based on how
+far a player's last week has pulled away from his own season baseline.
+
+**Season path** — what still has to happen. Playoff odds if you win each
+remaining game against playoff odds if you lose it, ranked; how many of your
+last games you need; and whether anything is already decided.
 
 ### Looking at the league
 
@@ -181,6 +187,53 @@ projections are missing it falls back to season averages and says so on the
 page; if there is no scoring data at all it says the rankings are not reliable
 and points you at `yahoo:capture`. A tool that is wrong is worse than a tool
 that admits it does not know.
+
+### Priced in the currency that settles the season
+
+"This trade gains you 1.8 points a week" is true and does not answer the
+question. That gain is decisive for a team on the bubble and completely
+irrelevant for one that is 97% in or 2% out, and no points-denominated tool can
+tell those apart.
+
+So every trade and every waiver claim is re-simulated: change the roster,
+re-solve the lineup, replay the rest of the season, and report the change in
+playoff and title probability. Both sides of a trade are moved, because the
+player you send makes a rival better and that cost is real.
+
+Two things make those numbers trustworthy. The season is projected from the
+lineup each team can actually field today rather than from what it averaged in
+September. And every scenario draws from the *same* block of random numbers, so
+two runs differ only by the thing that changed — without that, a two-point trade
+is indistinguishable from simulation noise (measured: ±0.9pp of noise on an
+8pp effect).
+
+### Start/sit as a question about winning, not scoring
+
+Nearly every fantasy tool maximises expected points. That is the wrong target in
+the two situations where the decision is actually hard.
+
+Against a much stronger opponent you are going to lose the average, so you need
+an outcome in the tail — the boom-or-bust player, even at a cost in projected
+points. Against a much weaker one the reverse holds. This is not a heuristic
+bolted on top; it falls straight out of
+
+    P(win) = Φ( (μ_you − μ_them) / √(σ²_you + σ²_them) )
+
+When the numerator is negative, raising your variance raises P(win). Ark
+maximises that expression instead of μ, and only says anything when the two
+answers disagree. Player spread is estimated from position priors — quarterbacks
+are steady, tight ends and defenses are not — so it is presented as a tiebreaker
+between close calls, not a licence to bench someone clearly better.
+
+### Which games actually matter
+
+Every remaining game is simulated twice, once forced as a win and once as a
+loss. The gap is what that game is genuinely worth: on the demo league, one
+week-11 matchup carries 37 percentage points of playoff probability while
+another carries three. That is the difference between a week to spend your
+waiver budget and a week to save it. The same machinery answers "how many of my
+last four do I need" and detects clinching and elimination — conservatively,
+only when the result is not in doubt.
 
 ### One value function, used everywhere
 
@@ -304,6 +357,10 @@ server/
   analytics/
     index.ts           Power rankings, luck, schedule strength, playoff odds
     matchup.ts         Weekly win probability from each side's actual lineup
+    season.ts          Forward-looking season simulator with common random numbers
+    impact.ts          Transactions priced in playoff and title probability
+    leverage.ts        What each remaining game is worth; clinch and elimination
+    risk.ts            Win-probability-optimal lineups
     lineup.ts          The shared "best legal lineup" solver
     waivers.ts         Free agents scored by marginal lineup value
     trades.ts          Two-sided trade search, buy-low / sell-high

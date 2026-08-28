@@ -1,4 +1,5 @@
 import type { LeagueSnapshot, Player, PlayerPosition, RosterEntry } from '../../shared/types.js'
+import { rosterAfterTrade, type Impact, type ImpactCalculator } from './impact.js'
 import { bestLineup, projectionOf } from './lineup.js'
 import { canFill } from './slots.js'
 import { mean, round } from './stats.js'
@@ -36,6 +37,12 @@ export interface TradeIdea {
   /** 0-1: 1 means both sides gain equally. */
   fairness: number
   rationale: string
+  /**
+   * What the trade does to your season, not just your Sunday. Present only on
+   * the ideas that survive ranking, because pricing one costs a full season
+   * simulation.
+   */
+  impact?: Impact
 }
 
 export interface TradeReport {
@@ -66,6 +73,11 @@ export interface TradeOptions {
   minGain?: number
   /** Include two-for-one packages as well as straight swaps. */
   includePackages?: boolean
+  /**
+   * Price the surviving ideas in playoff probability. Costs one season
+   * simulation each, so it is applied after ranking rather than during it.
+   */
+  impact?: ImpactCalculator
 }
 
 export function findTrades(
@@ -142,12 +154,47 @@ export function findTrades(
     limit,
   )
 
+  const priced = opts.impact ? priceIdeas(snapshot, teamId, ranked, opts.impact) : ranked
+
   return {
     teamId,
-    ideas: ranked,
+    ideas: priced,
     surplus: positionSurplus(myPlayers, slots),
     needs: positionNeeds(myPlayers, slots),
   }
+}
+
+/**
+ * Re-price each idea as a change in playoff odds.
+ *
+ * Both rosters are moved, not just yours: the player you send makes the other
+ * team better, and if they are racing you for the last spot that cost is real
+ * and belongs in the number.
+ */
+function priceIdeas(
+  snapshot: LeagueSnapshot,
+  teamId: string,
+  ideas: TradeIdea[],
+  calculator: ImpactCalculator,
+): TradeIdea[] {
+  const mine = rosterPlayers(snapshot.rosters[teamId] ?? [])
+
+  return ideas.map((idea) => {
+    const theirs = rosterPlayers(snapshot.rosters[idea.them.teamId] ?? [])
+    return {
+      ...idea,
+      impact: calculator.impactOf(
+        [
+          { teamId, players: rosterAfterTrade(mine, idea.you.sends, idea.you.receives) },
+          {
+            teamId: idea.them.teamId,
+            players: rosterAfterTrade(theirs, idea.them.sends, idea.them.receives),
+          },
+        ],
+        teamId,
+      ),
+    }
+  })
 }
 
 function buildIdea(

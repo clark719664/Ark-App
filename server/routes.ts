@@ -2,10 +2,15 @@ import { Router, type Request, type Response, type NextFunction } from 'express'
 import type { Player, RosterEntry } from '../shared/types.js'
 import { config } from './config.js'
 import { computeMatchupOdds } from './analytics/matchup.js'
+import { derivePosture } from './analytics/impact.js'
+import { analyseLineupRisk } from './analytics/risk.js'
 import { optimizeLineup, resolveSlots } from './analytics/lineup.js'
 import { findMarketSignals, findTrades } from './analytics/trades.js'
 import { buildWaiverReport } from './analytics/waivers.js'
-import { getAnalytics, getSnapshot, getStatus, invalidate, NoSnapshotError } from './store.js'
+import {
+  getAnalytics, getImpactCalculator, getPlayoffPath, getSnapshot, getStatus, invalidate,
+  NoSnapshotError,
+} from './store.js'
 import { YahooAuthError } from './yahoo/browser.js'
 
 /**
@@ -234,10 +239,26 @@ api.get('/lineup', handle((req, res) => {
       : matchup.home.teamId
     : null
 
+  // Risk-aware start/sit needs an opponent to be measured against; without a
+  // matchup there is no win probability to maximise.
+  const risk =
+    odds && opponentId
+      ? analyseLineupRisk(
+          roster,
+          slots,
+          {
+            mean: odds.homeTeamId === teamId ? odds.awayProjected : odds.homeProjected,
+            spread: Math.max(1, odds.projectedMargin),
+          },
+          week,
+        )
+      : null
+
   res.json({
     team,
     week,
     slots,
+    risk,
     lineup: optimizeLineup(roster, slots, week),
     roster,
     opponent: opponentId ? (snapshot.teams.find((t) => t.id === opponentId) ?? null) : null,
@@ -261,7 +282,8 @@ api.get('/waivers', handle((req, res) => {
   const limit = clamp(Number.parseInt(String(req.query['limit'] ?? '30'), 10) || 30, 1, 100)
 
   res.json({
-    ...buildWaiverReport(snapshot, teamId, slotsFor(snapshot, teamId), limit),
+    ...buildWaiverReport(snapshot, teamId, slotsFor(snapshot, teamId), limit, getImpactCalculator()),
+    posture: derivePosture(getImpactCalculator().oddsFor(teamId)),
     week: snapshot.league.currentWeek,
     team: snapshot.teams.find((t) => t.id === teamId) ?? null,
     teams: snapshot.teams.map((t) => ({ id: t.id, name: t.name, isMine: t.isMine ?? false })),
@@ -274,12 +296,27 @@ api.get('/trades', handle((req, res) => {
   const teamId = resolveTeamId(snapshot, req.query['team'])
   const limit = clamp(Number.parseInt(String(req.query['limit'] ?? '12'), 10) || 12, 1, 40)
 
+  const calculator = getImpactCalculator()
+
   res.json({
-    ...findTrades(snapshot, teamId, slotsFor(snapshot, teamId), { limit }),
+    ...findTrades(snapshot, teamId, slotsFor(snapshot, teamId), { limit, impact: calculator }),
+    posture: derivePosture(calculator.oddsFor(teamId)),
     signals: findMarketSignals(snapshot, 8, teamId),
     team: snapshot.teams.find((t) => t.id === teamId) ?? null,
     teams: snapshot.teams.map((t) => ({ id: t.id, name: t.name, isMine: t.isMine ?? false })),
     dataQuality: snapshot.dataQuality ?? null,
+  })
+}))
+
+api.get('/path', handle((req, res) => {
+  const snapshot = getSnapshot()
+  const teamId = resolveTeamId(snapshot, req.query['team'])
+
+  res.json({
+    ...getPlayoffPath(teamId),
+    team: snapshot.teams.find((t) => t.id === teamId) ?? null,
+    teams: snapshot.teams.map((t) => ({ id: t.id, name: t.name, isMine: t.isMine ?? false })),
+    opponents: Object.fromEntries(snapshot.teams.map((t) => [t.id, t.name])),
   })
 }))
 

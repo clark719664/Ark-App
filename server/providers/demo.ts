@@ -270,7 +270,6 @@ export function buildDemoSnapshot(seed = 20260828): LeagueSnapshot {
     pointsAgainst: 0,
     movesMade: Math.floor(rng() * 30),
     tradesMade: Math.floor(rng() * 3),
-    isMine: i === 0,
   }))
 
   const schedule = roundRobin(NUM_TEAMS, REGULAR_SEASON_WEEKS)
@@ -340,6 +339,12 @@ export function buildDemoSnapshot(seed = 20260828): LeagueSnapshot {
     team.rank = i + 1
     team.waiverPriority = NUM_TEAMS - i
   })
+
+  // "Your" team is deliberately on the bubble, just outside the cut. A demo
+  // where the user's team is already eliminated or already through shows none
+  // of what the tools are for.
+  const bubble = ranked[PLAYOFF_TEAMS]
+  if (bubble) bubble.isMine = true
 
   const players = buildPlayers(rng)
   const { rosters, draft } = buildRosters(teams, players, rng)
