@@ -6,6 +6,7 @@ import type {
 import { config } from '../config.js'
 import { openSession } from './browser.js'
 import { API, collection, fetchJson, findBlock, flatten } from './draftFeed.js'
+import { fetchProjections, playerKeyId } from './projections.js'
 import { assessDataQuality } from './sync.js'
 
 /**
@@ -17,10 +18,11 @@ import { assessDataQuality } from './sync.js'
  * and renders the answer. So this does the same. It is the same data, already
  * structured, and a redesign of the page cannot break it.
  *
- * The one thing the API does not carry is a weekly projection. Yahoo computes
- * those for its own front end and does not expose them here, so the snapshot
- * ships season points and averages and lets assessDataQuality say plainly that
- * rankings are running on season form.
+ * The API does not carry a projection. Yahoo publishes those on the player
+ * list instead, rendered into the page, so they are read from there and joined
+ * on the player id in each row's own link. If that column ever disappears the
+ * snapshot falls back to season form and says so, rather than shipping a
+ * ranking built on nothing.
  */
 
 const POSITIONS = new Set<PlayerPosition>([
@@ -110,6 +112,8 @@ async function paged<T>(
 export interface ApiSyncOptions {
   leagueId?: string
   teamId?: string
+  /** Skip the projection pass, which is the slow part of a sync. */
+  skipProjections?: boolean
   onProgress?: (message: string) => void
 }
 
@@ -267,11 +271,52 @@ export async function syncLeagueViaApi(opts: ApiSyncOptions = {}): Promise<Leagu
       }
     }
     const byKey = new Map(pool.map((player) => [player.id, player]))
+
+    if (!opts.skipProjections) {
+      log('Reading projections...')
+      try {
+        const week = await fetchProjections(page, leagueId, { kind: 'week', week: currentWeek }, {
+          onProgress: (message) => log(message),
+        })
+        const season = await fetchProjections(page, leagueId, { kind: 'season' }, {
+          onProgress: () => {},
+        })
+        let attached = 0
+        for (const player of pool) {
+          const id = playerKeyId(player.id)
+          const projected = week.get(id)
+          const seasonProjection = season.get(id)
+          if (projected === undefined && seasonProjection === undefined) continue
+          player.points = { ...player.points }
+          if (projected !== undefined) {
+            player.points.projected = projected
+            attached++
+          }
+          // A season projection is a better average than points-so-far when the
+          // season has barely started, and the only one available before it does.
+          if (seasonProjection !== undefined && !player.points.average) {
+            player.points.average = Number((seasonProjection / 17).toFixed(2))
+          }
+        }
+        log(`  ${attached} players carry a week ${currentWeek} projection`)
+        if (attached === 0) {
+          warnings.push('Yahoo returned no projections; rankings fall back to season form.')
+        }
+      } catch (err) {
+        warnings.push(
+          `Projections could not be read (${err instanceof Error ? err.message : String(err)}); ` +
+            'rankings fall back to season form.',
+        )
+      }
+    }
+
+    // Enriched only now, so roster entries carry the projections too.
     for (const entries of Object.values(rosters)) {
       for (const entry of entries) {
         const enriched = entry.player ? byKey.get(entry.player.id) : undefined
         if (entry.player && enriched?.points) {
-          entry.player.points = { ...enriched.points, ...entry.player.points }
+          entry.player.points = { ...entry.player.points, ...enriched.points }
+          entry.projected = enriched.points.projected ?? entry.projected
         }
       }
     }
@@ -345,12 +390,7 @@ export async function syncLeagueViaApi(opts: ApiSyncOptions = {}): Promise<Leagu
     log(`  ${draft.length} picks`)
 
     const dataQuality = assessDataQuality(rosters)
-    if (dataQuality.projections !== 'provider') {
-      warnings.push(
-        'Yahoo does not expose weekly projections through its API, so rankings ' +
-          'run on season form.',
-      )
-    }
+
 
     return {
       league,
