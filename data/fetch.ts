@@ -62,6 +62,9 @@ export const COMBINED_DATASETS: Dataset[] = [
  */
 export const SEASONAL_DATASETS = [
   { name: 'stats_player', pattern: 'stats_player/stats_player_week_%s.csv', from: 2022 },
+  // Team weeks carry the defensive scoring the player file leaves blank, so
+  // without this the draft board silently ships with no defences at all.
+  { name: 'stats_team', pattern: 'stats_team/stats_team_week_%s.csv', from: 2022 },
   { name: 'injuries', pattern: 'injuries/injuries_%s.csv', from: 2009 },
   { name: 'snap_counts', pattern: 'snap_counts/snap_counts_%s.csv', from: 2012 },
   { name: 'rosters', pattern: 'rosters/roster_%s.csv', from: FIRST_SEASON },

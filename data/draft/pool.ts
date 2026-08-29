@@ -1,5 +1,11 @@
 import fs from 'node:fs'
 import { column, num, optionalColumn, parseCsv, str } from '../csv.js'
+import {
+  loadLeagueScoring,
+  offenseColumns,
+  offensePoints,
+  type LeagueScoring,
+} from './scoring.js'
 import { localPath } from '../fetch.js'
 
 /**
@@ -82,7 +88,10 @@ export interface SeasonProduction {
  * Per-season production. The column layout changed between the two nflverse
  * eras, so both spellings are accepted.
  */
-export function loadSeasonProduction(seasons: number[]): SeasonProduction[] {
+export function loadSeasonProduction(
+  seasons: number[],
+  scoring: LeagueScoring = loadLeagueScoring().scoring,
+): SeasonProduction[] {
   const output: SeasonProduction[] = []
 
   for (const season of seasons) {
@@ -94,7 +103,9 @@ export function loadSeasonProduction(seasons: number[]): SeasonProduction[] {
       id: column(table, 'player_id'),
       type: optionalColumn(table, 'season_type'),
       position: optionalColumn(table, 'position'),
-      points: optionalColumn(table, 'fantasy_points_ppr') ?? column(table, 'fantasy_points'),
+      // Scored from the underlying events rather than nflverse's precomputed
+      // column, which is full PPR and cannot express a league's own rules.
+      offense: offenseColumns(table),
       // nflverse reports kicking as raw attempts by distance and leaves
       // fantasy_points at zero for kickers, so their scoring is computed here.
       fg: {
@@ -117,7 +128,9 @@ export function loadSeasonProduction(seasons: number[]): SeasonProduction[] {
       if (!playerId) continue
 
       const isKicker = c.position !== null && str(row, c.position) === 'K'
-      const points = isKicker ? kickerPoints(row, c.fg) : (num(row, c.points) ?? 0)
+      const points = isKicker
+        ? kickerPoints(row, c.fg, scoring)
+        : offensePoints(row, c.offense, scoring)
       const current = totals.get(playerId) ?? { games: 0, points: 0 }
       totals.set(playerId, { games: current.games + 1, points: current.points + points })
     }
@@ -148,17 +161,21 @@ function kickerPoints(
     b50: number | null; b60: number | null; missed: number | null
     pat: number | null; patMissed: number | null
   },
+  scoring: LeagueScoring,
 ): number {
   const get = (index: number | null) => num(row, index) ?? 0
+  const fg = scoring.fieldGoals
 
   return (
-    (get(cols.b0) + get(cols.b20) + get(cols.b30)) * 3 +
-    get(cols.b40) * 4 +
-    get(cols.b50) * 5 +
-    get(cols.b60) * 5 +
-    get(cols.pat) -
-    get(cols.missed) -
-    get(cols.patMissed)
+    get(cols.b0) * fg.b0 +
+    get(cols.b20) * fg.b20 +
+    get(cols.b30) * fg.b30 +
+    get(cols.b40) * fg.b40 +
+    get(cols.b50) * fg.b50 +
+    get(cols.b60) * fg.b60 +
+    get(cols.pat) * scoring.patMade +
+    get(cols.missed) * scoring.fieldGoalMissed +
+    get(cols.patMissed) * scoring.patMissed
   )
 }
 
