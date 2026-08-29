@@ -337,6 +337,61 @@ export interface TradesResponse {
   dataQuality?: DataQuality | null
 }
 
+export interface LiveSuggestion {
+  playerId: string
+  name: string
+  position: string
+  team: string
+  vorp: number
+  projectedPpg: number
+  fillsNeed: boolean
+  notes: string[]
+}
+
+export interface LivePick {
+  pick: number
+  round: number
+  slot: string
+  teamKey: string
+  teamName: string
+  playerName: string
+  position: string
+  team: string
+  onBoard: boolean
+  mine: boolean
+}
+
+export interface LiveCliff {
+  position: string
+  bestNow: string
+  bestLater: string | null
+  drop: number
+}
+
+export interface DraftLiveResponse {
+  updatedAt: string
+  ageSeconds: number
+  stale: boolean
+  leagueName: string
+  draftStatus: string
+  teams: number
+  rounds: number
+  seat: number
+  myTeamName: string
+  onTheClock: number
+  nextPick: number | null
+  picksUntilNext: number | null
+  isMyTurn: boolean
+  totalPicks: number
+  recent: LivePick[]
+  myRoster: LiveSuggestion[]
+  needs: Record<string, number>
+  suggestions: LiveSuggestion[]
+  cliffs: LiveCliff[]
+  unmatchedPicks: number
+  myPicks: number[]
+}
+
 export const api = {
   health: () => request<HealthResponse>('/health'),
   league: () => request<{ league: League; teams: Team[]; fetchedAt: string; warnings: string[] }>('/league'),
@@ -352,6 +407,7 @@ export const api = {
     return request<PlayersResponse>(`/players?${query.toString()}`)
   },
   draft: () => request<DraftResponse>('/draft'),
+  draftLive: () => request<DraftLiveResponse>('/draft-live'),
   draftPool: (shape: LeagueShapeInput) => {
     const query = new URLSearchParams({
       teams: String(shape.teams),

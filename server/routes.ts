@@ -13,6 +13,7 @@ import {
   NoSnapshotError,
 } from './store.js'
 import { YahooAuthError } from './yahoo/browser.js'
+import { readLiveState, myPickNumbers } from './draftLive.js'
 
 /**
  * The HTTP surface. Every route reads from the cached snapshot, so responses
@@ -391,11 +392,58 @@ api.get('/matchup-odds', handle((req, res) => {
 let syncInFlight: Promise<unknown> | null = null
 let lastSyncLog: string[] = []
 
+/**
+ * The live draft, as the watcher last left it.
+ *
+ * Reads a file. `npm run draft:watch` is what talks to Yahoo, so a phone
+ * refreshing this during a draft costs nothing and cannot start a scrape.
+ */
+api.get('/draft-live', handle((_req, res) => {
+  const state = readLiveState()
+  if (!state) {
+    res.status(503).json({
+      error: 'No live draft snapshot yet. Start it with: npm run draft:watch',
+      code: 'NO_DRAFT_WATCH',
+    })
+    return
+  }
+
+  const ageSeconds = Math.round((Date.now() - new Date(state.updatedAt).getTime()) / 1000)
+  res.json({
+    ...state,
+    ageSeconds,
+    // The watcher writes every poll, so silence means it died rather than that
+    // the draft went quiet, and the page should say so.
+    stale: ageSeconds > 30,
+    myPicks: myPickNumbers(state.teams, state.seat, state.rounds),
+  })
+}))
+
 api.get('/sync/status', (_req, res) => {
   res.json({ running: syncInFlight !== null, log: lastSyncLog })
 })
 
-api.post('/sync', handle(async (_req, res) => {
+/**
+ * Loopback-only, enforced rather than assumed.
+ *
+ * Binding to 0.0.0.0 is how a phone reaches the live draft page on the same
+ * network, and the moment that is possible the sync endpoint is reachable too.
+ * Sync drives a browser holding a live Yahoo session, so it checks the caller
+ * itself instead of relying on the bind address to keep strangers out.
+ */
+function isLoopback(req: Request): boolean {
+  const address = req.socket.remoteAddress ?? ''
+  return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1'
+}
+
+api.post('/sync', handle(async (req, res) => {
+  if (!isLoopback(req)) {
+    res.status(403).json({
+      error: 'Sync can only be started from this machine.',
+      code: 'LOOPBACK_ONLY',
+    })
+    return
+  }
   if (config.provider !== 'yahoo') {
     res.status(400).json({
       error: 'Sync only applies to the Yahoo provider. Set FF_PROVIDER=yahoo in .env.',

@@ -35,6 +35,7 @@ const NAV_GROUPS: Array<{
     items: [
       { to: '/players', label: 'Players' },
       { to: '/draft', label: 'Draft board' },
+      { to: '/live', label: 'Live draft' },
     ],
   },
 ]

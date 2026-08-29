@@ -21,7 +21,8 @@
     "data:analyse": "tsx data/cli/analyse.ts",
     "data:draft": "tsx data/cli/draft.ts",
     "data:scoring": "tsx data/cli/scoring.ts",
-    "draft:watch": "tsx server/cli/draftWatch.ts"
+    "draft:watch": "tsx server/cli/draftWatch.ts",
+    "draft:serve": "tsx server/cli/serveLan.ts"
   },
   "dependencies": {
     "compression": "^1.8.1",

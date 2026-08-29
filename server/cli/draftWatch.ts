@@ -17,6 +17,7 @@ import {
   snakePicks,
 } from '../draftWatch.js'
 import { DEFAULT_SHAPE, type LeagueShape } from '../draftPool.js'
+import { computeLiveState, writeLiveState, LIVE_FILE } from '../draftLive.js'
 
 /**
  * Watch a live Yahoo draft and say what to do about it.
@@ -76,7 +77,10 @@ async function main(): Promise<void> {
   let teamNames = new Map<string, string>()
   let myTeamKey = ''
   let seatPosition = Number.parseInt(process.env['DRAFT_POSITION'] ?? '', 10) || 0
-  let seen = new Set<number>()
+  const seen = new Set<number>()
+  let lastStatus = 'unknown'
+  let statusChecked = false
+  let leagueName = ''
 
   try {
     await session.page.goto(`https://football.fantasysports.yahoo.com/f1/${leagueId}`, {
@@ -85,6 +89,9 @@ async function main(): Promise<void> {
     })
 
     const leagueKey = `nfl.l.${leagueId}`
+    lastStatus = await fetchDraftStatus(session.page, leagueKey).catch(() => 'unknown')
+    statusChecked = true
+    leagueName = process.env['LEAGUE_NAME'] ?? `League ${leagueId}`
     teams = await fetchTeams(session.page, leagueKey)
     teamNames = new Map(teams.map((team) => [team.teamKey, team.name]))
     myTeamKey = teams.find((team) => team.teamKey.endsWith(`.t.${teamId}`))?.teamKey ?? ''
@@ -104,6 +111,7 @@ async function main(): Promise<void> {
     }
     if (seatPosition > 0) console.log(`  Draft seat: ${seatPosition}`)
     console.log(`  Your picks: ${snakePicks(shape.teams, seatPosition || 1, rounds).join(', ')}`)
+    console.log(`  Live snapshot: ${LIVE_FILE}`)
     console.log(line())
 
     let idle = 0
@@ -116,6 +124,23 @@ async function main(): Promise<void> {
         await session.page.waitForTimeout(POLL_MS)
         continue
       }
+
+      // Written every poll, not only on a new pick, so a phone can tell the
+      // difference between a quiet draft and a watcher that has died.
+      const status = statusChecked ? lastStatus : 'unknown'
+      writeLiveState(
+        computeLiveState(picks, byPlayerKey, board, {
+          leagueName,
+          draftStatus: status,
+          shape,
+          rounds,
+          seat: seatPosition || 1,
+          myTeamKey,
+          myTeamName: teamNames.get(myTeamKey) ?? '',
+          teamNames,
+          yahooIndex: index,
+        }),
+      )
 
       const fresh = picks.filter((pick) => !seen.has(pick.pick))
       if (fresh.length > 0) {
@@ -180,9 +205,10 @@ async function main(): Promise<void> {
         console.log(line())
       } else {
         idle++
-        if (idle % 12 === 0) {
-          const status = await fetchDraftStatus(session.page, leagueKey).catch(() => 'unknown')
-          console.log(`  ...waiting (${picks.length} picks so far, draft_status=${status})`)
+        if (idle % 12 === 1) {
+          lastStatus = await fetchDraftStatus(session.page, leagueKey).catch(() => 'unknown')
+          statusChecked = true
+          console.log(`  ...waiting (${picks.length} picks so far, draft_status=${lastStatus})`)
         }
       }
 

@@ -12,6 +12,7 @@ import Trades from './pages/Trades'
 import Path from './pages/Path'
 import Players from './pages/Players'
 import DraftBoard from './pages/DraftBoard'
+import DraftLive from './pages/DraftLive'
 import './index.css'
 
 // The charting library is by far the largest dependency and only two pages
@@ -38,6 +39,7 @@ const router = createBrowserRouter([
       { path: 'analytics', element: deferred(<Analytics />) },
       { path: 'players', element: <Players /> },
       { path: 'draft', element: <DraftBoard /> },
+      { path: 'live', element: <DraftLive /> },
       { path: 'teams/:id', element: deferred(<TeamPage />) },
     ],
   },
