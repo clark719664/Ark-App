@@ -16,6 +16,9 @@ import {
 
 const WEEKS = 15
 const MINE = '461.l.1311998.t.4'
+/** Let the frozen roster work the wire, to price what waivers were worth. */
+const WAIVERS = process.argv.includes('--waivers')
+const MAX_ADDS_PER_WEEK = 1
 const SHAPE = {
   teams: 10,
   starters: { QB: 1, RB: 2, WR: 2, TE: 1, K: 1, DEF: 1 },
@@ -83,6 +86,20 @@ const rosters = JSON.parse(fs.readFileSync('.cache/probe/rosters-2025.json', 'ut
 >
 const mineWeekly = rosters[MINE]!
 
+/** Everyone on any roster in a given week, so a pickup is genuinely free. */
+const rosteredByWeek = new Map<number, Set<string>>()
+for (const weeks of Object.values(rosters)) {
+  for (const [week, slots] of Object.entries(weeks)) {
+    const set = rosteredByWeek.get(Number(week)) ?? new Set<string>()
+    for (const slot of slots) set.add(normName(slot.name))
+    rosteredByWeek.set(Number(week), set)
+  }
+}
+
+/** The roster Ark carries into a week; waivers mutate it as the season runs. */
+let carried = arkRoster.map((p) => ({ name: normName(p.name), position: p.position }))
+let addsMade = 0
+
 let actualWins = 0, draftWins = 0, actualPts = 0, draftPts = 0
 const rows: string[] = []
 
@@ -109,10 +126,34 @@ for (let week = 1; week <= WEEKS; week++) {
   }
   const nonSkill = me.points - sum(realSkill.filter((c) => c.started))
 
-  const arkCandidates: Candidate[] = arkRoster
+  if (WAIVERS && week > 1) {
+    // One claim a week, on the same rule the app uses: value for the rest of
+    // the season, never this week's projection, and only if it clears the
+    // worst player already carried.
+    for (let claim = 0; claim < MAX_ADDS_PER_WEEK; claim++) {
+      const taken = rosteredByWeek.get(week) ?? new Set<string>()
+      const held = new Set(carried.map((c) => c.name))
+      const free = board
+        .filter((p) => ['QB', 'RB', 'WR', 'TE'].includes(p.position))
+        .map((p) => ({ name: normName(p.name), position: p.position }))
+        .filter((p) => !taken.has(p.name) && !held.has(p.name))
+        .map((p) => ({ ...p, value: projectBefore(p.name, p.position, week, weekly, prior) }))
+        .sort((a, b) => b.value - a.value)
+      const best = free[0]
+      const worst = [...carried]
+        .map((c) => ({ ...c, value: projectBefore(c.name, c.position, week, weekly, prior) }))
+        .sort((a, b) => a.value - b.value)[0]
+      if (!best || !worst || best.value <= worst.value + 1) break
+      carried = carried.filter((c) => c.name !== worst.name)
+      carried.push({ name: best.name, position: best.position })
+      addsMade++
+    }
+  }
+
+  const arkCandidates: Candidate[] = carried
     .filter((p) => ['QB', 'RB', 'WR', 'TE'].includes(p.position))
     .map((p) => {
-      const name = normName(p.name)
+      const name = p.name
       const team = weekly.team.get(name) ?? ''
       return {
         name, position: p.position, projection: projectBefore(name, p.position, week, weekly, prior),
@@ -143,4 +184,9 @@ console.log('\n' + '='.repeat(58))
 console.log(`  Record      ${actualWins}-${WEEKS - actualWins}   ->   ${draftWins}-${WEEKS - draftWins}`)
 console.log(`  Points      ${actualPts.toFixed(1)}   ->   ${draftPts.toFixed(1)}   (${(draftPts - actualPts >= 0 ? '+' : '') + (draftPts - actualPts).toFixed(1)})`)
 console.log('='.repeat(58))
-console.log('  Ark roster never changes all season: no waivers, no trades.\n')
+console.log(
+  WAIVERS
+    ? `  Ark made ${addsMade} waiver adds across the season.`
+    : '  Ark roster never changes all season: no waivers, no trades.',
+)
+console.log('')
