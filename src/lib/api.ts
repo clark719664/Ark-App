@@ -180,6 +180,47 @@ export interface PathResponse {
 }
 
 
+export interface DraftPoolPlayer {
+  playerId: string
+  name: string
+  position: string
+  team: string
+  age: number | null
+  projectedPpg: number
+  projectedSeason: number
+  depthRank: number | null
+  seasonsOfData: number
+  gamesOfData: number
+  lastSeasonPpg: number | null
+  basis: 'production' | 'thin-history' | 'no-history'
+  notes: string[]
+  vorp: number
+  positionRank: number
+  overallRank: number
+}
+
+export interface DraftPoolResponse {
+  season: number
+  generatedAt: string
+  source: string
+  method: string
+  shape: {
+    teams: number
+    starters: Record<string, number>
+    flexShare: Record<string, number>
+  }
+  players: DraftPoolPlayer[]
+}
+
+export interface LeagueShapeInput {
+  teams: number
+  qb: number
+  rb: number
+  wr: number
+  te: number
+  flex: number
+}
+
 export interface TeamOption {
   id: string
   name: string
@@ -309,6 +350,17 @@ export const api = {
     return request<PlayersResponse>(`/players?${query.toString()}`)
   },
   draft: () => request<DraftResponse>('/draft'),
+  draftPool: (shape: LeagueShapeInput) => {
+    const query = new URLSearchParams({
+      teams: String(shape.teams),
+      qb: String(shape.qb),
+      rb: String(shape.rb),
+      wr: String(shape.wr),
+      te: String(shape.te),
+      flex: String(shape.flex),
+    })
+    return request<DraftPoolResponse>(`/draft-pool?${query.toString()}`)
+  },
   analytics: () => request<AnalyticsResponse>('/analytics'),
   lineup: (teamId?: string) =>
     request<LineupResponse>(teamId ? `/lineup?team=${encodeURIComponent(teamId)}` : '/lineup'),

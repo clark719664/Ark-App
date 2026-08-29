@@ -1,6 +1,7 @@
 import { Router, type Request, type Response, type NextFunction } from 'express'
 import type { Player, RosterEntry } from '../shared/types.js'
 import { config } from './config.js'
+import { DEFAULT_SHAPE, loadDraftPool, rankPool, type LeagueShape } from './draftPool.js'
 import { computeMatchupOdds } from './analytics/matchup.js'
 import { derivePosture } from './analytics/impact.js'
 import { analyseLineupRisk } from './analytics/risk.js'
@@ -182,6 +183,57 @@ function comparePlayers(sort: string): (a: Player, b: Player) => number {
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max)
 }
+
+/**
+ * The draft board's own pool, independent of any league sync.
+ *
+ * A draft happens before a league has data, so this must work with nothing
+ * configured. League shape comes in as query parameters, because the board is
+ * usable before Ark knows anything about the league it is drafting for.
+ */
+api.get('/draft-pool', handle((req, res) => {
+  const pool = loadDraftPool()
+  if (!pool) {
+    res.status(503).json({
+      error:
+        'No draft pool found. Build one with:\n\n' +
+        '    npm run data:fetch\n' +
+        '    npm run data:draft\n',
+      code: 'NO_DRAFT_POOL',
+    })
+    return
+  }
+
+  const shape: LeagueShape = {
+    teams: clamp(Number.parseInt(String(req.query['teams'] ?? ''), 10) || DEFAULT_SHAPE.teams, 2, 32),
+    starters: { ...DEFAULT_SHAPE.starters },
+    flexShare: { ...DEFAULT_SHAPE.flexShare },
+  }
+
+  // Roster shape arrives as qb=1&rb=2&wr=3&te=1&flex=1, matching how a league
+  // describes itself rather than how the code stores it.
+  for (const position of ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']) {
+    const raw = req.query[position.toLowerCase()]
+    if (raw === undefined) continue
+    const parsed = Number.parseInt(String(raw), 10)
+    if (Number.isFinite(parsed) && parsed >= 0) shape.starters[position] = parsed
+  }
+
+  const flex = Number.parseInt(String(req.query['flex'] ?? ''), 10)
+  if (Number.isFinite(flex) && flex > 0) {
+    // Flex spots are shared out between the positions eligible to fill them.
+    shape.flexShare = { RB: 0.4 * flex, WR: 0.5 * flex, TE: 0.1 * flex }
+  }
+
+  res.json({
+    season: pool.season,
+    generatedAt: pool.generatedAt,
+    source: pool.source,
+    method: pool.method,
+    shape,
+    players: rankPool(pool, shape),
+  })
+}))
 
 api.get('/draft', handle((_req, res) => {
   const snapshot = getSnapshot()

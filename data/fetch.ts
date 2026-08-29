@@ -52,8 +52,16 @@ export const COMBINED_DATASETS: Dataset[] = [
   },
 ]
 
-/** Datasets published one file per season. */
+/**
+ * Datasets published one file per season.
+ *
+ * nflverse renamed weekly stats partway through: the combined `player_stats`
+ * asset stops at 2024, and anything newer lives under `stats_player`. Both are
+ * pulled, because the combined file is the cheapest way to get the deep history
+ * the analyses need and the seasonal one is the only way to get current data.
+ */
 export const SEASONAL_DATASETS = [
+  { name: 'stats_player', pattern: 'stats_player/stats_player_week_%s.csv', from: 2022 },
   { name: 'injuries', pattern: 'injuries/injuries_%s.csv', from: 2009 },
   { name: 'snap_counts', pattern: 'snap_counts/snap_counts_%s.csv', from: 2012 },
   { name: 'rosters', pattern: 'rosters/roster_%s.csv', from: FIRST_SEASON },
@@ -80,7 +88,9 @@ async function download(url: string, destination: string): Promise<number> {
 
 export async function fetchAll(opts: FetchOptions = {}): Promise<void> {
   const log = opts.onProgress ?? (() => {})
-  const through = opts.through ?? currentSeason()
+  // Rosters and depth charts are published for the upcoming season before it
+  // starts, which is exactly what a draft needs.
+  const through = (opts.through ?? currentSeason()) + 1
 
   fs.mkdirSync(DATA_DIR, { recursive: true })
 
