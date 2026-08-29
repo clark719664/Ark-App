@@ -95,6 +95,16 @@ async function main(): Promise<void> {
       ok('projections', `${established.length} established players, none collapsed`)
     }
 
+    // The projection model says it adjusts for depth chart position, but the
+    // fetch step does not download depth charts, so on a normal clone it never
+    // does. Say which of the two happened rather than leaving it implied.
+    const charted = pool.players.filter((p) => p.depthRank != null).length
+    if (charted === 0) {
+      warn('depth chart', 'not applied — no depth chart data, projections use production and age only')
+    } else {
+      ok('depth chart', `${charted} players carry a depth rank`)
+    }
+
     const withBye = pool.players.filter((p) => p.byeWeek != null).length
     if (withBye === 0) {
       warn('bye weeks', 'none in the pool, run: npm run data:fetch && npm run data:draft 2026')

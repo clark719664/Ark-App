@@ -228,11 +228,17 @@ export function buildProjections(opts: ProjectionOptions): ProjectedPlayer[] {
     if (player.status !== 'ACT') continue
 
     const pick = draftClass.get(rookieKey(player.name, player.position)) ?? null
+
+    // Only a rank at the player's own position says anything about his role.
+    // The chart lists every unit, so an unmatched entry is a different job.
+    const charted = depthChart.get(player.playerId)
+    const depthRank = charted && charted.position === player.position ? charted.rank : null
+
     projections.push(
       projectOne(
         player,
         byPlayer.get(player.playerId) ?? [],
-        depthChart.get(player.playerId)?.rank ?? null,
+        depthRank,
         history,
         pick,
         rookieCurve,

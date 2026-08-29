@@ -195,6 +195,9 @@ function kickerPoints(
   )
 }
 
+/** The unit whose rows describe kicking and returning rather than a role on offence. */
+const SPECIAL_TEAMS = 'Special Teams'
+
 export interface DepthChartEntry {
   playerId: string
   team: string
@@ -221,28 +224,48 @@ export function loadLatestDepthChart(season: number): Map<string, DepthChartEntr
     position: optionalColumn(table, 'pos_abb') ?? optionalColumn(table, 'pos_name'),
     rank: optionalColumn(table, 'pos_rank'),
     when: optionalColumn(table, 'dt'),
+    group: optionalColumn(table, 'pos_grp'),
   }
   if (c.id === null || c.rank === null) return new Map()
 
   // The file carries every snapshot taken through the offseason; only the most
   // recent one describes the roster a draft is actually facing.
-  const latest = new Map<string, { when: string; entry: DepthChartEntry }>()
+  let newest = ''
   for (const row of table.rows) {
+    const when = str(row, c.when)
+    if (when > newest) newest = when
+  }
+
+  const latest = new Map<string, DepthChartEntry>()
+  for (const row of table.rows) {
+    if (str(row, c.when) !== newest) continue
+
+    // A player appears once per unit, so a running back who returns punts has a
+    // punt returner row too. Keeping whichever came first read Kyren Williams,
+    // the first back on his depth chart, as a second stringer because he is the
+    // second punt returner — and then took 38% off his projection for it. It
+    // hit 175 skill players.
+    if (c.group !== null && str(row, c.group) === SPECIAL_TEAMS) continue
+
     const playerId = str(row, c.id)
     if (!playerId) continue
 
     const rank = num(row, c.rank)
     if (rank === undefined) continue
 
-    const when = str(row, c.when)
+    // Offence is charted per formation, so a back can be first in one package
+    // and third in another. His best standing is the one that describes the
+    // role, since a player is only buried if he is buried everywhere.
     const existing = latest.get(playerId)
-    if (existing && existing.when >= when) continue
+    if (existing && existing.rank <= rank) continue
 
     latest.set(playerId, {
-      when,
-      entry: { playerId, team: str(row, c.team), position: str(row, c.position), rank },
+      playerId,
+      team: str(row, c.team),
+      position: str(row, c.position),
+      rank,
     })
   }
 
-  return new Map([...latest].map(([id, value]) => [id, value.entry]))
+  return latest
 }
