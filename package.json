@@ -25,7 +25,8 @@
     "draft:serve": "tsx server/cli/serveLan.ts",
     "data:managers": "tsx server/cli/managers.ts",
     "sim:league": "tsx sim/runLeague.ts",
-    "sim:replay": "tsx sim/runReplay.ts"
+    "sim:replay": "tsx sim/runReplay.ts",
+    "sim:draft-replay": "tsx sim/runDraftReplay.ts"
   },
   "dependencies": {
     "compression": "^1.8.1",
