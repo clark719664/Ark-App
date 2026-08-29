@@ -206,3 +206,75 @@ export async function fetchRosterPicks(
   }
   return picks.map((pick, index) => ({ ...pick, pick: index + 1 }))
 }
+
+export interface LeagueSetup {
+  leagueKey: string
+  leagueName: string
+  teams: number
+  /** Draft slots per team: every roster position except injured reserve. */
+  rounds: number
+  /** This manager's seat in the first round, from Yahoo's own draft order. */
+  seat: number
+  myTeamId: string
+  myTeamName: string
+  starters: Record<string, number>
+  flex: number
+  draftStatus: string
+}
+
+/** Slot names Yahoo uses for a spot that takes more than one position. */
+const FLEX_SLOTS = new Set(['W/R/T', 'W/R', 'W/T', 'R/W/T', 'Q/W/R/T', 'FLEX'])
+
+/**
+ * Everything about a league that the watcher would otherwise be told by hand.
+ *
+ * Six environment variables had to agree with the league or the board was
+ * quietly wrong about somebody's seat. Yahoo knows all of it, so ask: the seat
+ * from the draft order, the shape from the roster positions, the round count
+ * from how many of them are startable. Anything set explicitly still wins,
+ * because a commissioner can change a setting after a draft order is out.
+ */
+export async function fetchLeagueSetup(page: Page, leagueKey: string): Promise<LeagueSetup> {
+  const payload = await fetchJson(page, `${API}/league/${leagueKey}/settings?format=json`)
+  const nodes = leagueNodes(payload)
+  const meta = flatten(nodes.filter((node) => node && !node['settings']))
+  const settings = flatten(findBlock(payload, 'settings'))
+
+  const starters: Record<string, number> = {}
+  let flex = 0
+  let rounds = 0
+  for (const holder of (settings['roster_positions'] as Array<Record<string, unknown>>) ?? []) {
+    const slot = (holder['roster_position'] ?? holder) as Record<string, unknown>
+    const position = String(slot['position'] ?? '')
+    const count = Number(slot['count'] ?? 0)
+    if (!position || !Number.isFinite(count)) continue
+    // Injured reserve is not a draft slot; the bench is.
+    if (position !== 'IR') rounds += count
+    if (position === 'BN' || position === 'IR') continue
+    if (FLEX_SLOTS.has(position)) flex += count
+    else starters[position] = (starters[position] ?? 0) + count
+  }
+
+  const teamsPayload = await fetchJson(page, `${API}/league/${leagueKey}/teams?format=json`)
+  let myTeamId = ''
+  let myTeamName = ''
+  for (const entry of collection<unknown>(findBlock(teamsPayload, 'teams'), 'team')) {
+    const team = flatten(entry)
+    if (String(team['is_owned_by_current_login'] ?? '') !== '1') continue
+    myTeamId = String(team['team_key'] ?? '').split('.t.')[1] ?? ''
+    myTeamName = String(team['name'] ?? '')
+  }
+
+  return {
+    leagueKey,
+    leagueName: String(meta['name'] ?? leagueKey),
+    teams: Number(meta['num_teams'] ?? 0) || 0,
+    rounds: rounds || 15,
+    seat: Number(meta['draft_position'] ?? 0) || 0,
+    myTeamId,
+    myTeamName,
+    starters,
+    flex,
+    draftStatus: String(meta['draft_status'] ?? 'unknown'),
+  }
+}

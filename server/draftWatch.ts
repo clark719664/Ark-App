@@ -281,24 +281,40 @@ export function loadBoard(shape: LeagueShape): RankedPlayer[] {
 }
 
 /**
- * The league's shape from the environment, so the watcher, the preflight check
- * and anything else that ranks a board all agree on what this league starts.
+ * The league's shape, preferring anything set explicitly and otherwise using
+ * what Yahoo reports for the league itself.
+ *
+ * Six environment variables previously had to agree with the league or the
+ * board was quietly wrong about the seat, the round count or which slots were
+ * open. Detection removes that class of mistake; the overrides remain because a
+ * commissioner can change a setting after a draft order has gone out.
  */
-export function shapeFromEnv(): LeagueShape {
-  const starters = { ...DEFAULT_SHAPE.starters }
+export function shapeFromEnv(detected?: {
+  teams?: number
+  starters?: Record<string, number>
+  flex?: number
+}): LeagueShape {
+  const starters = { ...(detected?.starters ?? DEFAULT_SHAPE.starters) }
   for (const position of ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']) {
     const raw = process.env[`SHAPE_${position}`]
     if (raw === undefined) continue
     const parsed = Number.parseInt(raw, 10)
     if (Number.isFinite(parsed) && parsed >= 0) starters[position] = parsed
   }
-  const teams = Number.parseInt(process.env['LEAGUE_TEAMS'] ?? '', 10) || DEFAULT_SHAPE.teams
-  const flex = Number.parseInt(process.env['SHAPE_FLEX'] ?? '', 10)
-  // SHAPE_FLEX=0 has to be honoured rather than falling through to the default,
-  // or a league without a flex gets replacement level set a place too deep.
+
+  const teamsEnv = Number.parseInt(process.env['LEAGUE_TEAMS'] ?? '', 10)
+  const teams = Number.isFinite(teamsEnv) && teamsEnv > 0
+    ? teamsEnv
+    : detected?.teams && detected.teams > 0
+      ? detected.teams
+      : DEFAULT_SHAPE.teams
+
+  const flexEnv = Number.parseInt(process.env['SHAPE_FLEX'] ?? '', 10)
+  const flex = Number.isFinite(flexEnv) && flexEnv >= 0 ? flexEnv : detected?.flex
   const flexShare =
-    Number.isFinite(flex) && flex >= 0
+    flex !== undefined && flex >= 0
       ? { RB: 0.4 * flex, WR: 0.5 * flex, TE: 0.1 * flex }
       : { ...DEFAULT_SHAPE.flexShare }
+
   return { teams, starters, flexShare }
 }

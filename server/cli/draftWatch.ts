@@ -4,6 +4,7 @@ import { openSession } from '../yahoo/browser.js'
 import {
   fetchDraftPicks,
   fetchDraftStatus,
+  fetchLeagueSetup,
   fetchRosterPicks,
   fetchTeams,
   loadPlayerIndex,
@@ -46,20 +47,20 @@ function describe(pick: DraftPick, name: string, teamName: string, teams: number
 }
 
 async function main(): Promise<void> {
-  const leagueId = config.yahoo.leagueId
-  const teamId = config.yahoo.teamId
+  const argv = process.argv.slice(2)
+  const flag = argv.indexOf('--league')
+  const leagueId = (flag >= 0 ? argv[flag + 1] : undefined) ?? config.yahoo.leagueId
   if (!leagueId) {
-    console.error('\nYAHOO_LEAGUE_ID is not set. See .env.example.\n')
+    console.error('\nNo league. Set YAHOO_LEAGUE_ID in .env or pass --league <id>.\n')
     process.exitCode = 1
     return
   }
 
-  const shape = shapeFromEnv()
-  const board = loadBoard(shape)
-  const rounds = Number.parseInt(process.env['DRAFT_ROUNDS'] ?? '', 10) || 15
+  let shape = shapeFromEnv()
+  let board = loadBoard(shape)
+  let rounds = 15
 
   console.log(`\nArk draft watch - league ${leagueId}, polling every ${POLL_MS / 1000}s`)
-  console.log(`Board: ${board.length} ranked players, ${shape.teams} teams`)
 
   const session = await openSession({ headed: false })
   let teams: LeagueTeam[] = []
@@ -81,12 +82,30 @@ async function main(): Promise<void> {
     })
 
     const leagueKey = `nfl.l.${leagueId}`
-    lastStatus = await fetchDraftStatus(session.page, leagueKey).catch(() => 'unknown')
+
+    // Ask the league what it is rather than trusting six environment variables
+    // to still describe it. Anything set explicitly still wins.
+    const setup = await fetchLeagueSetup(session.page, leagueKey)
+    shape = shapeFromEnv({ teams: setup.teams, starters: setup.starters, flex: setup.flex })
+    board = loadBoard(shape)
+    rounds = Number.parseInt(process.env['DRAFT_ROUNDS'] ?? '', 10) || setup.rounds
+    seatPosition = seatPosition || setup.seat
+    lastStatus = setup.draftStatus
     statusChecked = true
-    leagueName = process.env['LEAGUE_NAME'] ?? `League ${leagueId}`
+    leagueName = process.env['LEAGUE_NAME'] ?? setup.leagueName
+    const teamId = config.yahoo.teamId || setup.myTeamId
+
     teams = await fetchTeams(session.page, leagueKey)
     teamNames = new Map(teams.map((team) => [team.teamKey, team.name]))
     myTeamKey = teams.find((team) => team.teamKey.endsWith(`.t.${teamId}`))?.teamKey ?? ''
+
+    console.log(`  ${setup.leagueName}: ${shape.teams} teams, ${rounds} rounds`)
+    console.log(
+      `  Starters: ${Object.entries(shape.starters)
+        .map(([position, count]) => `${position}x${count}`)
+        .join(' ')} flex x${setup.flex}`,
+    )
+    console.log(`  Board: ${board.length} ranked players`)
 
     console.log('Indexing the player pool (once, then cached)...')
     const index = await loadPlayerIndex(session.page, leagueKey, {
