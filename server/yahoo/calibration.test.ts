@@ -19,6 +19,14 @@ import { scrapePlayers, scrapeRoster, scrapeScoreboard, scrapeStandings, type Sc
  * you have real pages to check. Once you do, a failure here names exactly which
  * page and which field the parsers get wrong, which is the fastest possible
  * route from "the numbers look off" to a fix.
+ *
+ * These grade the HTML scrapers, which are no longer how the league is read:
+ * they parsed nothing at all from this league's real pages, so the sync moved
+ * to Yahoo's JSON API and the scrapers live behind `yahoo:sync --scrape`. The
+ * suite therefore has to be asked for, because four permanently red tests
+ * guarding a path nothing runs is how a fifth real failure goes unnoticed.
+ *
+ *   SCRAPE_CALIBRATION=1 npm test -- calibration
  */
 
 const RAW_DIR = config.cache.rawDir
@@ -33,7 +41,9 @@ function capture(name: string): string | null {
   }
 }
 
-const hasCaptures = fs.existsSync(RAW_DIR) && fs.readdirSync(RAW_DIR).some((f) => f.endsWith('.html'))
+const enabled = process.env['SCRAPE_CALIBRATION'] === '1'
+const hasCaptures =
+  enabled && fs.existsSync(RAW_DIR) && fs.readdirSync(RAW_DIR).some((f) => f.endsWith('.html'))
 
 let browser: Browser
 let context: BrowserContext

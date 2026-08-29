@@ -15,7 +15,7 @@ import { config } from '../config.js'
  * cookies apply without this ever handling a credential.
  */
 
-const API = 'https://pub-api-rw.fantasysports.yahoo.com/fantasy/v2'
+export const API = 'https://pub-api-rw.fantasysports.yahoo.com/fantasy/v2'
 
 export interface DraftPick {
   pick: number
@@ -31,7 +31,7 @@ export interface YahooPlayer {
   team: string
 }
 
-async function fetchJson(page: Page, url: string): Promise<unknown> {
+export async function fetchJson(page: Page, url: string): Promise<unknown> {
   const raw = await page.evaluate(async (target: string) => {
     const response = await fetch(target, { credentials: 'include' })
     return `${response.status} ${await response.text()}`
@@ -43,12 +43,12 @@ async function fetchJson(page: Page, url: string): Promise<unknown> {
   return JSON.parse(body)
 }
 
-function leagueNodes(payload: unknown): Record<string, unknown>[] {
+export function leagueNodes(payload: unknown): Record<string, unknown>[] {
   const content = (payload as { fantasy_content?: { league?: unknown[] } })?.fantasy_content
   return (content?.league ?? []) as Record<string, unknown>[]
 }
 
-function findBlock(payload: unknown, key: string): Record<string, unknown> | undefined {
+export function findBlock(payload: unknown, key: string): Record<string, unknown> | undefined {
   const node = leagueNodes(payload).find((entry) => entry && entry[key] !== undefined)
   return node?.[key] as Record<string, unknown> | undefined
 }
@@ -57,7 +57,7 @@ function findBlock(payload: unknown, key: string): Record<string, unknown> | und
  * Yahoo returns collections as an object keyed by index with a `count`, not an
  * array, and wraps each member in a single-key object.
  */
-function collection<T>(block: Record<string, unknown> | undefined, member: string): T[] {
+export function collection<T>(block: Record<string, unknown> | undefined, member: string): T[] {
   if (!block) return []
   const count = Number(block['count'] ?? 0)
   const items: T[] = []
@@ -70,7 +70,7 @@ function collection<T>(block: Record<string, unknown> | undefined, member: strin
 }
 
 /** Yahoo splits one entity across a nested array of partial objects. */
-function flatten(entry: unknown): Record<string, unknown> {
+export function flatten(entry: unknown): Record<string, unknown> {
   const parts = Array.isArray(entry) ? entry.flat(2) : [entry]
   const merged: Record<string, unknown> = {}
   for (const part of parts) {
