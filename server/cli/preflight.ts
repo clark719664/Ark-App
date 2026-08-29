@@ -80,8 +80,14 @@ async function main(): Promise<void> {
 
     // A pool built from thin stats still produces a full board, just a wrong
     // one, so check the shape of it rather than only that it loaded.
+    // A backup collapsing is the depth chart working. A starter collapsing is
+    // not something the model does, so only those are worth flagging.
     const established = pool.players.filter(
-      (p) => p.basis === 'production' && p.gamesOfData >= 24 && (p.lastSeasonPpg ?? 0) > 8,
+      (p) =>
+        p.basis === 'production' &&
+        p.gamesOfData >= 24 &&
+        (p.lastSeasonPpg ?? 0) > 8 &&
+        (p.depthRank == null || p.depthRank === 1),
     )
     const collapsed = established.filter((p) => p.projectedPpg < 0.5 * (p.lastSeasonPpg ?? 0))
     if (collapsed.length > 0) {
@@ -92,7 +98,7 @@ async function main(): Promise<void> {
           'Rebuild with: npm run data:fetch && npm run data:draft 2026',
       )
     } else {
-      ok('projections', `${established.length} established players, none collapsed`)
+      ok('projections', `${established.length} players still holding a role, none collapsed`)
     }
 
     // The projection model says it adjusts for depth chart position, but the

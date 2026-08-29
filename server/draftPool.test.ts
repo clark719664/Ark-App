@@ -87,31 +87,32 @@ describe('the shipped projections are sane', () => {
   const loaded = pool as DraftPool
 
   /**
-   * A pool built from incomplete stats does not fail. Every player still gets a
-   * number, the board still ranks, and the ranking is quietly wrong - which is
-   * exactly how a pool projecting James Conner at 3.9 a game against three
-   * straight seasons near 15 reached a draft board.
-   *
-   * An established player collapsing to under half his own last season is the
-   * signature of that: real decline is gradual, and a whole cohort of them at
-   * once means the underlying data was thin rather than the players were.
+   * A player can legitimately collapse: losing a job is exactly what the depth
+   * chart is read for, and James Conner behind a third overall pick should
+   * project like a third-string back. What should not happen is a starter
+   * collapsing, because nothing in the model does that to a player who still
+   * holds his role - so an unexplained one means the inputs are wrong.
    */
-  it('does not project established players at a fraction of their last season', () => {
+  it('does not collapse a player who still holds his job', () => {
     const established = loaded.players.filter(
       (player) =>
         player.basis === 'production' &&
         player.gamesOfData >= 24 &&
-        (player.lastSeasonPpg ?? 0) > 8,
+        (player.lastSeasonPpg ?? 0) > 8 &&
+        // Null covers a board built with no depth chart at all, where every
+        // collapse is unexplained by definition.
+        (player.depthRank == null || player.depthRank === 1),
     )
-    expect(established.length).toBeGreaterThan(50)
+    expect(established.length).toBeGreaterThan(30)
 
     const collapsed = established.filter(
       (player) => player.projectedPpg < 0.5 * (player.lastSeasonPpg ?? 0),
     )
-    // One or two can be genuine - a back who lost his job in December. Six was
-    // the count when the data was broken.
     expect(
-      collapsed.map((player) => `${player.name} ${player.lastSeasonPpg} -> ${player.projectedPpg}`),
+      collapsed.map(
+        (player) =>
+          `${player.name} ${player.lastSeasonPpg} -> ${player.projectedPpg} (rank ${player.depthRank})`,
+      ),
     ).toHaveLength(0)
   })
 })

@@ -214,8 +214,14 @@ export interface DepthChartEntry {
  * starter who has been displaced still has last year's numbers.
  */
 export function loadLatestDepthChart(season: number): Map<string, DepthChartEntry> {
-  const path = localPath(`depth_charts_${season}.csv`)
-  if (!fs.existsSync(path)) return new Map()
+  // Seasonal downloads land under their dataset directory; the flat name is
+  // kept because an earlier fetch wrote it there.
+  const candidates = [
+    localPath('depth_charts', `${season}.csv`),
+    localPath(`depth_charts_${season}.csv`),
+  ]
+  const path = candidates.find((candidate) => fs.existsSync(candidate))
+  if (!path) return new Map()
 
   const table = parseCsv(fs.readFileSync(path, 'utf8'))
   const c = {

@@ -78,6 +78,16 @@ export const SEASONAL_DATASETS = [
   { name: 'injuries', pattern: 'injuries/injuries_%s.csv', from: 2009 },
   { name: 'snap_counts', pattern: 'snap_counts/snap_counts_%s.csv', from: 2012 },
   { name: 'rosters', pattern: 'rosters/roster_%s.csv', from: FIRST_SEASON },
+  // Depth charts are the only signal that sees a changed role before production
+  // does - a back who lost his job still has last year's numbers. The file is
+  // large and only the season being drafted is ever read, so this one takes the
+  // current season alone rather than the whole history.
+  {
+    name: 'depth_charts',
+    pattern: 'depth_charts/depth_charts_%s.csv',
+    from: FIRST_SEASON,
+    latestOnly: true,
+  },
 ] as const
 
 export interface FetchOptions {
@@ -136,7 +146,10 @@ export async function fetchAll(opts: FetchOptions = {}): Promise<void> {
     let downloaded = 0
     let skipped = 0
 
-    for (let season = dataset.from; season <= through; season += 1) {
+    const latestOnly = 'latestOnly' in dataset && dataset.latestOnly === true
+    const first = latestOnly ? through - 1 : dataset.from
+
+    for (let season = first; season <= through; season += 1) {
       const remote = dataset.pattern.replace('%s', String(season))
       const destination = path.join(DATA_DIR, dataset.name, `${season}.csv`)
 
