@@ -1,0 +1,67 @@
+{
+  "leagueKey": "461.l.1311998",
+  "season": 2025,
+  "generatedAt": "2026-08-29T03:42:35.721Z",
+  "profiles": [
+    {
+      "teamKey": "461.l.1311998.t.2",
+      "name": "Chark in the Water",
+      "addsPerWeek": 1.4705882352941178,
+      "benchWasteShare": 0.06279150445206784
+    },
+    {
+      "teamKey": "461.l.1311998.t.8",
+      "name": "Hawk Tua Tagovailoa",
+      "addsPerWeek": 0.6470588235294118,
+      "benchWasteShare": 0.12995458298926527
+    },
+    {
+      "teamKey": "461.l.1311998.t.1",
+      "name": "Big Daddy Troy",
+      "addsPerWeek": 1.1176470588235294,
+      "benchWasteShare": 0.14000284138607977
+    },
+    {
+      "teamKey": "461.l.1311998.t.10",
+      "name": "DNA Drive cameron",
+      "addsPerWeek": 0.29411764705882354,
+      "benchWasteShare": 0.14988851163026423
+    },
+    {
+      "teamKey": "461.l.1311998.t.3",
+      "name": "Amon Ra Doggin",
+      "addsPerWeek": 1.2352941176470589,
+      "benchWasteShare": 0.19556149052524496
+    },
+    {
+      "teamKey": "461.l.1311998.t.7",
+      "name": "Tacos revenge",
+      "addsPerWeek": 0.17647058823529413,
+      "benchWasteShare": 0.22949173088579092
+    },
+    {
+      "teamKey": "461.l.1311998.t.9",
+      "name": "MacNificent",
+      "addsPerWeek": 0.8235294117647058,
+      "benchWasteShare": 0.25163757795441866
+    },
+    {
+      "teamKey": "461.l.1311998.t.4",
+      "name": "Ja'Marr You Not Entertained?",
+      "addsPerWeek": 1.7058823529411764,
+      "benchWasteShare": 0.2783465760103306
+    },
+    {
+      "teamKey": "461.l.1311998.t.5",
+      "name": "N.W.A",
+      "addsPerWeek": 1.0588235294117647,
+      "benchWasteShare": 0.27943812202194446
+    },
+    {
+      "teamKey": "461.l.1311998.t.6",
+      "name": "Sean’s Father",
+      "addsPerWeek": 2,
+      "benchWasteShare": 0.2795863451696298
+    }
+  ]
+}

@@ -45,13 +45,13 @@ export interface Agent {
 const projectionOf = (entry: RosterEntry): number =>
   entry.projected ?? entry.player?.points?.projected ?? 0
 
-const playerProjection = (player: Player): number => player.points?.projected ?? 0
+export const playerProjection = (player: Player): number => player.points?.projected ?? 0
 
 /** Add/drop decisions are about the rest of the season, not about Sunday. */
 const keepValue = (player: Player): number => rosterValue(player)
 
 /** Slot assignments from a set of chosen players, most restrictive slot first. */
-function assign(
+export function assign(
   candidates: Array<{ player: Player; projection: number }>,
   slots: string[],
 ): Array<{ slot: string; playerId: string | null }> {
@@ -79,7 +79,7 @@ function assign(
   return slots.map((slot, index) => ({ slot, playerId: chosen.get(index) ?? null }))
 }
 
-function rosterCandidates(roster: RosterEntry[]): Array<{ player: Player; projection: number }> {
+export function rosterCandidates(roster: RosterEntry[]): Array<{ player: Player; projection: number }> {
   return roster
     .filter((entry) => entry.player !== null)
     .map((entry) => ({ player: entry.player!, projection: projectionOf(entry) }))
@@ -90,7 +90,7 @@ function rosterCandidates(roster: RosterEntry[]): Array<{ player: Player; projec
  * scarcity is respected: dropping your only kicker to add a fourth receiver
  * costs more than it gains, and no sensible manager does it.
  */
-function dropCandidate(roster: RosterEntry[], slots: string[]): Player | null {
+export function dropCandidate(roster: RosterEntry[], slots: string[]): Player | null {
   const players = roster
     .map((entry) => entry.player)
     .filter((player): player is Player => player !== null)

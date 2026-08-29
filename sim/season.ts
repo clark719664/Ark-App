@@ -214,6 +214,10 @@ function toFreeAgents(
 export interface SeasonOptions {
   seed: number
   agents: Agent[]
+  /** Defaults to twelve; a real league is whatever size it is. */
+  teams?: number
+  /** Defaults to six; this league takes four. */
+  playoffTeams?: number
 }
 
 export function runSeason(opts: SeasonOptions): TeamResult[] {
@@ -225,7 +229,8 @@ export function runSeason(opts: SeasonOptions): TeamResult[] {
   // Week 0 gives everyone a projection to draft against.
   advanceWeek(rng, pool, state, 0)
 
-  const teams: Team[] = opts.agents.slice(0, NUM_TEAMS).map((agent, index) => ({
+  const teamCount = opts.teams ?? NUM_TEAMS
+  const teams: Team[] = opts.agents.slice(0, teamCount).map((agent, index) => ({
     id: String(index + 1),
     agent,
     roster: [],
@@ -241,7 +246,7 @@ export function runSeason(opts: SeasonOptions): TeamResult[] {
   draft(teams, pool, state)
   for (const team of teams) team.draftedTalent = rosterTalent(team.roster, byId)
 
-  const fixtures = schedule(NUM_TEAMS, REGULAR_SEASON_WEEKS)
+  const fixtures = schedule(teamCount, REGULAR_SEASON_WEEKS)
 
   for (let week = 1; week <= REGULAR_SEASON_WEEKS; week += 1) {
     advanceWeek(rng, pool, state, week)
@@ -322,7 +327,7 @@ export function runSeason(opts: SeasonOptions): TeamResult[] {
     processWaivers(teams, byId, state, pool, week)
   }
 
-  return finishSeason(teams, byId, state, rng)
+  return finishSeason(teams, byId, state, rng, opts.playoffTeams ?? PLAYOFF_TEAMS)
 }
 
 /** What a manager can see of their opponent: best startable projection. */
@@ -433,13 +438,14 @@ function finishSeason(
   pool: Map<string, TruePlayer>,
   state: Map<string, PlayerState>,
   rng: Rng,
+  playoffTeams: number = PLAYOFF_TEAMS,
 ): TeamResult[] {
   const standings = [...teams].sort(
     (a, b) => b.wins - a.wins || b.pointsFor - a.pointsFor,
   )
 
   const seeds = new Map(standings.map((team, index) => [team.id, index + 1]))
-  const field = standings.slice(0, PLAYOFF_TEAMS)
+  const field = standings.slice(0, playoffTeams)
 
   const champion = playBracket(field, pool, state, rng)
 
@@ -451,7 +457,7 @@ function finishSeason(
     pointsFor: Number(team.pointsFor.toFixed(1)),
     pointsAgainst: Number(team.pointsAgainst.toFixed(1)),
     seed: seeds.get(team.id) ?? null,
-    madePlayoffs: (seeds.get(team.id) ?? 99) <= PLAYOFF_TEAMS,
+    madePlayoffs: (seeds.get(team.id) ?? 99) <= playoffTeams,
     wonTitle: champion?.id === team.id,
     pointsLeftOnBench: Number(team.pointsLeftOnBench.toFixed(1)),
     endingTalent: Number(rosterTalent(team.roster, pool).toFixed(1)),
@@ -460,9 +466,9 @@ function finishSeason(
 }
 
 /**
- * A seeded bracket with byes for the top two. Playoff weeks are simulated the
- * same way as the regular season: agents set a lineup, and the hidden truth
- * decides it.
+ * A seeded bracket. Byes go to whoever the field size leaves over once it is
+ * rounded up to a power of two, so six teams give the top two a week off and
+ * four teams give nobody one.
  */
 function playBracket(
   field: Team[],
@@ -491,8 +497,11 @@ function playBracket(
     }, 0)
   }
 
-  let alive = field.slice(0, 2)
-  const playIn = field.slice(2)
+  let size = 1
+  while (size < field.length) size *= 2
+  const byes = size - field.length
+  let alive = field.slice(0, byes)
+  const playIn = field.slice(byes)
   let week = REGULAR_SEASON_WEEKS + 1
 
   const round: Team[] = []

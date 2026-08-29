@@ -22,7 +22,9 @@
     "data:draft": "tsx data/cli/draft.ts",
     "data:scoring": "tsx data/cli/scoring.ts",
     "draft:watch": "tsx server/cli/draftWatch.ts",
-    "draft:serve": "tsx server/cli/serveLan.ts"
+    "draft:serve": "tsx server/cli/serveLan.ts",
+    "data:managers": "tsx server/cli/managers.ts",
+    "sim:league": "tsx sim/runLeague.ts"
   },
   "dependencies": {
     "compression": "^1.8.1",
