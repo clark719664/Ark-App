@@ -274,50 +274,32 @@ export async function syncLeagueViaApi(opts: ApiSyncOptions = {}): Promise<Leagu
 
     if (!opts.skipProjections) {
       log('Reading projections...')
-      try {
-        const week = await fetchProjections(page, leagueId, { kind: 'week', week: currentWeek }, {
-          onProgress: (message) => log(message),
-        })
-        const season = await fetchProjections(page, leagueId, { kind: 'season' }, {
-          onProgress: () => {},
-        })
-        let attached = 0
-        for (const player of pool) {
-          const id = playerKeyId(player.id)
-          const projected = week.get(id)
-          const seasonProjection = season.get(id)
-          if (projected === undefined && seasonProjection === undefined) continue
-          player.points = { ...player.points }
-          if (projected !== undefined) {
-            player.points.projected = projected
-            attached++
-          }
-          // A season projection is a better average than points-so-far when the
-          // season has barely started, and the only one available before it does.
-          if (seasonProjection !== undefined && !player.points.average) {
-            player.points.average = Number((seasonProjection / 17).toFixed(2))
-          }
-        }
-        log(`  ${attached} players carry a week ${currentWeek} projection`)
-        if (attached === 0) {
-          warnings.push('Yahoo returned no projections; rankings fall back to season form.')
-        }
-      } catch (err) {
-        warnings.push(
-          `Projections could not be read (${err instanceof Error ? err.message : String(err)}); ` +
-            'rankings fall back to season form.',
-        )
-      }
-    }
+      // One pass, not two. A season-long projection was being fetched as well to
+      // fill in an average, which doubled the number of page requests for a
+      // number the weekly projection already answers: before any games are
+      // played, this week's projection is the best per-game estimate there is.
+      const week = await fetchProjections(page, leagueId, { kind: 'week', week: currentWeek }, {
+        onProgress: (message) => log(message),
+      })
 
-    // Enriched only now, so roster entries carry the projections too.
-    for (const entries of Object.values(rosters)) {
-      for (const entry of entries) {
-        const enriched = entry.player ? byKey.get(entry.player.id) : undefined
-        if (entry.player && enriched?.points) {
-          entry.player.points = { ...entry.player.points, ...enriched.points }
-          entry.projected = enriched.points.projected ?? entry.projected
-        }
+      let attached = 0
+      for (const player of pool) {
+        const projected = week.projections.get(playerKeyId(player.id))
+        if (projected === undefined) continue
+        player.points = { ...player.points, projected }
+        if (!player.points.average) player.points.average = projected
+        attached++
+      }
+      log(`  ${attached} players carry a week ${currentWeek} projection`)
+
+      if (week.rateLimited) {
+        warnings.push(
+          `Yahoo stopped serving the player list part way through, so ${attached} ` +
+            'players have a projection and the rest fall back to season form. ' +
+            'Running the sync again later fills in the remainder.',
+        )
+      } else if (attached === 0) {
+        warnings.push('Yahoo returned no projections; rankings fall back to season form.')
       }
     }
 

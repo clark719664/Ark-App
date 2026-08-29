@@ -28,6 +28,15 @@ function statParam(period: StatPeriod): string {
   return period.kind === 'week' ? `S_PW_${period.week}` : 'S_PS'
 }
 
+export interface ProjectionResult {
+  /** Projected points by Yahoo numeric player id. Partial results are kept. */
+  projections: Map<string, number>
+  /** True when Yahoo stopped answering before the list was exhausted. */
+  rateLimited: boolean
+  /** Pages actually read, for the caller to report. */
+  pages: number
+}
+
 export interface ProjectionOptions {
   /** Yahoo position filter: O for offence, plus K and DEF separately. */
   positions?: string[]
@@ -39,6 +48,8 @@ export interface ProjectionOptions {
    * politeness setting rather than a tuning knob.
    */
   delayMs?: number
+  /** How long to wait out a denial before trying the same page once more. */
+  backoffMs?: number
   onProgress?: (message: string) => void
 }
 
@@ -51,90 +62,95 @@ export async function fetchProjections(
   leagueId: string,
   period: StatPeriod,
   opts: ProjectionOptions = {},
-): Promise<Map<string, number>> {
+): Promise<ProjectionResult> {
   const positions = opts.positions ?? ['O', 'K', 'DEF']
-  const limit = opts.limit ?? 600
+  const limit = opts.limit ?? 300
   const delayMs =
     opts.delayMs ?? (Number.parseInt(process.env['PROJECTION_DELAY_MS'] ?? '', 10) || 2500)
+  const backoffMs = opts.backoffMs ?? 45_000
   const stat1 = statParam(period)
   const out = new Map<string, number>()
+  let pages = 0
+  let rateLimited = false
 
   for (const position of positions) {
+    if (rateLimited) break
     for (let start = 0; start < limit; start += PAGE_SIZE) {
       const url =
         `https://football.fantasysports.yahoo.com/f1/${leagueId}/players?` +
         `status=ALL&pos=${position}&cut_type=9&stat1=${stat1}` +
         `&myteam=0&sort=PTS&sdir=1&count=${start}`
 
-      const response = await page.goto(url, {
+      let response = await page.goto(url, {
         waitUntil: 'domcontentloaded',
         timeout: config.browser.timeoutMs,
       })
+      pages++
 
-      // Yahoo answers 999 "Request denied" when these pages are requested too
-      // quickly. Reading it as an empty list would quietly ship a snapshot with
-      // no projections and no explanation, so stop and say what happened.
+      // Yahoo answers 999 "Request denied" once enough of these have gone
+      // through, and it is a window rather than a rate: pacing alone does not
+      // avoid it. Wait it out once, then give up and keep what was collected -
+      // a partial set of projections is worth far more than none, and throwing
+      // it away is what the first version of this did.
       if (response?.status() === 999) {
-        throw new Error(
-          'Yahoo rate-limited the player list (HTTP 999). Projections are ' +
-            'incomplete; wait a few minutes and sync again.',
-        )
+        opts.onProgress?.(`  Yahoo denied the request; waiting ${Math.round(backoffMs / 1000)}s`)
+        await page.waitForTimeout(backoffMs)
+        response = await page.goto(url, {
+          waitUntil: 'domcontentloaded',
+          timeout: config.browser.timeoutMs,
+        })
+        pages++
+      }
+      if (response?.status() === 999) {
+        rateLimited = true
+        opts.onProgress?.(`  still denied; keeping the ${out.size} projections already read`)
+        break
       }
 
       // The table is server-rendered, so this is settling the page rather than
       // waiting on a request, and it doubles as the gap between requests.
       await page.waitForTimeout(delayMs)
 
-      const rows = await page.evaluate(() => {
-        // The page carries several tables and which one comes first is not
-        // stable, so the player table is the one that has the column we want
-        // rather than the one that happens to be first in the document.
-        let table: HTMLTableElement | null = null
-        let column = -1
-        for (const candidate of Array.from(document.querySelectorAll('table'))) {
-          const headRows = Array.from(candidate.querySelectorAll('thead tr'))
+      // The page hands back raw text and links; deciding which column and
+      // which id they mean happens in Node, where it can be tested. The bug
+      // that cost the most time here was invisible inside the browser.
+      const raw = await page.evaluate(() => {
+        const tables = Array.from(document.querySelectorAll('table'))
+        return tables.map((table) => {
+          const headRows = Array.from(table.querySelectorAll('thead tr'))
           const header = headRows[headRows.length - 1]
-          // Yahoo appends a private-use glyph to every sortable header, so
-          // "Fan Pts" is really "Fan Pts". It renders as nothing, trim()
-          // does not remove it and \s does not match it, so comparing the
-          // header literally never matches and the column looks absent. Strip
-          // anything outside printable ASCII before comparing.
-          const labels = Array.from(header?.querySelectorAll('th') ?? []).map((th) =>
-            (th.textContent ?? '')
-              .replace(/[^\x20-\x7e]/g, '')
-              .replace(/\s+/g, ' ')
-              .trim()
-              .toLowerCase(),
-          )
-          // By name, never by position: Yahoo moves these columns around.
-          const found = labels.findIndex((label) => label === 'fan pts')
-          if (found >= 0) {
-            table = candidate as HTMLTableElement
-            column = found
-            break
+          return {
+            headers: Array.from(header?.querySelectorAll('th') ?? []).map(
+              (th) => th.textContent ?? '',
+            ),
+            rows: Array.from(table.querySelectorAll('tbody tr')).map((tr) => ({
+              hrefs: Array.from(tr.querySelectorAll('a')).map((a) => (a as HTMLAnchorElement).href),
+              cells: Array.from(tr.querySelectorAll('td')).map((td) => td.textContent ?? ''),
+            })),
           }
-        }
-        if (!table || column < 0) {
-          return { column: -1, rows: [] as Array<{ id: string; value: string }> }
-        }
-
-        const body = Array.from(table.querySelectorAll('tbody tr'))
-        const parsed: Array<{ id: string; value: string }> = []
-        for (const tr of body) {
-          const player = tr.querySelector('a[href*="/nfl/players/"]') as HTMLAnchorElement | null
-          // A team defence links to the team page rather than a player page, so
-          // its id has to come from the watchlist link instead.
-          const watch = tr.querySelector('a[href*="apid="]') as HTMLAnchorElement | null
-          const id =
-            player?.href.match(/\/nfl\/players\/(\d+)/)?.[1] ??
-            watch?.href.match(/[?&]apid=(\d+)/)?.[1]
-          const cells = Array.from(tr.querySelectorAll('td'))
-          const cell = cells[column]
-          if (!id || !cell) continue
-          parsed.push({ id, value: (cell.textContent ?? '').trim() })
-        }
-        return { column, rows: parsed }
+        })
       })
+
+      let column = -1
+      let table: (typeof raw)[number] | undefined
+      for (const candidate of raw) {
+        const found = findFanPointsColumn(candidate.headers)
+        if (found >= 0) {
+          column = found
+          table = candidate
+          break
+        }
+      }
+
+      const rows = {
+        column,
+        rows:
+          table === undefined
+            ? []
+            : table.rows
+                .map((row) => ({ id: rowPlayerId(row.hrefs), value: row.cells[column] ?? '' }))
+                .filter((row): row is { id: string; value: string } => row.id !== null),
+      }
 
       if (rows.column < 0) {
         opts.onProgress?.(`  no "Fan Pts" column on the ${position} list; skipping projections`)
@@ -151,10 +167,51 @@ export async function fetchProjections(
     }
   }
 
-  return out
+  return { projections: out, rateLimited, pages }
 }
 
 /** The numeric id inside a Yahoo player key, e.g. `470.p.32723` -> `32723`. */
 export function playerKeyId(playerKey: string): string {
   return playerKey.split('.').pop() ?? playerKey
+}
+
+/**
+ * Yahoo appends a private-use glyph to every sortable column header, so the
+ * header reading "Fan Pts" is really "Fan Pts" followed by U+E002. It renders
+ * as nothing, `trim()` does not remove it and `\s` does not match it, so a
+ * header compared literally never matches and the column looks absent while
+ * printing identically to what it is being compared against.
+ *
+ * This lives outside the page so it can be tested, which is the whole point:
+ * the bug was invisible precisely because every diagnostic went through the
+ * same rendering that hid it.
+ */
+export function normalizeHeader(text: string): string {
+  return text
+    .replace(/[^\x20-\x7e]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+}
+
+/** Which column holds projected points, or -1 when the table has no such column. */
+export function findFanPointsColumn(headers: string[]): number {
+  return headers.findIndex((header) => normalizeHeader(header) === 'fan pts')
+}
+
+/**
+ * The player id a row refers to. Skill players link to a player page; a team
+ * defence links to its team page instead and only carries its id in the
+ * watchlist link.
+ */
+export function rowPlayerId(hrefs: string[]): string | null {
+  for (const href of hrefs) {
+    const player = href.match(/\/nfl\/players\/(\d+)/)
+    if (player?.[1]) return player[1]
+  }
+  for (const href of hrefs) {
+    const watch = href.match(/[?&]apid=(\d+)/)
+    if (watch?.[1]) return watch[1]
+  }
+  return null
 }
