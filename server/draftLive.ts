@@ -12,6 +12,7 @@ import {
 import type { RankedPlayer, LeagueShape } from './draftPool.js'
 import type { DraftPick, YahooPlayer } from './yahoo/draftFeed.js'
 import { byeStacks } from '../data/draft/schedule.js'
+import { picksUntilGone, type MarketEntry } from './yahoo/market.js'
 
 /**
  * The live draft, as a file.
@@ -48,6 +49,12 @@ export interface LiveSuggestion {
   fillsNeed: boolean
   byeWeek: number | null
   notes: string[]
+  /** Where real drafts take him, null when too few of them do to mean anything. */
+  adp: number | null
+  /** Positive means he is expected to last that many more picks. */
+  lastsPicks: number | null
+  injury: string | null
+  headline: string | null
 }
 
 export interface LiveCliff {
@@ -85,7 +92,14 @@ export interface LiveDraftState {
   unmatchedPicks: number
 }
 
-function toSuggestion(player: RankedPlayer, needs: Record<string, number>): LiveSuggestion {
+function toSuggestion(
+  player: RankedPlayer,
+  needs: Record<string, number>,
+  market: Map<string, MarketEntry>,
+  yahooId: string | undefined,
+  currentPick: number,
+): LiveSuggestion {
+  const entry = yahooId ? market.get(yahooId) : undefined
   return {
     playerId: player.playerId,
     name: player.name,
@@ -96,6 +110,10 @@ function toSuggestion(player: RankedPlayer, needs: Record<string, number>): Live
     fillsNeed: fillsOpenSlot(player.position, needs),
     byeWeek: player.byeWeek ?? null,
     notes: player.notes ?? [],
+    adp: entry?.averagePick ?? null,
+    lastsPicks: picksUntilGone(entry, currentPick),
+    injury: entry?.injury ?? null,
+    headline: entry?.headline ?? null,
   }
 }
 
@@ -109,6 +127,10 @@ export interface ComputeOptions {
   myTeamName: string
   teamNames: Map<string, string>
   yahooIndex: Map<string, YahooPlayer>
+  /** Average pick, injuries and notes, keyed by Yahoo's numeric player id. */
+  market: Map<string, MarketEntry>
+  /** Board player id to Yahoo numeric id, so the two can be joined. */
+  yahooIdByPlayer: Map<string, string>
 }
 
 export function computeLiveState(
@@ -145,7 +167,11 @@ export function computeLiveState(
   // A player who fills an empty starting slot is worth more than his raw value
   // says, but not so much more that it should override a large gap. Ordering by
   // value and surfacing the need as a flag keeps the judgement with the reader.
-  const suggestions = view.available.slice(0, 25).map((player) => toSuggestion(player, needs))
+  const suggestions = view.available
+    .slice(0, 25)
+    .map((player) =>
+      toSuggestion(player, needs, opts.market, opts.yahooIdByPlayer.get(player.playerId), view.onTheClock),
+    )
 
   const cliffs = positionCliffs(
     view.available,
@@ -182,7 +208,9 @@ export function computeLiveState(
     isMyTurn: view.picksUntilNext === 0,
     totalPicks: picks.length,
     recent,
-    myRoster: view.myRoster.map((player) => toSuggestion(player, needs)),
+    myRoster: view.myRoster.map((player) =>
+      toSuggestion(player, needs, opts.market, opts.yahooIdByPlayer.get(player.playerId), view.onTheClock),
+    ),
     needs,
     suggestions,
     cliffs,

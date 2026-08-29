@@ -27,7 +27,13 @@ function Suggestion({ player, rank }: { player: LiveSuggestion; rank: number }) 
         <span className="block truncate text-xs text-slate-500">
           {player.team} · {player.projectedPpg} ppg
           {player.byeWeek != null ? ` · bye ${player.byeWeek}` : ''}
-          {player.notes[0] ? ` · ${player.notes[0]}` : ''}
+          {player.adp != null ? ` · adp ${player.adp}` : ''}
+          {player.injury ? <span className="text-amber-400"> · {player.injury}</span> : null}
+          {/* Only worth saying when he is expected to survive. "Gone in two" on
+              a player you were not going to take is noise. */}
+          {player.lastsPicks != null && player.lastsPicks > 2 ? (
+            <span className="text-slate-600"> · lasts ~{player.lastsPicks}</span>
+          ) : null}
         </span>
       </span>
       {player.fillsNeed && (

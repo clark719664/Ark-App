@@ -6,7 +6,11 @@ import { openSession } from '../yahoo/browser.js'
 import { API, collection, fetchJson, fetchLeagueSetup, flatten } from '../yahoo/draftFeed.js'
 import { fetchLeagueScoring } from '../yahoo/leagueScoring.js'
 import { loadLeague, poolFileFor, saveLeague, scoringDiffers, type LinkedLeague } from '../leagues.js'
-import { DEFAULT_SHAPE } from '../draftPool.js'
+import { DEFAULT_SHAPE, type DraftPool } from '../draftPool.js'
+import {
+  applyRookieProjections,
+  loadYahooProjections,
+} from '../../data/draft/rookieProjections.js'
 
 /**
  * Link a league, and price a board for it.
@@ -160,6 +164,26 @@ async function main(): Promise<void> {
           )
         }
         console.log(`${built.players.length} players`)
+
+        // Rookies have no history, so the board prices them from draft capital
+        // alone. Yahoo projects them individually, which is a better answer to
+        // the same question, so it wins where it exists.
+        const projections = loadYahooProjections(config.cache.snapshotFile)
+        if (projections.size > 0) {
+          const pool = JSON.parse(fs.readFileSync(destination, 'utf8')) as DraftPool
+          const changes = applyRookieProjections(pool.players, projections)
+          if (changes.length > 0) {
+            fs.writeFileSync(destination, `${JSON.stringify(pool)}
+`)
+            const biggest = [...changes].sort((a, b) => b.to - a.to).slice(0, 3)
+            console.log(
+              `  rookies   ${changes.length} repriced from Yahoo, e.g. ` +
+                biggest.map((c) => `${c.name} ${c.from} to ${c.to}`).join(', '),
+            )
+          }
+        } else {
+          console.log('  rookies   no Yahoo projections cached; run npm run yahoo:sync')
+        }
       } else {
         console.log('  board     already priced for this league')
       }

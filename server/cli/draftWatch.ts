@@ -24,6 +24,7 @@ import {
 } from '../draftWatch.js'
 import { computeLiveState, writeLiveState, LIVE_FILE } from '../draftLive.js'
 import { loadLeague } from '../leagues.js'
+import { fetchMarket, loadMarket, saveMarket } from '../yahoo/market.js'
 
 /**
  * Watch a live Yahoo draft and say what to do about it.
@@ -157,7 +158,36 @@ async function main(): Promise<void> {
     })
     console.log(`\r  ${index.size} players indexed        `)
 
+    // Average pick, injuries and written notes. Refreshed when stale, because
+    // an average pick from last week is still roughly right and a draft is a bad
+    // time to be waiting on four hundred requests.
+    const MARKET_MAX_AGE = 6 * 3600
+    let { market, ageSeconds } = loadMarket(leagueId)
+    if (market.size === 0 || ageSeconds > MARKET_MAX_AGE) {
+      process.stdout.write('  reading average pick and notes... ')
+      try {
+        market = await fetchMarket(session.page, leagueKey, { limit: 400 })
+        saveMarket(leagueId, market)
+        ageSeconds = 0
+      } catch (err) {
+        console.log(`failed (${err instanceof Error ? err.message : String(err)})`)
+      }
+    }
+    const withAdp = [...market.values()].filter((entry) => entry.averagePick !== null).length
+    console.log(
+      `  Market: ${market.size} players, ${withAdp} with an average pick` +
+        `${ageSeconds > 0 && Number.isFinite(ageSeconds) ? `, ${Math.round(ageSeconds / 60)}m old` : ''}`,
+    )
+
     const { byPlayerKey, unmatched } = matchPlayers([...index.values()], board)
+
+    // The board keys players by nflverse id and Yahoo by its own; this is the
+    // only bridge between a ranking and what the market thinks of it.
+    const yahooIdByPlayer = new Map<string, string>()
+    for (const [playerKey, ranked] of byPlayerKey) {
+      const numeric = playerKey.split('.').pop()
+      if (numeric) yahooIdByPlayer.set(ranked.playerId, numeric)
+    }
     console.log(`  ${byPlayerKey.size} matched to the board, ${unmatched.length} unmatched`)
     if (myTeamKey) {
       console.log(`  Your team: ${teamNames.get(myTeamKey) ?? myTeamKey}`)
@@ -237,6 +267,8 @@ async function main(): Promise<void> {
           myTeamName: teamNames.get(myTeamKey) ?? '',
           teamNames,
           yahooIndex: index,
+          market,
+          yahooIdByPlayer,
         }),
       )
 

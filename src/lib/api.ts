@@ -361,6 +361,10 @@ export interface LiveSuggestion {
   fillsNeed: boolean
   byeWeek: number | null
   notes: string[]
+  adp: number | null
+  lastsPicks: number | null
+  injury: string | null
+  headline: string | null
 }
 
 export interface LivePick {
