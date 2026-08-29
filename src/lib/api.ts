@@ -200,8 +200,20 @@ export interface DraftPoolPlayer {
   overallRank: number
 }
 
+export interface LinkedLeagueSummary {
+  leagueId: string
+  name: string
+  season: number
+  scoringLabel: string
+  shape: { teams: number; starters: Record<string, number>; flexShare: Record<string, number> }
+  rounds: number
+  seat: number
+  teamName: string
+}
+
 export interface DraftPoolResponse {
   usedDepthChart?: boolean
+  league?: { leagueId: string; name: string; scoringLabel: string } | null
   season: number
   generatedAt: string
   source: string
@@ -413,7 +425,8 @@ export const api = {
   },
   draft: () => request<DraftResponse>('/draft'),
   draftLive: () => request<DraftLiveResponse>('/draft-live'),
-  draftPool: (shape: LeagueShapeInput) => {
+  leagues: () => request<{ leagues: LinkedLeagueSummary[] }>('/leagues'),
+  draftPool: (shape: LeagueShapeInput, leagueId?: string) => {
     const query = new URLSearchParams({
       teams: String(shape.teams),
       qb: String(shape.qb),
@@ -424,6 +437,7 @@ export const api = {
       k: String(shape.k),
       def: String(shape.def),
     })
+    if (leagueId) query.set('league', leagueId)
     return request<DraftPoolResponse>(`/draft-pool?${query.toString()}`)
   },
   analytics: () => request<AnalyticsResponse>('/analytics'),

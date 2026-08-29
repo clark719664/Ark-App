@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { api, useApi, type DraftPoolPlayer, type LeagueShapeInput } from '../lib/api'
 import { Card, Empty, ErrorState, Loading, StatTile } from '../components/ui'
 import LeagueShapeBar from '../components/LeagueShapeBar'
@@ -50,15 +50,41 @@ const DEFAULT_SHAPE: LeagueShapeInput = {
 }
 
 export default function DraftBoard() {
-  // v2: the stored shape gained kicker and team defence slots, and a shape
-  // saved before that has neither.
-  const [shape, setShape] = useLocalStorage<LeagueShapeInput>('ark.leagueShape.v2', DEFAULT_SHAPE)
+  // v3: the shape now starts from whichever league has been linked. A stored v2
+  // shape is ignored once, because it was a twelve team default that belonged
+  // to no league and quietly changed every replacement level.
+  const [shape, setShape] = useLocalStorage<LeagueShapeInput>('ark.leagueShape.v3', DEFAULT_SHAPE)
   const [state, setState, reset] = useLocalStorage<DraftState>('ark.draft.v2', EMPTY_STATE)
   const [search, setSearch] = useState('')
+  const [seeded, setSeeded] = useState(false)
 
-  const pool = useApi(() => api.draftPool(shape), [
+  const leagues = useApi(() => api.leagues(), [])
+  const linked = leagues.data?.leagues[0] ?? null
+
+  // Seed once from the linked league, then leave the editor alone: after this
+  // the numbers on screen are the user's to change.
+  useEffect(() => {
+    if (seeded || !linked) return
+    setSeeded(true)
+    const starters = linked.shape.starters
+    const flex = Math.round(
+      Object.values(linked.shape.flexShare).reduce((sum, share) => sum + share, 0),
+    )
+    setShape({
+      teams: linked.shape.teams,
+      qb: starters['QB'] ?? 1,
+      rb: starters['RB'] ?? 2,
+      wr: starters['WR'] ?? 2,
+      te: starters['TE'] ?? 1,
+      flex,
+      k: starters['K'] ?? 1,
+      def: starters['DEF'] ?? 1,
+    })
+  }, [linked, seeded, setShape])
+
+  const pool = useApi(() => api.draftPool(shape, linked?.leagueId), [
     shape.teams, shape.qb, shape.rb, shape.wr, shape.te, shape.flex,
-    shape.k, shape.def,
+    shape.k, shape.def, linked?.leagueId,
   ])
 
   const positions = boardPositions(shape)
@@ -118,8 +144,19 @@ export default function DraftBoard() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Draft board</h1>
           <p className="mt-1 max-w-3xl text-sm leading-relaxed text-ink-400">
-            {pool.data.season} projections from open NFL data, ranked by value over replacement for
-            your league's settings. Works with no league connected.
+            {pool.data.season} projections from open NFL data, ranked by value over replacement.{' '}
+            {pool.data.league ? (
+              <>
+                Priced for <span className="text-ink-200">{pool.data.league.name}</span>,{' '}
+                {pool.data.league.scoringLabel}.
+              </>
+            ) : (
+              <>
+                No league linked, so this uses the shared board and the settings below. Run{' '}
+                <code className="font-mono text-ink-300">npm run league:link</code> to price it for
+                your league.
+              </>
+            )}
           </p>
         </div>
         <div className="flex items-center gap-2">

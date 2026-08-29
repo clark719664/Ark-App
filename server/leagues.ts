@@ -62,9 +62,14 @@ export function listLeagues(): LinkedLeague[] {
   if (!fs.existsSync(ROOT)) return []
   const out: LinkedLeague[] = []
   for (const name of fs.readdirSync(ROOT)) {
+    // The directory also holds each league's board and scoring file. Reading
+    // those as league records produced entries with no name at all, which took
+    // the endpoint down rather than being ignored.
     if (!name.endsWith('.json')) continue
+    if (name.startsWith('pool-') || name.startsWith('scoring-')) continue
     try {
-      out.push(JSON.parse(fs.readFileSync(path.join(ROOT, name), 'utf8')) as LinkedLeague)
+      const parsed = JSON.parse(fs.readFileSync(path.join(ROOT, name), 'utf8')) as LinkedLeague
+      if (parsed?.leagueId && parsed?.name) out.push(parsed)
     } catch {
       // A corrupt entry should not hide the rest of them.
     }

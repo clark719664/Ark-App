@@ -14,6 +14,7 @@ import {
 } from './store.js'
 import { YahooAuthError } from './yahoo/browser.js'
 import { readLiveState, myPickNumbers } from './draftLive.js'
+import { listLeagues, loadLeague } from './leagues.js'
 
 /**
  * The HTTP surface. Every route reads from the cached snapshot, so responses
@@ -192,8 +193,31 @@ function clamp(value: number, min: number, max: number): number {
  * configured. League shape comes in as query parameters, because the board is
  * usable before Ark knows anything about the league it is drafting for.
  */
+/**
+ * Leagues that have been linked, so the board can describe itself rather than
+ * defaulting to a twelve team shape that belongs to nobody.
+ */
+api.get('/leagues', handle((_req, res) => {
+  res.json({
+    leagues: listLeagues().map((league) => ({
+      leagueId: league.leagueId,
+      name: league.name,
+      season: league.season,
+      scoringLabel: league.scoringLabel,
+      shape: league.shape,
+      rounds: league.rounds,
+      seat: league.seat,
+      teamName: league.teamName,
+    })),
+  })
+}))
+
 api.get('/draft-pool', handle((req, res) => {
-  const pool = loadDraftPool()
+  // A linked league has a board priced in its own scoring; without one this is
+  // the shared board, which is right only for whichever league built it.
+  const requested = String(req.query['league'] ?? '').trim()
+  const linked = requested ? loadLeague(requested) : null
+  const pool = loadDraftPool(linked?.poolFile)
   if (!pool) {
     res.status(503).json({
       error:
@@ -238,6 +262,7 @@ api.get('/draft-pool', handle((req, res) => {
     generatedAt: pool.generatedAt,
     source: pool.source,
     method: pool.method,
+    league: linked ? { leagueId: linked.leagueId, name: linked.name, scoringLabel: linked.scoringLabel } : null,
     usedDepthChart: pool.usedDepthChart ?? pool.players.some((entry) => entry.depthRank != null),
     shape,
     players: rankPool(pool, shape),
