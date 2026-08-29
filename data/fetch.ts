@@ -17,6 +17,16 @@ import path from 'node:path'
 
 const RELEASE_BASE = 'https://github.com/nflverse/nflverse-data/releases/download'
 
+/**
+ * The schedule lives in a different nflverse repository, not the release feed.
+ *
+ * There is no `schedules` release asset — asking for one returns a 404 — and
+ * the schedule matters here for one reason: a bye week is not a field anywhere
+ * in the data, it is the week a team has no game, which can only be worked out
+ * from a complete schedule.
+ */
+const SCHEDULE_URL = 'https://raw.githubusercontent.com/nflverse/nfldata/master/data/games.csv'
+
 export const DATA_DIR = path.resolve(process.cwd(), '.cache', 'nfl')
 
 export interface Dataset {
@@ -106,6 +116,20 @@ export async function fetchAll(opts: FetchOptions = {}): Promise<void> {
     log(`  ${dataset.name}: downloading…`)
     const bytes = await download(`${RELEASE_BASE}/${dataset.remote}`, destination)
     log(`  ${dataset.name}: ${(bytes / 1024 / 1024).toFixed(1)} MB`)
+  }
+
+  const schedule = path.join(DATA_DIR, 'games.csv')
+  if (opts.force || !fs.existsSync(schedule)) {
+    log('  games: downloading…')
+    try {
+      const bytes = await download(SCHEDULE_URL, schedule)
+      log(`  games: ${(bytes / 1024 / 1024).toFixed(1)} MB`)
+    } catch {
+      // Byes degrade to unknown rather than taking the whole fetch down.
+      log('  games: unavailable, bye weeks will be missing')
+    }
+  } else {
+    log('  games: already downloaded')
   }
 
   for (const dataset of SEASONAL_DATASETS) {

@@ -25,6 +25,8 @@ export interface DraftPoolPlayer {
   gamesOfData: number
   lastSeasonPpg: number | null
   basis: 'production' | 'thin-history' | 'no-history'
+  /** The week this player's NFL team is off. Null when the schedule is unknown. */
+  byeWeek?: number | null
   notes: string[]
 }
 

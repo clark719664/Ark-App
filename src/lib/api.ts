@@ -193,6 +193,7 @@ export interface DraftPoolPlayer {
   gamesOfData: number
   lastSeasonPpg: number | null
   basis: 'production' | 'thin-history' | 'no-history'
+  byeWeek?: number | null
   notes: string[]
   vorp: number
   positionRank: number
@@ -345,6 +346,7 @@ export interface LiveSuggestion {
   vorp: number
   projectedPpg: number
   fillsNeed: boolean
+  byeWeek: number | null
   notes: string[]
 }
 
@@ -381,6 +383,7 @@ export interface DraftLiveResponse {
   onTheClock: number
   nextPick: number | null
   picksUntilNext: number | null
+  cliffBeforePick: number | null
   isMyTurn: boolean
   totalPicks: number
   recent: LivePick[]
@@ -388,6 +391,7 @@ export interface DraftLiveResponse {
   needs: Record<string, number>
   suggestions: LiveSuggestion[]
   cliffs: LiveCliff[]
+  byeStacks: Array<{ week: number; count: number }>
   unmatchedPicks: number
   myPicks: number[]
 }

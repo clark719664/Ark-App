@@ -3,6 +3,7 @@ import {
   type RosteredPlayer, type SeasonProduction,
 } from './pool.js'
 import { loadTeamDefense, summariseDefenses } from './defense.js'
+import { loadByeWeeks } from './schedule.js'
 import { loadLeagueScoring } from './scoring.js'
 import {
   loadDraftClass,
@@ -52,6 +53,8 @@ export interface ProjectedPlayer {
   lastSeasonPpg: number | null
   /** How the projection was arrived at, for display. */
   basis: 'production' | 'thin-history' | 'no-history'
+  /** The week this player's NFL team is off, or null if the schedule is unknown. */
+  byeWeek: number | null
   notes: string[]
 }
 
@@ -193,6 +196,8 @@ export function projectDefenses(opts: ProjectionOptions): ProjectedPlayer[] {
       gamesOfData: games,
       lastSeasonPpg: latest ? round(latest.pointsPerGame, 2) : null,
       basis: games > 0 ? 'production' : 'no-history',
+      // Filled in by buildProjections once the schedule is loaded.
+      byeWeek: null,
       notes,
     })
   }
@@ -207,6 +212,7 @@ export function buildProjections(opts: ProjectionOptions): ProjectedPlayer[] {
   const depthChart = loadLatestDepthChart(opts.season)
   const draftClass = loadDraftClass(opts.season)
   const rookieCurve = measureRookieCurve(loadLeagueScoring().scoring, opts.season - 1)
+  const byes = loadByeWeeks(opts.season)
 
   const byPlayer = new Map<string, SeasonProduction[]>()
   for (const row of production) {
@@ -235,6 +241,13 @@ export function buildProjections(opts: ProjectionOptions): ProjectedPlayer[] {
   }
 
   projections.push(...projectDefenses(opts))
+
+  // Attached after the fact rather than threaded through every projector: a bye
+  // is a property of the team, identical for every player on it, and it changes
+  // no projection — a seventeen game season already assumes one.
+  for (const projection of projections) {
+    projection.byeWeek = byes?.byTeam.get(projection.team) ?? null
+  }
 
   return projections.sort((a, b) => b.projectedSeason - a.projectedSeason)
 }
@@ -333,6 +346,7 @@ function projectOne(
     gamesOfData: totalGames,
     lastSeasonPpg: lastSeason ? round(lastSeason.pointsPerGame, 2) : null,
     basis,
+    byeWeek: null,
     notes,
   }
 }

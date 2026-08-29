@@ -51,6 +51,29 @@ describe.skipIf(pool === null)('the committed draft pool', () => {
     expect(best - worst).toBeLessThan(8)
   })
 
+  it('carries a bye week for every player', () => {
+    const missing = loaded.players.filter((player) => player.byeWeek == null)
+    expect(missing).toHaveLength(0)
+
+    // Thirty-two teams share far fewer bye weeks than there are teams, so a
+    // one-to-one spread would mean the derivation is reading something else.
+    const weeks = new Set(loaded.players.map((player) => player.byeWeek))
+    expect(weeks.size).toBeGreaterThan(3)
+    expect(weeks.size).toBeLessThan(15)
+  })
+
+  it('gives every player on a team the same bye', () => {
+    const byTeam = new Map<string, Set<number | null | undefined>>()
+    for (const player of loaded.players) {
+      const seen = byTeam.get(player.team) ?? new Set()
+      seen.add(player.byeWeek)
+      byTeam.set(player.team, seen)
+    }
+    for (const [team, weeks] of byTeam) {
+      expect(weeks.size, team).toBe(1)
+    }
+  })
+
   it('does not let a defence outrank a first round running back', () => {
     const ranked = rankPool(loaded, DEFAULT_SHAPE)
     const firstDefense = ranked.findIndex((player) => player.position === 'DEF')

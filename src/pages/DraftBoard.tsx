@@ -221,9 +221,13 @@ export default function DraftBoard() {
                 <span className={`pill ${positionTone(player.position)}`}>{player.position}</span>
                 {player.name}
                 <span className="text-xs text-ink-500">{points(player.projectedSeason, 0)}</span>
+                {player.byeWeek != null && (
+                  <span className="text-xs text-ink-600">bye {player.byeWeek}</span>
+                )}
               </span>
             ))}
           </div>
+          <ByeStacks roster={myRoster} />
         </Card>
       )}
 
@@ -235,8 +239,44 @@ export default function DraftBoard() {
         return touchdowns and points allowed. Defences are regressed harder than players, because a
         unit carried by a takeaway rate that will not repeat looks elite in hindsight. Nothing here
         models target competition, scheme changes or anything reported this week; where this
-        disagrees sharply with consensus, consensus is usually right.
+        disagrees sharply with consensus, consensus is usually right. Bye weeks are derived from
+        the published schedule — the week a team has no game — and are shown only when every team
+        resolves to exactly one, so a partial schedule reports nothing rather than a wrong bye.
       </p>
+    </div>
+  )
+}
+
+/**
+ * Weeks where enough of the roster is off at once to be a problem.
+ *
+ * This is the one draft mistake that is invisible while you are making it: each
+ * pick looks fine alone, and the hole only shows up in October when three
+ * starters are off in the same week. Three is the threshold — two players
+ * sharing a bye is unavoidable in a twelve team league and not worth a warning.
+ */
+function ByeStacks({ roster }: { roster: DraftPoolPlayer[] }) {
+  const counts = new Map<number, string[]>()
+  for (const player of roster) {
+    if (player.byeWeek == null) continue
+    const list = counts.get(player.byeWeek)
+    if (list) list.push(player.position)
+    else counts.set(player.byeWeek, [player.position])
+  }
+
+  const stacked = [...counts]
+    .filter(([, players]) => players.length >= 3)
+    .sort((a, b) => b[1].length - a[1].length || a[0] - b[0])
+
+  if (stacked.length === 0) return null
+
+  return (
+    <div className="border-t border-ink-800 px-4 py-3 text-xs text-flag-400">
+      {stacked.map(([week, players]) => (
+        <div key={week}>
+          Week {week}: {players.length} of your players are on bye ({players.sort().join(', ')})
+        </div>
+      ))}
     </div>
   )
 }
@@ -278,6 +318,7 @@ function BoardRow({
         <span className="block truncate text-[11px] text-ink-500">
           {player.team} · {player.position}
           {player.positionRank} · {points(player.projectedSeason, 0)} proj
+          {player.byeWeek != null && ` · bye ${player.byeWeek}`}
           {player.basis !== 'production' && ' · thin history'}
         </span>
       </span>

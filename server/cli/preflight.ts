@@ -77,6 +77,18 @@ async function main(): Promise<void> {
     const distinct = new Set(rookies.map((p) => p.projectedPpg)).size
     if (distinct < 5) warn('rookies', 'all priced the same, draft capital was not applied')
     else ok('rookies', `${rookies.length} priced across ${distinct} values`)
+
+    const withBye = pool.players.filter((p) => p.byeWeek != null).length
+    if (withBye === 0) {
+      warn('bye weeks', 'none in the pool, run: npm run data:fetch && npm run data:draft 2026')
+    } else if (withBye < pool.players.length) {
+      warn('bye weeks', `${pool.players.length - withBye} players have no bye`)
+    } else {
+      const weeks = [...new Set(pool.players.map((p) => p.byeWeek))].sort(
+        (a, b) => (a ?? 0) - (b ?? 0),
+      )
+      ok('bye weeks', `every player, across weeks ${weeks[0]}-${weeks[weeks.length - 1]}`)
+    }
   }
 
   console.log('\nYahoo')

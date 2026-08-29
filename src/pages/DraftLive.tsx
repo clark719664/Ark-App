@@ -26,6 +26,7 @@ function Suggestion({ player, rank }: { player: LiveSuggestion; rank: number }) 
         <span className="block truncate font-medium text-slate-100">{player.name}</span>
         <span className="block truncate text-xs text-slate-500">
           {player.team} · {player.projectedPpg} ppg
+          {player.byeWeek != null ? ` · bye ${player.byeWeek}` : ''}
           {player.notes[0] ? ` · ${player.notes[0]}` : ''}
         </span>
       </span>
@@ -139,10 +140,13 @@ export default function DraftLive() {
         </ul>
       </div>
 
-      {data.cliffs.length > 0 && data.picksUntilNext ? (
+      {/* Not gated on picksUntilNext: on the clock that is zero, and the whole
+          reason to take a back now rather than a receiver is what falls away
+          before the pick after this one. */}
+      {data.cliffs.length > 0 && data.cliffBeforePick !== null ? (
         <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-slate-400">
-            Falls off before pick {data.nextPick}
+            Falls off before pick {data.cliffBeforePick}
           </h2>
           <ul className="space-y-1 text-sm">
             {data.cliffs.map((cliff) => (
@@ -172,6 +176,9 @@ export default function DraftLive() {
                 className="rounded bg-slate-800/80 px-2 py-1 text-xs text-slate-200"
               >
                 <span className="font-semibold">{player.position}</span> {player.name}
+                {player.byeWeek != null && (
+                  <span className="text-slate-500"> · {player.byeWeek}</span>
+                )}
               </li>
             ))}
           </ul>
@@ -182,6 +189,11 @@ export default function DraftLive() {
             ? 'starters full'
             : openNeeds.map(([position, count]) => `${position}×${count}`).join(' · ')}
         </p>
+        {data.byeStacks.map((stack) => (
+          <p key={stack.week} className="mt-1 text-xs text-amber-400">
+            Week {stack.week}: {stack.count} of your players are on bye
+          </p>
+        ))}
       </div>
 
       <div className="rounded-xl border border-slate-800 bg-slate-900/60 p-4">

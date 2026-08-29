@@ -11,6 +11,7 @@ import {
 } from './draftWatch.js'
 import type { RankedPlayer, LeagueShape } from './draftPool.js'
 import type { DraftPick, YahooPlayer } from './yahoo/draftFeed.js'
+import { byeStacks } from '../data/draft/schedule.js'
 
 /**
  * The live draft, as a file.
@@ -45,6 +46,7 @@ export interface LiveSuggestion {
   vorp: number
   projectedPpg: number
   fillsNeed: boolean
+  byeWeek: number | null
   notes: string[]
 }
 
@@ -66,6 +68,11 @@ export interface LiveDraftState {
   onTheClock: number
   nextPick: number | null
   picksUntilNext: number | null
+  /**
+   * The pick the cliffs are measured up to. Not always `nextPick`: on the clock
+   * that is the pick being made, and what matters is the one after it.
+   */
+  cliffBeforePick: number | null
   isMyTurn: boolean
   totalPicks: number
   recent: LivePick[]
@@ -73,6 +80,8 @@ export interface LiveDraftState {
   needs: Record<string, number>
   suggestions: LiveSuggestion[]
   cliffs: LiveCliff[]
+  /** Weeks where three or more of the roster are off together. */
+  byeStacks: Array<{ week: number; count: number }>
   unmatchedPicks: number
 }
 
@@ -85,6 +94,7 @@ function toSuggestion(player: RankedPlayer, needs: Record<string, number>): Live
     vorp: Number(player.vorp.toFixed(1)),
     projectedPpg: Number(player.projectedPpg.toFixed(1)),
     fillsNeed: fillsOpenSlot(player.position, needs),
+    byeWeek: player.byeWeek ?? null,
     notes: player.notes ?? [],
   }
 }
@@ -167,6 +177,8 @@ export function computeLiveState(
     onTheClock: view.onTheClock,
     nextPick: view.nextPick,
     picksUntilNext: view.picksUntilNext,
+    cliffBeforePick:
+      view.cliffHorizon === null ? null : view.onTheClock + view.cliffHorizon,
     isMyTurn: view.picksUntilNext === 0,
     totalPicks: picks.length,
     recent,
@@ -174,6 +186,9 @@ export function computeLiveState(
     needs,
     suggestions,
     cliffs,
+    byeStacks: byeStacks(view.myRoster.map((player) => player.byeWeek ?? null)).filter(
+      (stack) => stack.count >= 3,
+    ),
     unmatchedPicks: picks.filter((pick) => !matched.has(pick.playerKey)).length,
   }
 }

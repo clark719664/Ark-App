@@ -1,3 +1,4 @@
+import { byeStacks } from '../../data/draft/schedule.js'
 import { config } from '../config.js'
 import { openSession } from '../yahoo/browser.js'
 import {
@@ -14,6 +15,7 @@ import {
   loadBoard,
   matchPlayers,
   positionCliffs,
+  fillsOpenSlot,
   flexCount,
   remainingNeeds,
   shapeFromEnv,
@@ -199,20 +201,28 @@ async function main(): Promise<void> {
         if (usingRosters) console.log('  (picks read from rosters, order approximate)')
         console.log(`  Your roster (${view.myRoster.length}): ${view.myRoster.map((p) => `${p.name} ${p.position}`).join(', ') || 'empty'}`)
         console.log(`  Still needed: ${openSlots || 'starters full'}`)
+        for (const stack of byeStacks(view.myRoster.map((p) => p.byeWeek ?? null))) {
+          if (stack.count < 3) continue
+          console.log(`  !! Week ${stack.week}: ${stack.count} of your players are on bye`)
+        }
 
         console.log('\n  BEST AVAILABLE')
         view.available.slice(0, BOARD_SIZE).forEach((player, rank) => {
-          const need = (needs[player.position] ?? 0) > 0 ? ' *' : '  '
+          const need = fillsOpenSlot(player.position, needs) ? ' *' : '  '
+          const bye = player.byeWeek == null ? '     ' : `bye${String(player.byeWeek).padStart(2)}`
           console.log(
-            `   ${String(rank + 1).padStart(2)}.${need} ${player.name.padEnd(22)} ${player.position.padEnd(4)} ${(player.team ?? '').padEnd(4)} vorp ${player.vorp.toFixed(1)}`,
+            `   ${String(rank + 1).padStart(2)}.${need} ${player.name.padEnd(22)} ${player.position.padEnd(4)} ${(player.team ?? '').padEnd(4)} ${bye}  vorp ${player.vorp.toFixed(1)}`,
           )
         })
 
-        const cliffs = positionCliffs(view.available, view.picksUntilNext, POSITIONS).filter(
-          (entry) => (needs[entry.position] ?? 0) > 0,
+        // Measured to the pick after the one being made. On the clock those
+        // differ, and the current pick is the useless answer: nothing falls
+        // away before a pick you are making right now.
+        const cliffs = positionCliffs(view.available, view.cliffHorizon, POSITIONS).filter((entry) =>
+          fillsOpenSlot(entry.position, needs),
         )
-        if (cliffs.length > 0 && view.picksUntilNext) {
-          console.log(`\n  WHAT FALLS OFF before pick ${view.nextPick}`)
+        if (cliffs.length > 0 && view.cliffHorizon !== null) {
+          console.log(`\n  WHAT FALLS OFF before pick ${view.onTheClock + view.cliffHorizon}`)
           for (const cliff of cliffs.slice(0, 4)) {
             const later = cliff.bestLater ? `${cliff.bestLater.name} (${cliff.bestLater.vorp.toFixed(1)})` : 'nobody startable'
             console.log(

@@ -135,6 +135,15 @@ is derived from what the opponent scored, and `pointsScored()` excludes
 `receiving_tds` because the passing touchdown on the same play is already
 counted.
 
+Bye weeks are not a field anywhere in this data — a bye is the *absence* of a
+game, so it can only be derived from a complete schedule. The schedule also is
+not in the nflverse release feed (asking for one returns a 404); it lives in the
+`nflverse/nfldata` repo as `data/games.csv`, which `data:fetch` pulls
+separately. `loadByeWeeks()` refuses to answer unless all 32 teams resolve to
+exactly one missing week, because a partial schedule invents byes that look
+entirely plausible — a team absent from two weeks of a truncated file reads as
+having two byes. Silence beats a wrong bye.
+
 Defences regress much harder than players (`confidence` caps at 0.55): a unit
 carried by a takeaway rate that will not repeat looks elite in hindsight, and
 projecting last season forward would put it near the top of the board.
