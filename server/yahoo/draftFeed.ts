@@ -103,6 +103,9 @@ export interface LeagueTeam {
   teamKey: string
   name: string
   managers: string
+  /** This team's slot in round one, when the draft order has been published. */
+  draftPosition: number | null
+  isMine: boolean
 }
 
 export async function fetchTeams(page: Page, leagueKey: string): Promise<LeagueTeam[]> {
@@ -111,6 +114,7 @@ export async function fetchTeams(page: Page, leagueKey: string): Promise<LeagueT
   return raw.map((entry) => {
     const flat = flatten(entry)
     const managers = (flat['managers'] as Array<{ manager?: { nickname?: string } }> | undefined) ?? []
+    const position = Number(flat['draft_position'] ?? 0)
     return {
       teamKey: String(flat['team_key'] ?? ''),
       name: String(flat['name'] ?? ''),
@@ -118,6 +122,8 @@ export async function fetchTeams(page: Page, leagueKey: string): Promise<LeagueT
         .map((holder) => holder.manager?.nickname ?? '')
         .filter(Boolean)
         .join(', '),
+      draftPosition: Number.isFinite(position) && position > 0 ? position : null,
+      isMine: String(flat['is_owned_by_current_login'] ?? '') === '1',
     }
   })
 }

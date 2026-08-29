@@ -36,6 +36,18 @@ const BOARD_SIZE = 12
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
 
 
+/**
+ * Yahoo does not use one word for a draft in progress. The configured league
+ * reports `predraft`, a public one reports `draft`, and `drafting` appears in
+ * the documentation - so this asks whether the draft is not-yet and not-over
+ * rather than matching a spelling. Getting it wrong would leave the roster
+ * fallback armed for a status that never arrives.
+ */
+function isDrafting(status: string): boolean {
+  const value = status.toLowerCase()
+  return value !== 'predraft' && value !== 'postdraft' && value !== 'unknown'
+}
+
 function line(width = 72): string {
   return '-'.repeat(width)
 }
@@ -49,7 +61,18 @@ function describe(pick: DraftPick, name: string, teamName: string, teams: number
 async function main(): Promise<void> {
   const argv = process.argv.slice(2)
   const flag = argv.indexOf('--league')
-  const leagueId = (flag >= 0 ? argv[flag + 1] : undefined) ?? config.yahoo.leagueId
+  const explicit = flag >= 0 ? argv[flag + 1] : undefined
+  const leagueId = explicit ?? config.yahoo.leagueId
+  // .env describes one league. Pointing at another one means its seat, shape
+  // and team id are about somebody else's draft, so they are dropped rather
+  // than silently applied - a wrong seat quietly miscounts every pick.
+  const foreign = explicit !== undefined && explicit !== config.yahoo.leagueId
+  if (foreign) {
+    for (const key of [
+      'DRAFT_POSITION', 'LEAGUE_TEAMS', 'DRAFT_ROUNDS', 'LEAGUE_NAME', 'SHAPE_FLEX',
+      'SHAPE_QB', 'SHAPE_RB', 'SHAPE_WR', 'SHAPE_TE', 'SHAPE_K', 'SHAPE_DEF',
+    ]) delete process.env[key]
+  }
   if (!leagueId) {
     console.error('\nNo league. Set YAHOO_LEAGUE_ID in .env or pass --league <id>.\n')
     process.exitCode = 1
@@ -93,11 +116,15 @@ async function main(): Promise<void> {
     lastStatus = setup.draftStatus
     statusChecked = true
     leagueName = process.env['LEAGUE_NAME'] ?? setup.leagueName
-    const teamId = config.yahoo.teamId || setup.myTeamId
+    const teamId = foreign ? setup.myTeamId : config.yahoo.teamId || setup.myTeamId
 
     teams = await fetchTeams(session.page, leagueKey)
     teamNames = new Map(teams.map((team) => [team.teamKey, team.name]))
-    myTeamKey = teams.find((team) => team.teamKey.endsWith(`.t.${teamId}`))?.teamKey ?? ''
+    const mine = teams.find((team) => team.teamKey.endsWith(`.t.${teamId}`))
+    myTeamKey = mine?.teamKey ?? ''
+    // The league-level draft position is only there once an order is published;
+    // the team carries its own, which is the one that is actually right.
+    seatPosition = seatPosition || mine?.draftPosition || setup.seat
 
     console.log(`  ${setup.leagueName}: ${shape.teams} teams, ${rounds} rounds`)
     console.log(
@@ -120,8 +147,12 @@ async function main(): Promise<void> {
     } else {
       console.log('  Could not identify your team; set YAHOO_TEAM_ID in .env')
     }
-    if (seatPosition > 0) console.log(`  Draft seat: ${seatPosition}`)
-    console.log(`  Your picks: ${snakePicks(shape.teams, seatPosition || 1, rounds).join(', ')}`)
+    if (seatPosition > 0) {
+      console.log(`  Draft seat: ${seatPosition}`)
+      console.log(`  Your picks: ${snakePicks(shape.teams, seatPosition, rounds).join(', ')}`)
+    } else {
+      console.log('  Draft seat: not published yet, reading it from your first pick')
+    }
     console.log(`  Live snapshot: ${LIVE_FILE}`)
     console.log(line())
 
@@ -140,7 +171,7 @@ async function main(): Promise<void> {
       // either genuinely pick one or that endpoint does not fill until the
       // draft ends. Rosters distinguish the two, so ask them rather than sit
       // there showing nothing all night.
-      if (picks.length === 0 && lastStatus === 'drafting') {
+      if (picks.length === 0 && isDrafting(lastStatus)) {
         emptyWhileDrafting++
         if (emptyWhileDrafting === ROSTER_FALLBACK_AFTER) {
           console.log('  draft results still empty; falling back to reading rosters')
@@ -161,6 +192,18 @@ async function main(): Promise<void> {
       } else if (picks.length > 0) {
         emptyWhileDrafting = 0
         usingRosters = false
+      }
+
+      // If the order was never published, the seat is whatever slot the first
+      // pick of your own landed in. Better to learn it a pick late than to
+      // assume one and count every pick against the wrong turn.
+      if (seatPosition === 0 && myTeamKey) {
+        const first = picks.find((pick) => pick.teamKey === myTeamKey)
+        if (first) {
+          seatPosition = ((first.pick - 1) % shape.teams) + 1
+          console.log(`  Draft seat: ${seatPosition}, read from your pick at ${first.pick}`)
+          console.log(`  Your picks: ${snakePicks(shape.teams, seatPosition, rounds).join(', ')}`)
+        }
       }
 
       // Written every poll, not only on a new pick, so a phone can tell the
