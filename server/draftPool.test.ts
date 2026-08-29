@@ -82,3 +82,36 @@ describe.skipIf(pool === null)('the committed draft pool', () => {
     expect(firstDefense).toBeGreaterThan(24)
   })
 })
+
+describe('the shipped projections are sane', () => {
+  const loaded = pool as DraftPool
+
+  /**
+   * A pool built from incomplete stats does not fail. Every player still gets a
+   * number, the board still ranks, and the ranking is quietly wrong - which is
+   * exactly how a pool projecting James Conner at 3.9 a game against three
+   * straight seasons near 15 reached a draft board.
+   *
+   * An established player collapsing to under half his own last season is the
+   * signature of that: real decline is gradual, and a whole cohort of them at
+   * once means the underlying data was thin rather than the players were.
+   */
+  it('does not project established players at a fraction of their last season', () => {
+    const established = loaded.players.filter(
+      (player) =>
+        player.basis === 'production' &&
+        player.gamesOfData >= 24 &&
+        (player.lastSeasonPpg ?? 0) > 8,
+    )
+    expect(established.length).toBeGreaterThan(50)
+
+    const collapsed = established.filter(
+      (player) => player.projectedPpg < 0.5 * (player.lastSeasonPpg ?? 0),
+    )
+    // One or two can be genuine - a back who lost his job in December. Six was
+    // the count when the data was broken.
+    expect(
+      collapsed.map((player) => `${player.name} ${player.lastSeasonPpg} -> ${player.projectedPpg}`),
+    ).toHaveLength(0)
+  })
+})

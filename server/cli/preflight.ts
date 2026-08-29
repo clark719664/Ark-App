@@ -78,6 +78,23 @@ async function main(): Promise<void> {
     if (distinct < 5) warn('rookies', 'all priced the same, draft capital was not applied')
     else ok('rookies', `${rookies.length} priced across ${distinct} values`)
 
+    // A pool built from thin stats still produces a full board, just a wrong
+    // one, so check the shape of it rather than only that it loaded.
+    const established = pool.players.filter(
+      (p) => p.basis === 'production' && p.gamesOfData >= 24 && (p.lastSeasonPpg ?? 0) > 8,
+    )
+    const collapsed = established.filter((p) => p.projectedPpg < 0.5 * (p.lastSeasonPpg ?? 0))
+    if (collapsed.length > 0) {
+      fail(
+        'projections',
+        `${collapsed.length} established players projected under half their last season ` +
+          `(e.g. ${collapsed[0]?.name} ${collapsed[0]?.lastSeasonPpg} -> ${collapsed[0]?.projectedPpg}). ` +
+          'Rebuild with: npm run data:fetch && npm run data:draft 2026',
+      )
+    } else {
+      ok('projections', `${established.length} established players, none collapsed`)
+    }
+
     const withBye = pool.players.filter((p) => p.byeWeek != null).length
     if (withBye === 0) {
       warn('bye weeks', 'none in the pool, run: npm run data:fetch && npm run data:draft 2026')
