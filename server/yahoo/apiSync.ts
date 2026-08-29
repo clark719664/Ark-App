@@ -305,7 +305,13 @@ export async function syncLeagueViaApi(opts: ApiSyncOptions = {}): Promise<Leagu
 
     log('Reading matchups...')
     const matchups: Matchup[] = []
-    for (let week = 1; week <= Math.max(currentWeek, 1); week++) {
+    // The whole schedule, not the weeks already played. Playoff odds simulate
+    // the games that are left, so a snapshot taken in week one that stops at
+    // week one describes a season with a single game in it - and then decides
+    // the standings on the points-for tiebreak, which is how ten identical
+    // teams ended up spread between 35% and 52% to make a four team playoff.
+    const lastWeek = Math.max(currentWeek, regularSeasonWeeks + 1)
+    for (let week = 1; week <= lastWeek; week++) {
       const payload = await fetchJson(
         page,
         `${API}/league/${leagueKey}/scoreboard;week=${week}?format=json`,
