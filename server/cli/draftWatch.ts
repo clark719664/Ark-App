@@ -14,9 +14,9 @@ import {
   matchPlayers,
   positionCliffs,
   remainingNeeds,
+  shapeFromEnv,
   snakePicks,
 } from '../draftWatch.js'
-import { DEFAULT_SHAPE, type LeagueShape } from '../draftPool.js'
 import { computeLiveState, writeLiveState, LIVE_FILE } from '../draftLive.js'
 
 /**
@@ -30,21 +30,6 @@ const POLL_MS = Number.parseInt(process.env['DRAFT_POLL_MS'] ?? '', 10) || 5000
 const BOARD_SIZE = 12
 const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
 
-function shapeFromEnv(): LeagueShape {
-  const starters = { ...DEFAULT_SHAPE.starters }
-  for (const position of POSITIONS) {
-    const raw = process.env[`SHAPE_${position}`]
-    if (raw === undefined) continue
-    const parsed = Number.parseInt(raw, 10)
-    if (Number.isFinite(parsed) && parsed >= 0) starters[position] = parsed
-  }
-  const teams = Number.parseInt(process.env['LEAGUE_TEAMS'] ?? '', 10) || DEFAULT_SHAPE.teams
-  const flex = Number.parseInt(process.env['SHAPE_FLEX'] ?? '', 10)
-  const flexShare = Number.isFinite(flex) && flex > 0
-    ? { RB: 0.4 * flex, WR: 0.5 * flex, TE: 0.1 * flex }
-    : { ...DEFAULT_SHAPE.flexShare }
-  return { teams, starters, flexShare }
-}
 
 function line(width = 72): string {
   return '-'.repeat(width)

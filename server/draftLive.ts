@@ -136,7 +136,10 @@ export function computeLiveState(
     Object.keys(opts.shape.starters),
   )
     .filter((cliff) => (needs[cliff.position] ?? 0) > 0)
-    .slice(0, 5)
+    // A position whose best player survives to the next pick has not fallen off
+    // anything, and a row saying so pushes the ones that have off the screen.
+    .filter((cliff) => cliff.drop > 0.05 && cliff.bestLater?.playerId !== cliff.bestNow.playerId)
+    .slice(0, 4)
     .map((cliff) => ({
       position: cliff.position,
       bestNow: cliff.bestNow.name,
