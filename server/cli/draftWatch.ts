@@ -3,6 +3,7 @@ import { openSession } from '../yahoo/browser.js'
 import {
   fetchDraftPicks,
   fetchDraftStatus,
+  fetchRosterPicks,
   fetchTeams,
   loadPlayerIndex,
   type DraftPick,
@@ -65,6 +66,9 @@ async function main(): Promise<void> {
   const seen = new Set<number>()
   let lastStatus = 'unknown'
   let statusChecked = false
+  let emptyWhileDrafting = 0
+  let usingRosters = false
+  const ROSTER_FALLBACK_AFTER = 3
   let leagueName = ''
 
   try {
@@ -108,6 +112,33 @@ async function main(): Promise<void> {
         console.log(`  (feed error: ${err instanceof Error ? err.message : String(err)})`)
         await session.page.waitForTimeout(POLL_MS)
         continue
+      }
+
+      // If the draft is running and the results endpoint is still empty, it is
+      // either genuinely pick one or that endpoint does not fill until the
+      // draft ends. Rosters distinguish the two, so ask them rather than sit
+      // there showing nothing all night.
+      if (picks.length === 0 && lastStatus === 'drafting') {
+        emptyWhileDrafting++
+        if (emptyWhileDrafting === ROSTER_FALLBACK_AFTER) {
+          console.log('  draft results still empty; falling back to reading rosters')
+        }
+        if (emptyWhileDrafting >= ROSTER_FALLBACK_AFTER) {
+          try {
+            picks = await fetchRosterPicks(
+              session.page,
+              leagueKey,
+              teams.map((team) => team.teamKey.split('.t.')[1] ?? ''),
+              1,
+            )
+            usingRosters = picks.length > 0
+          } catch (err) {
+            console.log(`  (roster fallback failed: ${err instanceof Error ? err.message : String(err)})`)
+          }
+        }
+      } else if (picks.length > 0) {
+        emptyWhileDrafting = 0
+        usingRosters = false
       }
 
       // Written every poll, not only on a new pick, so a phone can tell the
@@ -164,6 +195,7 @@ async function main(): Promise<void> {
         } else if (view.picksUntilNext !== null) {
           console.log(`  Pick ${view.onTheClock} is up. You pick at ${view.nextPick} (${view.picksUntilNext} away).`)
         }
+        if (usingRosters) console.log('  (picks read from rosters, order approximate)')
         console.log(`  Your roster (${view.myRoster.length}): ${view.myRoster.map((p) => `${p.name} ${p.position}`).join(', ') || 'empty'}`)
         console.log(`  Still needed: ${openSlots || 'starters full'}`)
 
@@ -190,7 +222,9 @@ async function main(): Promise<void> {
         console.log(line())
       } else {
         idle++
-        if (idle % 12 === 1) {
+        // Status is what decides whether an empty feed means "not started" or
+        // "started and not reporting", so refresh it more often once it matters.
+        if (idle % 6 === 1) {
           lastStatus = await fetchDraftStatus(session.page, leagueKey).catch(() => 'unknown')
           statusChecked = true
           console.log(`  ...waiting (${picks.length} picks so far, draft_status=${lastStatus})`)

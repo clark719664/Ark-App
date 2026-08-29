@@ -167,3 +167,42 @@ export async function loadPlayerIndex(
   fs.writeFileSync(PLAYER_CACHE, JSON.stringify(players))
   return new Map(players.map((player) => [player.playerKey, player]))
 }
+
+/**
+ * Picks reconstructed from team rosters.
+ *
+ * A fallback for one specific failure: `/draftresults` being written only once
+ * a draft finishes rather than as it runs. That has not been observed, but it
+ * cannot be tested before a real draft either, and finding out at the first
+ * pick is not a position worth being in. Rosters fill as players are taken
+ * regardless, so they answer the questions that actually drive the board -
+ * who is gone and who is mine.
+ *
+ * Pick numbers are not recoverable this way, so they are assigned in roster
+ * order and the count is what matters rather than the sequence.
+ */
+export async function fetchRosterPicks(
+  page: Page,
+  leagueKey: string,
+  teamIds: string[],
+  week: number,
+): Promise<DraftPick[]> {
+  const picks: DraftPick[] = []
+  for (const id of teamIds) {
+    const teamKey = `${leagueKey}.t.${id}`
+    const payload = await fetchJson(page, `${API}/team/${teamKey}/roster;week=${week}?format=json`)
+    const teamNode = flatten((payload as { fantasy_content: { team: unknown } }).fantasy_content.team)
+    const roster = teamNode['roster'] as Record<string, unknown> | undefined
+    const holder = (roster?.['0'] ?? roster) as Record<string, unknown> | undefined
+    const entries = collection<unknown>(
+      (holder?.['players'] ?? roster?.['players']) as Record<string, unknown> | undefined,
+      'player',
+    )
+    for (const entry of entries) {
+      const key = String(flatten(entry)['player_key'] ?? '')
+      if (!key) continue
+      picks.push({ pick: picks.length + 1, round: 0, teamKey, playerKey: key })
+    }
+  }
+  return picks.map((pick, index) => ({ ...pick, pick: index + 1 }))
+}
