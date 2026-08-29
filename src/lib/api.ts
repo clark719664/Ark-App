@@ -201,6 +201,7 @@ export interface DraftPoolPlayer {
 }
 
 export interface DraftPoolResponse {
+  usedDepthChart?: boolean
   season: number
   generatedAt: string
   source: string

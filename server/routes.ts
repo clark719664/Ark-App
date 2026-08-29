@@ -238,6 +238,7 @@ api.get('/draft-pool', handle((req, res) => {
     generatedAt: pool.generatedAt,
     source: pool.source,
     method: pool.method,
+    usedDepthChart: pool.usedDepthChart ?? pool.players.some((entry) => entry.depthRank != null),
     shape,
     players: rankPool(pool, shape),
   })

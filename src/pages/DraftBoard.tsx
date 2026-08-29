@@ -233,7 +233,12 @@ export default function DraftBoard() {
 
       <p className="px-1 text-xs leading-relaxed text-ink-500">
         Projections blend recent per-game production, regressed toward replacement by how many games
-        support it, then adjusted by measured age curves and depth chart position. The open data
+        support it, then adjusted by measured age curves
+        {pool.data.usedDepthChart
+          ? ' and depth chart position.'
+          : '. No depth chart was available when this board was built, so a player who has changed' +
+            ' role carries only the production the old one earned.'}{' '}
+        The open data
         leaves fantasy totals blank for kickers and defences, so both are scored here from the
         underlying events: kickers from field goals by distance, defences from sacks, takeaways,
         return touchdowns and points allowed. Defences are regressed harder than players, because a

@@ -25,6 +25,12 @@ function main(): void {
     return
   }
 
+  // Recorded from what this build actually did rather than what the model can
+  // do. Depth charts are not always downloaded, and a pool describing an
+  // adjustment it never applied is how two machines shipped different boards
+  // while both claiming the same method.
+  const usedDepthChart = players.some((player) => player.depthRank != null)
+
   const output = path.resolve(process.cwd(), 'data', 'derived', `draft-pool-${season}.json`)
   fs.mkdirSync(path.dirname(output), { recursive: true })
   fs.writeFileSync(
@@ -33,10 +39,16 @@ function main(): void {
       {
         season,
         generatedAt: new Date().toISOString(),
-        source: 'nflverse-data rosters, weekly stats and depth charts',
+        source: usedDepthChart
+          ? 'nflverse-data rosters, weekly stats and depth charts'
+          : 'nflverse-data rosters and weekly stats',
+        usedDepthChart,
         method:
           'Weighted recent per-game production, regressed toward replacement by games of ' +
-          'evidence, adjusted by measured within-player age curves and depth chart position. ' +
+          'evidence, adjusted by measured within-player age curves' +
+          (usedDepthChart
+            ? ' and depth chart position. '
+            : '. No depth chart data was available, so role is not adjusted for. ') +
           'Does not model target competition, scheme or coaching changes.',
         players,
       },

@@ -35,6 +35,8 @@ export interface DraftPool {
   generatedAt: string
   source: string
   method: string
+  /** Whether the build that produced this pool had depth chart data to use. */
+  usedDepthChart?: boolean
   players: DraftPoolPlayer[]
 }
 
