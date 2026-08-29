@@ -122,6 +122,16 @@ export interface DraftView {
   nextPick: number | null
   picksUntilNext: number | null
   onTheClock: number
+  /**
+   * How many picks pass before the seat next chooses *after* the choice it is
+   * making now.
+   *
+   * This is the horizon a cliff should be measured over, and on your own turn
+   * it is not `picksUntilNext`: that is zero, which says nothing falls away
+   * before you pick, which is true and useless. The question on the clock is
+   * what survives to the pick after this one.
+   */
+  cliffHorizon: number | null
 }
 
 export function buildView(
@@ -142,34 +152,82 @@ export function buildView(
 
   const available = board.filter((player) => !taken.has(player.playerId))
   const onTheClock = picks.length + 1
-  const nextPick =
-    snakePicks(opts.teams, opts.position, opts.rounds).find((pick) => pick >= onTheClock) ?? null
+  const mine = snakePicks(opts.teams, opts.position, opts.rounds)
+  const nextPick = mine.find((pick) => pick >= onTheClock) ?? null
+  const picksUntilNext = nextPick === null ? null : nextPick - onTheClock
+  const following = nextPick === null ? null : (mine.find((pick) => pick > nextPick) ?? null)
 
   return {
     taken,
     available,
     myRoster,
     nextPick,
-    picksUntilNext: nextPick === null ? null : nextPick - onTheClock,
+    picksUntilNext,
     onTheClock,
+    cliffHorizon:
+      picksUntilNext === null ? null
+      : picksUntilNext > 0 ? picksUntilNext
+      // On the clock: look past this pick to the one after it. Null in the
+      // final round, where there is no next pick to lose anyone to.
+      : following === null ? null
+      : following - onTheClock,
   }
 }
+
+/** Positions a flex spot accepts. */
+export const FLEX_POSITIONS = new Set(['RB', 'WR', 'TE'])
+
+/** The key flex spots are counted under, so the UI can name them.  */
+export const FLEX_SLOT = 'FLEX'
 
 /**
  * What the roster still needs, so a recommendation can prefer a starter at an
  * empty slot over a marginally better player at one already filled.
+ *
+ * Flex spots are counted separately rather than folded into RB, WR and TE. A
+ * league with a flex has ten starters and only nine named slots, so counting
+ * the named ones alone declares the lineup full a player early — which reads
+ * as "you are done at running back" while the flex is still empty, and hides
+ * exactly the cliff you would want to see.
  */
 export function remainingNeeds(
   roster: RankedPlayer[],
   starters: Record<string, number>,
+  flexSpots = 0,
 ): Record<string, number> {
   const needs: Record<string, number> = {}
   for (const [position, count] of Object.entries(starters)) needs[position] = count
+
+  let flexLeft = flexSpots
   for (const player of roster) {
     const current = needs[player.position]
-    if (current !== undefined && current > 0) needs[player.position] = current - 1
+    if (current !== undefined && current > 0) {
+      needs[player.position] = current - 1
+      continue
+    }
+    // A player past his named slots falls into the flex, if one is open.
+    if (flexLeft > 0 && FLEX_POSITIONS.has(player.position)) flexLeft -= 1
   }
+
+  if (flexSpots > 0) needs[FLEX_SLOT] = flexLeft
   return needs
+}
+
+/** Whether one more of this position would fill a slot that is still open. */
+export function fillsOpenSlot(position: string, needs: Record<string, number>): boolean {
+  if ((needs[position] ?? 0) > 0) return true
+  return FLEX_POSITIONS.has(position) && (needs[FLEX_SLOT] ?? 0) > 0
+}
+
+/**
+ * How many flex spots a shape carries.
+ *
+ * The shape stores flex as the share of it each position typically fills, which
+ * is what replacement level needs; the shares are cut from one flex spot each,
+ * so they sum back to the count.
+ */
+export function flexCount(shape: LeagueShape): number {
+  return Math.round(Object.values(shape.flexShare).reduce((sum, share) => sum + share, 0))
 }
 
 /**
@@ -190,6 +248,11 @@ export function positionCliffs(
     drop: number
   }> = []
 
+  // Board rank by id, so survivorship is a lookup rather than an indexOf scan
+  // of the whole board once per position on every poll.
+  const boardRank = new Map<string, number>()
+  available.forEach((player, index) => boardRank.set(player.playerId, index))
+
   for (const position of positions) {
     const pool = available.filter((player) => player.position === position)
     const bestNow = pool[0]
@@ -200,7 +263,9 @@ export function positionCliffs(
     }
     // Assume every pick between now and the next one takes a ranked player,
     // which is pessimistic but the right direction to be wrong in.
-    const survivors = pool.filter((player) => available.indexOf(player) >= picksUntilNext)
+    const survivors = pool.filter(
+      (player) => (boardRank.get(player.playerId) ?? 0) >= picksUntilNext,
+    )
     const bestLater = survivors[0] ?? null
     const drop = bestLater ? bestNow.vorp - bestLater.vorp : bestNow.vorp
     output.push({ position, bestNow, bestLater, drop })
@@ -229,8 +294,10 @@ export function shapeFromEnv(): LeagueShape {
   }
   const teams = Number.parseInt(process.env['LEAGUE_TEAMS'] ?? '', 10) || DEFAULT_SHAPE.teams
   const flex = Number.parseInt(process.env['SHAPE_FLEX'] ?? '', 10)
+  // SHAPE_FLEX=0 has to be honoured rather than falling through to the default,
+  // or a league without a flex gets replacement level set a place too deep.
   const flexShare =
-    Number.isFinite(flex) && flex > 0
+    Number.isFinite(flex) && flex >= 0
       ? { RB: 0.4 * flex, WR: 0.5 * flex, TE: 0.1 * flex }
       : { ...DEFAULT_SHAPE.flexShare }
   return { teams, starters, flexShare }

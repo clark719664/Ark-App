@@ -5,6 +5,8 @@ import {
   normalizeName,
   normalizeTeam,
   positionCliffs,
+  fillsOpenSlot,
+  flexCount,
   remainingNeeds,
   snakePicks,
 } from './draftWatch.js'
@@ -134,6 +136,34 @@ describe('draft view', () => {
     expect(view.onTheClock).toBe(3)
     expect(view.nextPick).toBe(4)
     expect(view.picksUntilNext).toBe(1)
+    // Not on the clock, so the cliff horizon is simply the wait.
+    expect(view.cliffHorizon).toBe(1)
+  })
+
+  it('looks past the current pick when the seat is on the clock', () => {
+    // Seat 3 of 10 picks at 3 and 18. Two picks are in, so seat 3 is up now.
+    const view = buildView(picks, matched, board, {
+      myTeamKey: '470.l.1.t.4',
+      teams: 10,
+      position: 3,
+      rounds: 15,
+    })
+    expect(view.onTheClock).toBe(3)
+    expect(view.picksUntilNext).toBe(0)
+    // Zero is true and useless: nothing falls away before a pick you are making
+    // right now. The question on the clock is what survives to pick 18.
+    expect(view.cliffHorizon).toBe(15)
+  })
+
+  it('has no cliff horizon once the seat has no pick left', () => {
+    const view = buildView(picks, matched, board, {
+      myTeamKey: '470.l.1.t.4',
+      teams: 10,
+      position: 3,
+      rounds: 1,
+    })
+    expect(view.picksUntilNext).toBe(0)
+    expect(view.cliffHorizon).toBeNull()
   })
 })
 
@@ -150,6 +180,39 @@ describe('roster needs', () => {
       player({ playerId: 'c', position: 'RB' }),
     ]
     expect(remainingNeeds(roster, { RB: 2 })['RB']).toBe(0)
+  })
+
+  it('keeps the flex open after the named slots are filled', () => {
+    const roster = [
+      player({ playerId: '1', position: 'RB' }),
+      player({ playerId: '2', position: 'RB' }),
+    ]
+    // Two backs fill both RB slots; the flex is still empty, so another back
+    // still fills something. Counting only named slots would say otherwise.
+    const needs = remainingNeeds(roster, { QB: 1, RB: 2, WR: 2 }, 1)
+    expect(needs['RB']).toBe(0)
+    expect(needs['FLEX']).toBe(1)
+    expect(fillsOpenSlot('RB', needs)).toBe(true)
+    expect(fillsOpenSlot('QB', needs)).toBe(true)
+  })
+
+  it('closes the flex once someone falls into it', () => {
+    const roster = [
+      player({ playerId: '1', position: 'RB' }),
+      player({ playerId: '2', position: 'RB' }),
+      player({ playerId: '3', position: 'RB' }),
+    ]
+    const needs = remainingNeeds(roster, { RB: 2 }, 1)
+    expect(needs['FLEX']).toBe(0)
+    expect(fillsOpenSlot('RB', needs)).toBe(false)
+    // A quarterback was never flex eligible, and there is no QB slot here.
+    expect(fillsOpenSlot('QB', needs)).toBe(false)
+  })
+
+  it('reads the flex count back off the shape', () => {
+    expect(flexCount({ teams: 12, starters: {}, flexShare: { RB: 0.4, WR: 0.5, TE: 0.1 } })).toBe(1)
+    expect(flexCount({ teams: 12, starters: {}, flexShare: { RB: 0.8, WR: 1.0, TE: 0.2 } })).toBe(2)
+    expect(flexCount({ teams: 12, starters: {}, flexShare: {} })).toBe(0)
   })
 })
 

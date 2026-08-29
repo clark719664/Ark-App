@@ -1,7 +1,14 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { config } from './config.js'
-import { buildView, positionCliffs, remainingNeeds, snakePicks } from './draftWatch.js'
+import {
+  buildView,
+  fillsOpenSlot,
+  flexCount,
+  positionCliffs,
+  remainingNeeds,
+  snakePicks,
+} from './draftWatch.js'
 import type { RankedPlayer, LeagueShape } from './draftPool.js'
 import type { DraftPick, YahooPlayer } from './yahoo/draftFeed.js'
 
@@ -77,7 +84,7 @@ function toSuggestion(player: RankedPlayer, needs: Record<string, number>): Live
     team: player.team ?? '',
     vorp: Number(player.vorp.toFixed(1)),
     projectedPpg: Number(player.projectedPpg.toFixed(1)),
-    fillsNeed: (needs[player.position] ?? 0) > 0,
+    fillsNeed: fillsOpenSlot(player.position, needs),
     notes: player.notes ?? [],
   }
 }
@@ -106,7 +113,7 @@ export function computeLiveState(
     position: opts.seat,
     rounds: opts.rounds,
   })
-  const needs = remainingNeeds(view.myRoster, opts.shape.starters)
+  const needs = remainingNeeds(view.myRoster, opts.shape.starters, flexCount(opts.shape))
 
   const recent: LivePick[] = picks.slice(-12).reverse().map((pick) => {
     const player = matched.get(pick.playerKey)
@@ -132,10 +139,12 @@ export function computeLiveState(
 
   const cliffs = positionCliffs(
     view.available,
-    view.picksUntilNext,
+    // Measured to the pick after the one being made, not to the current one:
+    // on the clock those differ, and the current one is the useless answer.
+    view.cliffHorizon,
     Object.keys(opts.shape.starters),
   )
-    .filter((cliff) => (needs[cliff.position] ?? 0) > 0)
+    .filter((cliff) => fillsOpenSlot(cliff.position, needs))
     // A position whose best player survives to the next pick has not fallen off
     // anything, and a row saying so pushes the ones that have off the screen.
     .filter((cliff) => cliff.drop > 0.05 && cliff.bestLater?.playerId !== cliff.bestNow.playerId)

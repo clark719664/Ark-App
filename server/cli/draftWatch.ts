@@ -14,6 +14,7 @@ import {
   loadBoard,
   matchPlayers,
   positionCliffs,
+  flexCount,
   remainingNeeds,
   shapeFromEnv,
   snakePicks,
@@ -183,7 +184,7 @@ async function main(): Promise<void> {
           rounds,
         })
 
-        const needs = remainingNeeds(view.myRoster, shape.starters)
+        const needs = remainingNeeds(view.myRoster, shape.starters, flexCount(shape))
         const openSlots = Object.entries(needs)
           .filter(([, count]) => count > 0)
           .map(([position, count]) => `${position}x${count}`)
