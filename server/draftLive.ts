@@ -12,7 +12,7 @@ import {
 import type { RankedPlayer, LeagueShape } from './draftPool.js'
 import type { DraftPick, YahooPlayer } from './yahoo/draftFeed.js'
 import { byeStacks } from '../data/draft/schedule.js'
-import { picksUntilGone, type MarketEntry } from './yahoo/market.js'
+import { picksUntilGone, severityOf, type MarketEntry, type Severity } from './yahoo/market.js'
 
 /**
  * The live draft, as a file.
@@ -54,7 +54,14 @@ export interface LiveSuggestion {
   /** Positive means he is expected to last that many more picks. */
   lastsPicks: number | null
   injury: string | null
+  /** Yahoo's own status, e.g. "Questionable". */
+  status: string | null
+  /** 'out' is a verdict, 'doubtful' is a flag, null is nothing known. */
+  severity: Severity
   headline: string | null
+  /** The full written outlook, shown when a player is tapped. */
+  note: string | null
+  noteAt: number | null
 }
 
 export interface LiveCliff {
@@ -113,7 +120,11 @@ function toSuggestion(
     adp: entry?.averagePick ?? null,
     lastsPicks: picksUntilGone(entry, currentPick),
     injury: entry?.injury ?? null,
+    status: entry?.statusFull ?? entry?.status ?? null,
+    severity: severityOf(entry),
     headline: entry?.headline ?? null,
+    note: entry?.note ?? null,
+    noteAt: entry?.noteAt ?? null,
   }
 }
 

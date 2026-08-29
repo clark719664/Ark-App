@@ -36,6 +36,10 @@ export interface MarketEntry {
   projected: number | null
   /** Short injury descriptor, e.g. "Knee". */
   injury: string | null
+  /** Yahoo's own status code: Q, D, O, IR, PUP, SUSP, NA. */
+  status: string | null
+  /** The long form, e.g. "Questionable". */
+  statusFull: string | null
   /** Most recent written note, usually a Rotowire outlook. */
   headline: string | null
   note: string | null
@@ -96,6 +100,8 @@ export async function fetchMarket(
         percentDrafted: num(analysis['percent_drafted']),
         projected: num(flatten(flat['player_points'])['total']),
         injury: flat['injury_note'] ? String(flat['injury_note']) : null,
+        status: flat['status'] ? String(flat['status']) : null,
+        statusFull: flat['status_full'] ? String(flat['status_full']) : null,
         headline: latest ? String(latest['headline'] ?? '') || null : null,
         note: latest ? String(latest['text'] ?? '') || null : null,
         noteAt: num(flat['player_notes_last_timestamp']),
@@ -140,4 +146,33 @@ export function picksUntilGone(entry: MarketEntry | undefined, currentPick: numb
   if (!entry?.averagePick) return null
   if ((entry.percentDrafted ?? 0) < 0.1) return null
   return Math.round(entry.averagePick - currentPick)
+}
+
+/**
+ * How worried to be, from Yahoo's own status rather than from reading prose.
+ *
+ * A status code is a fact the provider is asserting; a paragraph is a writer's
+ * opinion, and keyword-matching one into a colour would invent confidence that
+ * is not there. So severity comes from the code, and the note is shown in full
+ * for the reader to judge.
+ */
+export type Severity = 'out' | 'doubtful' | null
+
+// Every code seen in this league's player pool that means "not playing", plus
+// the ones Yahoo documents. DNR is a holdout and PUP-P is the preseason list;
+// both keep a player off the field as surely as an injury does.
+const OUT_CODES = new Set([
+  'O', 'IR', 'IR-R', 'IR-NFI', 'PUP', 'PUP-P', 'PUP-R', 'NFI-R', 'SUSP', 'NA', 'DNR',
+])
+const DOUBTFUL_CODES = new Set(['D', 'Q', 'GTD', 'DTD'])
+
+export function severityOf(entry: MarketEntry | undefined): Severity {
+  if (!entry) return null
+  const code = (entry.status ?? '').toUpperCase()
+  if (OUT_CODES.has(code)) return 'out'
+  if (DOUBTFUL_CODES.has(code)) return 'doubtful'
+  // An injury with no status is a body part on the report and nothing more,
+  // which is worth a flag but not a verdict.
+  if (entry.injury) return 'doubtful'
+  return null
 }

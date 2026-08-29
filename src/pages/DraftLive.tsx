@@ -13,37 +13,91 @@ import { positionTone } from '../lib/format'
 
 const POLL_MS = 3000
 
+/**
+ * Red is a verdict, amber is a flag.
+ *
+ * Both come from Yahoo's own status code rather than from reading the note:
+ * "out" and "injured reserve" are assertions, a paragraph is an opinion, and
+ * colouring prose by keyword would claim a confidence nothing here has.
+ */
+const SEVERITY_TEXT: Record<string, string> = {
+  out: 'text-red-400',
+  doubtful: 'text-amber-400',
+}
+const SEVERITY_ROW: Record<string, string> = {
+  out: 'border-l-2 border-red-500/70 -ml-px pl-2',
+  doubtful: 'border-l-2 border-amber-500/60 -ml-px pl-2',
+}
+
 function Suggestion({ player, rank }: { player: LiveSuggestion; rank: number }) {
+  const [open, setOpen] = useState(false)
+  const tone = player.severity ? SEVERITY_TEXT[player.severity] : ''
+  const hasDetail = Boolean(player.note ?? player.headline)
+
   return (
-    <li className="flex items-center gap-3 border-b border-slate-800/60 py-2 last:border-0">
-      <span className="w-6 shrink-0 text-right text-sm tabular-nums text-slate-500">{rank}</span>
-      <span
-        className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold ${positionTone(player.position)}`}
+    <li className={`border-b border-slate-800/60 last:border-0 ${player.severity ? SEVERITY_ROW[player.severity] : ''}`}>
+      <button
+        type="button"
+        onClick={() => setOpen((value) => !value)}
+        aria-expanded={open}
+        disabled={!hasDetail}
+        className="flex w-full items-center gap-3 py-2 text-left disabled:cursor-default"
       >
-        {player.position}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate font-medium text-slate-100">{player.name}</span>
-        <span className="block truncate text-xs text-slate-500">
-          {player.team} · {player.projectedPpg} ppg
-          {player.byeWeek != null ? ` · bye ${player.byeWeek}` : ''}
-          {player.adp != null ? ` · adp ${player.adp}` : ''}
-          {player.injury ? <span className="text-amber-400"> · {player.injury}</span> : null}
-          {/* Only worth saying when he is expected to survive. "Gone in two" on
-              a player you were not going to take is noise. */}
-          {player.lastsPicks != null && player.lastsPicks > 2 ? (
-            <span className="text-slate-600"> · lasts ~{player.lastsPicks}</span>
-          ) : null}
+        <span className="w-6 shrink-0 text-right text-sm tabular-nums text-slate-500">{rank}</span>
+        <span
+          className={`shrink-0 rounded px-1.5 py-0.5 text-xs font-semibold ${positionTone(player.position)}`}
+        >
+          {player.position}
         </span>
-      </span>
-      {player.fillsNeed && (
-        <span className="shrink-0 rounded bg-turf-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-turf-400">
-          need
+        <span className="min-w-0 flex-1">
+          <span className="block truncate font-medium text-slate-100">
+            {player.name}
+            {hasDetail && <span className="ml-1 text-slate-600">{open ? '▾' : '▸'}</span>}
+          </span>
+          <span className="block truncate text-xs text-slate-500">
+            {player.team} · {player.projectedPpg} ppg
+            {player.byeWeek != null ? ` · bye ${player.byeWeek}` : ''}
+            {player.adp != null ? ` · adp ${player.adp}` : ''}
+            {player.status ? <span className={tone}> · {player.status}</span> : null}
+            {player.injury && !player.status ? (
+              <span className={tone}> · {player.injury}</span>
+            ) : null}
+            {/* Only worth saying when he is expected to survive. "Gone in two"
+                on a player you were not going to take is noise. */}
+            {player.lastsPicks != null && player.lastsPicks > 2 ? (
+              <span className="text-slate-600"> · lasts ~{player.lastsPicks}</span>
+            ) : null}
+          </span>
         </span>
+        {player.fillsNeed && (
+          <span className="shrink-0 rounded bg-turf-500/15 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-turf-400">
+            need
+          </span>
+        )}
+        <span className="w-12 shrink-0 text-right text-sm tabular-nums text-slate-300">
+          {player.vorp}
+        </span>
+      </button>
+
+      {open && hasDetail && (
+        <div className="pb-3 pl-9 pr-2">
+          {player.injury && (
+            <p className={`text-xs font-semibold ${tone}`}>
+              {player.injury}
+              {player.status ? ` — ${player.status}` : ''}
+            </p>
+          )}
+          {player.headline && (
+            <p className="mt-1 text-xs font-medium text-slate-300">{player.headline}</p>
+          )}
+          {player.note && (
+            <p className="mt-1 text-xs leading-relaxed text-slate-400">{player.note}</p>
+          )}
+          {player.notes.length > 0 && (
+            <p className="mt-2 text-xs leading-relaxed text-slate-600">{player.notes.join(' · ')}</p>
+          )}
+        </div>
       )}
-      <span className="w-12 shrink-0 text-right text-sm tabular-nums text-slate-300">
-        {player.vorp}
-      </span>
     </li>
   )
 }

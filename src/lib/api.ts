@@ -364,7 +364,11 @@ export interface LiveSuggestion {
   adp: number | null
   lastsPicks: number | null
   injury: string | null
+  status: string | null
+  severity: 'out' | 'doubtful' | null
   headline: string | null
+  note: string | null
+  noteAt: number | null
 }
 
 export interface LivePick {
