@@ -114,6 +114,43 @@ intercepts are large), how much hot and cold streaks persist (24% and 57%, they
 are not symmetric), within-player age curves, breakout rates by signal, and
 injury recovery by weeks missed and body part.
 
+## The draft board runs without a league
+
+A draft happens before a league has anything to sync, so the board reads a
+committed pool (`data/derived/draft-pool-2026.json`, rebuilt with
+`npm run data:draft`) rather than `.cache/league.json`. A fresh clone can run a
+live draft with nothing but `npm run dev`.
+
+Ranking is value over replacement, not projected points. Raw points put nine
+quarterbacks in the top twenty, and in a one-quarterback league the twelfth best
+quarterback is nearly as good as the third, so none of them is worth an early
+pick. `rankPool()` also drops any position the league does not start — which is
+how a league with no IDP slots avoids a board carrying four hundred linebackers.
+
+**nflverse leaves `fantasy_points` blank for kickers and defenders.** The raw
+events are all there; nothing sums them. So kicker, team defence and individual
+defender scoring are all computed in `data/draft/` from the underlying events —
+field goals by distance, and for defences sacks, takeaways, return touchdowns
+and points allowed. Points allowed is the one component absent from the
+defensive columns entirely, so it is derived from what the opponent scored, and
+`pointsScored()` excludes `receiving_tds` because the passing touchdown on the
+same play is already counted.
+
+Two things that look like oversights and are not:
+
+- Defences regress much harder than players (`confidence` caps at 0.55): a unit
+  carried by a takeaway rate that will not repeat looks elite in hindsight.
+- Depth chart rank is not applied to defensive players. The measured gap is
+  large, but nearly all of it is already inside their own production, earned on
+  back-up snaps. The multiplier exists to catch a *changed* role, and telling a
+  promotion from a career back-up needs two depth chart snapshots. Only the
+  current one is published, so it stays unapplied rather than guessed.
+
+IDP replacement levels (LB 6.7, DB 6.2, DL 3.9 points a game) are the 24th best
+player at each group last season — the last starter in a twelve team league
+starting two of each. A single shared IDP replacement level would badly misprice
+linemen against linebackers.
+
 ## The simulation is a test, not a demo
 
 `npm run sim` plays the shipped analytics as a manager against rival strategies

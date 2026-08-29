@@ -2,6 +2,7 @@ import {
   loadLatestDepthChart, loadSeasonProduction, loadSeasonRoster,
   type RosteredPlayer, type SeasonProduction,
 } from './pool.js'
+import { loadTeamDefense, summariseDefenses } from './defense.js'
 
 /**
  * Projecting a season for every player on an NFL roster.
@@ -53,7 +54,14 @@ const REPLACEMENT: Record<string, number> = {
   WR: 5,
   TE: 3.5,
   K: 7,
-  DEF: 6,
+  DEF: 5,
+  // Measured, not guessed: the 24th best player at each defensive group last
+  // season, which is the last starter in a twelve team league starting two of
+  // each. Defensive linemen score far less than linebackers under any tackle
+  // weighted ruleset, so a single IDP replacement level would misprice them.
+  LB: 6.7,
+  DB: 6.2,
+  DL: 3.9,
 }
 
 /** Season weights, most recent first. */
@@ -88,6 +96,31 @@ const DEPTH_MULTIPLIER: Record<string, number[]> = {
 
 const FANTASY_POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K']
 
+/**
+ * Individual defensive players, grouped the way fantasy leagues group them
+ * rather than the way a depth chart does.
+ */
+const IDP_GROUPS: Record<string, string> = {
+  LB: 'LB', OLB: 'LB', ILB: 'LB', MLB: 'LB',
+  CB: 'DB', SAF: 'DB', S: 'DB', FS: 'DB', SS: 'DB', DB: 'DB',
+  DE: 'DL', DT: 'DL', NT: 'DL', DL: 'DL',
+}
+
+export function idpGroup(position: string): string | null {
+  return IDP_GROUPS[position] ?? null
+}
+
+/**
+ * Depth chart rank is deliberately not applied to defensive players.
+ *
+ * The measured gap is large — last season a second string linebacker averaged
+ * 2.6 points a game against a starter's 5.2 — but almost all of that gap is
+ * already inside his own production, which was earned on back-up snaps. The
+ * multiplier exists to catch a *changed* role, and separating a promotion from
+ * a player who was and remains a back-up needs two depth chart snapshots. Only
+ * the current one is published, so this stays unapplied rather than guessed.
+ */
+
 function ageAdjustment(position: string, age: number | null): number {
   if (age === null) return 0
   const curve = AGE_DELTA[position]
@@ -117,6 +150,80 @@ export interface ProjectionOptions {
   history?: number[]
 }
 
+/**
+ * Project each team's defence.
+ *
+ * Defences are far less persistent year to year than skill players — a unit
+ * carried by a takeaway rate that will not repeat looks elite in hindsight — so
+ * this regresses harder toward the league average than the player model does.
+ */
+export function projectDefenses(opts: ProjectionOptions): ProjectedPlayer[] {
+  const history = opts.history ?? [opts.season - 1, opts.season - 2, opts.season - 3]
+  const seasons = summariseDefenses(loadTeamDefense(history))
+  if (seasons.length === 0) return []
+
+  const leagueAverage =
+    seasons.reduce((sum, entry) => sum + entry.pointsPerGame, 0) / seasons.length
+
+  const byTeam = new Map<string, typeof seasons>()
+  for (const entry of seasons) {
+    const list = byTeam.get(entry.team)
+    if (list) list.push(entry)
+    else byTeam.set(entry.team, [entry])
+  }
+
+  const projections: ProjectedPlayer[] = []
+
+  for (const [team, entries] of byTeam) {
+    let weighted = 0
+    let weightSum = 0
+    let games = 0
+
+    for (const [index, season] of history.entries()) {
+      const row = entries.find((entry) => entry.season === season)
+      if (!row) continue
+      const weight = (SEASON_WEIGHTS[index] ?? 0.1) * Math.min(row.games, 17)
+      weighted += row.pointsPerGame * weight
+      weightSum += weight
+      games += row.games
+    }
+
+    const observed = weightSum > 0 ? weighted / weightSum : leagueAverage
+    // Defence regresses hard: half of a good season is noise that will not repeat.
+    const confidence = Math.min(0.55, games / 34)
+    const projected = confidence * observed + (1 - confidence) * leagueAverage
+
+    const latest = entries.find((entry) => entry.season === history[0])
+    const notes = [
+      'Defences regress hard year to year, so this is pulled well toward the league average',
+    ]
+    if (latest) {
+      notes.push(
+        `${latest.sacksPerGame.toFixed(1)} sacks and ${latest.takeawaysPerGame.toFixed(1)} takeaways ` +
+          `a game last season, allowing ${latest.pointsAllowedPerGame.toFixed(1)}`,
+      )
+    }
+
+    projections.push({
+      playerId: `DEF-${team}`,
+      name: `${team} Defense`,
+      position: 'DEF',
+      team,
+      age: null,
+      projectedPpg: round(projected, 2),
+      projectedSeason: round(projected * 16, 1),
+      depthRank: null,
+      seasonsOfData: entries.length,
+      gamesOfData: games,
+      lastSeasonPpg: latest ? round(latest.pointsPerGame, 2) : null,
+      basis: games > 0 ? 'production' : 'no-history',
+      notes,
+    })
+  }
+
+  return projections
+}
+
 export function buildProjections(opts: ProjectionOptions): ProjectedPlayer[] {
   const history = opts.history ?? [opts.season - 1, opts.season - 2, opts.season - 3]
   const roster = loadSeasonRoster(opts.season)
@@ -133,11 +240,22 @@ export function buildProjections(opts: ProjectionOptions): ProjectedPlayer[] {
   const projections: ProjectedPlayer[] = []
 
   for (const player of roster) {
-    if (!FANTASY_POSITIONS.includes(player.position)) continue
     if (player.status !== 'ACT') continue
 
-    projections.push(projectOne(player, byPlayer.get(player.playerId) ?? [], depthChart.get(player.playerId)?.rank ?? null, history))
+    const group = idpGroup(player.position)
+    const offensive = FANTASY_POSITIONS.includes(player.position)
+    if (!offensive && group === null) continue
+
+    // Defensive players are projected under their fantasy group rather than
+    // their depth chart position, because a league starts linebackers, not
+    // weak side linebackers.
+    const subject = group === null ? player : { ...player, position: group }
+    const depthRank = group === null ? (depthChart.get(player.playerId)?.rank ?? null) : null
+
+    projections.push(projectOne(subject, byPlayer.get(player.playerId) ?? [], depthRank, history))
   }
+
+  projections.push(...projectDefenses(opts))
 
   return projections.sort((a, b) => b.projectedSeason - a.projectedSeason)
 }

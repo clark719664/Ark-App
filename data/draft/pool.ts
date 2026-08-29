@@ -97,6 +97,20 @@ export function loadSeasonProduction(seasons: number[]): SeasonProduction[] {
       points: optionalColumn(table, 'fantasy_points_ppr') ?? column(table, 'fantasy_points'),
       // nflverse reports kicking as raw attempts by distance and leaves
       // fantasy_points at zero for kickers, so their scoring is computed here.
+      // Individual defensive scoring, for leagues that start IDP. Like
+      // kickers, the events are present and the fantasy total is not.
+      idp: {
+        solo: optionalColumn(table, 'def_tackles_solo'),
+        assist: optionalColumn(table, 'def_tackle_assists'),
+        tfl: optionalColumn(table, 'def_tackles_for_loss'),
+        sacks: optionalColumn(table, 'def_sacks'),
+        interceptions: optionalColumn(table, 'def_interceptions'),
+        forced: optionalColumn(table, 'def_fumbles_forced'),
+        recovered: optionalColumn(table, 'def_fumbles'),
+        passesDefended: optionalColumn(table, 'def_pass_defended'),
+        tds: optionalColumn(table, 'def_tds'),
+        safeties: optionalColumn(table, 'def_safeties'),
+      },
       fg: {
         b0: optionalColumn(table, 'fg_made_0_19'),
         b20: optionalColumn(table, 'fg_made_20_29'),
@@ -116,8 +130,15 @@ export function loadSeasonProduction(seasons: number[]): SeasonProduction[] {
       const playerId = str(row, c.id)
       if (!playerId) continue
 
-      const isKicker = c.position !== null && str(row, c.position) === 'K'
-      const points = isKicker ? kickerPoints(row, c.fg) : (num(row, c.points) ?? 0)
+      const position = c.position === null ? '' : str(row, c.position)
+      const isKicker = position === 'K'
+      const isDefender = DEFENSIVE_POSITIONS.has(position)
+
+      const points = isKicker
+        ? kickerPoints(row, c.fg)
+        : isDefender
+          ? idpPoints(row, c.idp)
+          : (num(row, c.points) ?? 0)
       const current = totals.get(playerId) ?? { games: 0, points: 0 }
       totals.set(playerId, { games: current.games + 1, points: current.points + points })
     }
@@ -134,6 +155,44 @@ export function loadSeasonProduction(seasons: number[]): SeasonProduction[] {
   }
 
   return output
+}
+
+const DEFENSIVE_POSITIONS = new Set([
+  'LB', 'OLB', 'ILB', 'MLB', 'CB', 'SAF', 'S', 'FS', 'SS', 'DB', 'DE', 'DT', 'NT', 'DL',
+])
+
+/**
+ * Individual defensive player scoring, in the most common shape: a point a solo
+ * tackle, half an assist, two a sack, three an interception.
+ *
+ * IDP scoring varies between leagues more than any other position group — some
+ * weight tackles heavily and turn linebackers into first-round picks, others
+ * barely count them. The ranking this produces is a reasonable default rather
+ * than a match for a specific rulebook, and a tackle-heavy league should expect
+ * linebackers to be worth more than shown here.
+ */
+function idpPoints(
+  row: string[],
+  cols: {
+    solo: number | null; assist: number | null; tfl: number | null; sacks: number | null
+    interceptions: number | null; forced: number | null; recovered: number | null
+    passesDefended: number | null; tds: number | null; safeties: number | null
+  },
+): number {
+  const get = (index: number | null) => num(row, index) ?? 0
+
+  return (
+    get(cols.solo) +
+    get(cols.assist) * 0.5 +
+    get(cols.tfl) +
+    get(cols.sacks) * 2 +
+    get(cols.interceptions) * 3 +
+    get(cols.forced) * 2 +
+    get(cols.recovered) * 2 +
+    get(cols.passesDefended) +
+    get(cols.tds) * 6 +
+    get(cols.safeties) * 2
+  )
 }
 
 /**

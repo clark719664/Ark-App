@@ -211,17 +211,25 @@ api.get('/draft-pool', handle((req, res) => {
   }
 
   // Roster shape arrives as qb=1&rb=2&wr=3&te=1&flex=1, matching how a league
-  // describes itself rather than how the code stores it.
-  for (const position of ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']) {
+  // describes itself rather than how the code stores it. LB, DB and DL are the
+  // individual defensive slots; a league that starts none of them gets no
+  // defensive players in the pool at all, because rankPool drops any position
+  // the league does not start.
+  for (const position of ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'LB', 'DB', 'DL']) {
     const raw = req.query[position.toLowerCase()]
     if (raw === undefined) continue
     const parsed = Number.parseInt(String(raw), 10)
-    if (Number.isFinite(parsed) && parsed >= 0) shape.starters[position] = parsed
+    if (Number.isFinite(parsed) && parsed >= 0) {
+      if (parsed === 0) delete shape.starters[position]
+      else shape.starters[position] = parsed
+    }
   }
 
   const flex = Number.parseInt(String(req.query['flex'] ?? ''), 10)
-  if (Number.isFinite(flex) && flex > 0) {
+  if (Number.isFinite(flex) && flex >= 0) {
     // Flex spots are shared out between the positions eligible to fill them.
+    // Zero flex has to be honoured rather than falling back to the default,
+    // or a league without one gets replacement level set a place too deep.
     shape.flexShare = { RB: 0.4 * flex, WR: 0.5 * flex, TE: 0.1 * flex }
   }
 
