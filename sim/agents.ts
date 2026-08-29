@@ -123,6 +123,22 @@ export function dropCandidate(roster: RosterEntry[], slots: string[]): Player | 
  * curse — so a threshold near zero means constant churn toward whoever got a
  * lucky projection. Measured in simulation, no margin cost about 13 points of
  * true roster talent per season.
+ *
+ * Swept over 2000 paired seasons at 0, 0.5, 1, 2, 3 and 5. Talent drift is the
+ * one clean signal and it moves monotonically, −0.30 a season at no margin up
+ * to +0.15 by 2 and flat after. Titles run 13.2% to 14.1% and playoffs 75.3% to
+ * 76.6% with no trend that clears about two standard errors, so the tail of
+ * that range is noise rather than a better setting. One is where the drift
+ * crosses zero and buying the last tenth of a point is not worth moving a
+ * calibrated constant on a two sigma reading.
+ *
+ * The sweep also answers a question it was not aimed at. Ark ends a season with
+ * the talent it drafted while the churning rivals gain 2.5, and no margin
+ * closes that — even at 5 Ark gains 0.15. It is not conservatism. Ark claims on
+ * what raises the lineup it can start, so a deep bench upgrade that never
+ * starts is correctly declined, while a strategy that swaps its weakest player
+ * every week accrues roster talent it does not convert. Streamer carries that
+ * 2.5 and wins 9.3% of titles against Ark's 13.2%.
  */
 const DEFAULT_CLAIM_MARGIN = 1.0
 
