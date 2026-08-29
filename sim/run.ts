@@ -94,11 +94,15 @@ export function formatSummary(summary: SimulationSummary): string {
   lines.push('')
   lines.push(`  ${summary.seasons} seasons, 12 teams each`)
   lines.push('')
+  // Eight values print per row, so the header names eight columns. It named
+  // five, which left the talent columns — the ones that catch a roster
+  // quietly decaying — sitting under no heading at all.
   lines.push(
     `  ${'Strategy'.padEnd(14)}${'Titles'.padStart(8)}${'Playoffs'.padStart(10)}` +
-      `${'Wins/season'.padStart(13)}${'Points/season'.padStart(15)}${'Bench waste'.padStart(13)}`,
+      `${'Wins'.padStart(7)}${'Points'.padStart(9)}${'Bench'.padStart(13)}` +
+      `${'Drafted'.padStart(10)}${'Ending'.padStart(9)}${'Drift'.padStart(10)}`,
   )
-  lines.push(`  ${'─'.repeat(73)}`)
+  lines.push(`  ${'─'.repeat(90)}`)
 
   for (const strategy of summary.strategies) {
     const seasons = strategy.seasons
@@ -117,9 +121,11 @@ export function formatSummary(summary: SimulationSummary): string {
 
   lines.push('')
   lines.push('  Each strategy fields a different number of teams, so compare rates, not totals.')
-  lines.push('  "Bench waste" is points that were sitting on the bench in a lineup')
-  lines.push('  the manager could legally have started. "Talent" is the hidden true')
-  lines.push('  weekly value of the ten best players on the roster — invisible to agents.')
+  lines.push('  Wins, points, bench and talent are all per season.')
+  lines.push('  "Bench" is points that were sitting on the bench in a lineup the manager')
+  lines.push('  could legally have started. "Drafted" and "Ending" are the hidden true')
+  lines.push('  weekly value of the ten best players on the roster — invisible to agents —')
+  lines.push('  and "Drift" is what a season of roster moves did to it.')
   lines.push('')
 
   return lines.join('\n')

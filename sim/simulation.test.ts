@@ -116,6 +116,21 @@ describe('a single season', () => {
     expect(spread).toBeLessThan(0.06)
   })
 
+  it('conserves wins and points across the league', () => {
+    // Every game produces one win and one loss, and every point scored is a
+    // point conceded. A scheduling fault — a team playing twice in a week, or
+    // itself — breaks these and nothing else in this file would notice.
+    const wins = results.reduce((sum, team) => sum + team.wins, 0)
+    const losses = results.reduce((sum, team) => sum + team.losses, 0)
+    expect(wins).toBe(losses)
+
+    const scored = results.reduce((sum, team) => sum + team.pointsFor, 0)
+    const conceded = results.reduce((sum, team) => sum + team.pointsAgainst, 0)
+    // Each team's totals are rounded to a tenth before they get here, so twelve
+    // of them can disagree by a few hundredths without anything being wrong.
+    expect(Math.abs(scored - conceded)).toBeLessThan(1)
+  })
+
   it('is deterministic for a given seed', () => {
     const repeat = runSeason({ seed: 4242, agents: freshAgents() })
     expect(repeat.map((t) => t.pointsFor)).toEqual(results.map((t) => t.pointsFor))

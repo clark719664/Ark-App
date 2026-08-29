@@ -132,11 +132,16 @@ export function loadByes(season: number): Set<string> {
     teams.add(team)
     weeks.add(week)
   }
+  // A bye is an absence, so an incomplete file does not fail — it invents byes
+  // that look entirely plausible, and the replay then benches players who
+  // actually played. Every team must be missing exactly one week or this says
+  // nothing, which leaves the replay worse off rather than wrong.
   for (const team of teams) {
-    for (const week of weeks) {
-      if (!played.has(`${week}|${team}`)) byes.add(`${week}|${team}`)
-    }
+    const off = [...weeks].filter((week) => !played.has(`${week}|${team}`))
+    if (off.length !== 1) return new Set()
+    byes.add(`${off[0]}|${team}`)
   }
+  if (teams.size < 32) return new Set()
   return byes
 }
 

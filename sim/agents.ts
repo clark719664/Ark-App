@@ -124,7 +124,17 @@ export function dropCandidate(roster: RosterEntry[], slots: string[]): Player | 
  * lucky projection. Measured in simulation, no margin cost about 13 points of
  * true roster talent per season.
  */
-const ARK_CLAIM_MARGIN = 1.0
+const DEFAULT_CLAIM_MARGIN = 1.0
+
+/**
+ * Read per call rather than captured at import, so a sweep can vary it. The
+ * margin is a tuning decision the simulation is the right instrument to settle,
+ * and a constant frozen at module load cannot be swept in one process.
+ */
+function claimMargin(): number {
+  const raw = Number.parseFloat(process.env['ARK_CLAIM_MARGIN'] ?? '')
+  return Number.isFinite(raw) ? raw : DEFAULT_CLAIM_MARGIN
+}
 
 // --- Ark: the shipped analytics ---------------------------------------------
 
@@ -169,7 +179,7 @@ export class ArkAgent implements Agent {
     // Picking the best of forty noisy estimates flatters whichever one got the
     // luckiest reading, so a claim has to clear a margin rather than merely
     // look better. Without this the roster churns itself downhill.
-    return best && best.gain > ARK_CLAIM_MARGIN ? { add: best.add, drop } : null
+    return best && best.gain > claimMargin() ? { add: best.add, drop } : null
   }
 
   private startable(view: AgentView) {
