@@ -88,27 +88,71 @@ export interface OffenseColumns {
   receivingFumblesLost: number | null
 }
 
-export function offenseColumns(table: CsvTable): OffenseColumns {
-  const col = (name: string) => optionalColumn(table, name)
-  return {
-    completions: col('completions'),
-    passingYards: col('passing_yards'),
-    passingTds: col('passing_tds'),
-    // nflverse renamed this partway through; both spellings appear in the wild.
-    interceptions: col('passing_interceptions') ?? col('interceptions'),
-    rushingYards: col('rushing_yards'),
-    rushingTds: col('rushing_tds'),
-    receptions: col('receptions'),
-    receivingYards: col('receiving_yards'),
-    receivingTds: col('receiving_tds'),
-    specialTeamsTds: col('special_teams_tds'),
-    passing2pt: col('passing_2pt_conversions'),
-    rushing2pt: col('rushing_2pt_conversions'),
-    receiving2pt: col('receiving_2pt_conversions'),
-    sackFumblesLost: col('sack_fumbles_lost'),
-    rushingFumblesLost: col('rushing_fumbles_lost'),
-    receivingFumblesLost: col('receiving_fumbles_lost'),
+/**
+ * Column names, with the spellings nflverse has used over time.
+ *
+ * Every one of these was optional once, which meant a renamed or absent column
+ * contributed zero points in silence. That does not fail: every player still
+ * gets a number, the board still ranks, and the whole thing is quietly low.
+ * It is how a pool projecting a starting back at 3.9 a game reached a draft.
+ */
+const COLUMN_NAMES = {
+  completions: ['completions', 'pass_completions'],
+  passingYards: ['passing_yards', 'pass_yards'],
+  passingTds: ['passing_tds', 'pass_touchdowns', 'pass_tds'],
+  interceptions: ['passing_interceptions', 'interceptions', 'pass_interceptions'],
+  rushingYards: ['rushing_yards', 'rush_yards'],
+  rushingTds: ['rushing_tds', 'rush_touchdowns', 'rush_tds'],
+  receptions: ['receptions', 'rec'],
+  receivingYards: ['receiving_yards', 'rec_yards'],
+  receivingTds: ['receiving_tds', 'rec_touchdowns', 'rec_tds'],
+  specialTeamsTds: ['special_teams_tds', 'special_teams_touchdowns'],
+  passing2pt: ['passing_2pt_conversions', 'pass_two_point_conversions'],
+  rushing2pt: ['rushing_2pt_conversions', 'rush_two_point_conversions'],
+  receiving2pt: ['receiving_2pt_conversions', 'rec_two_point_conversions'],
+  sackFumblesLost: ['sack_fumbles_lost'],
+  rushingFumblesLost: ['rushing_fumbles_lost', 'rush_fumbles_lost'],
+  receivingFumblesLost: ['receiving_fumbles_lost', 'rec_fumbles_lost'],
+} as const satisfies Record<keyof OffenseColumns, readonly string[]>
+
+/**
+ * Without these the score is not merely incomplete, it is wrong: yardage and
+ * receptions are most of every skill player's points, so a file missing them
+ * produces a board that looks complete and ranks nobody correctly.
+ */
+const REQUIRED: Array<keyof OffenseColumns> = [
+  'passingYards',
+  'passingTds',
+  'rushingYards',
+  'rushingTds',
+  'receptions',
+  'receivingYards',
+  'receivingTds',
+]
+
+function resolve(table: CsvTable, names: readonly string[]): number | null {
+  for (const name of names) {
+    const found = optionalColumn(table, name)
+    if (found !== null) return found
   }
+  return null
+}
+
+export function offenseColumns(table: CsvTable): OffenseColumns {
+  const out = {} as OffenseColumns
+  for (const [key, names] of Object.entries(COLUMN_NAMES)) {
+    out[key as keyof OffenseColumns] = resolve(table, names)
+  }
+  return out
+}
+
+/** Which scoring columns are missing entirely, by the name they are looked for. */
+export function missingOffenseColumns(table: CsvTable): string[] {
+  const missing: string[] = []
+  for (const key of REQUIRED) {
+    if (resolve(table, COLUMN_NAMES[key]) === null) missing.push(COLUMN_NAMES[key][0] ?? key)
+  }
+  return missing
 }
 
 /** One player's score for one week, computed from events rather than read off. */

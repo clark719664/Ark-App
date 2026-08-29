@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import { column, num, optionalColumn, parseCsv, str } from '../csv.js'
 import {
   loadLeagueScoring,
+  missingOffenseColumns,
   offenseColumns,
   offensePoints,
   type LeagueScoring,
@@ -99,6 +100,17 @@ export function loadSeasonProduction(
     if (!fs.existsSync(path)) continue
 
     const table = parseCsv(fs.readFileSync(path, 'utf8'))
+    // Refuse rather than score what is there. A file without yardage columns
+    // still parses, still has a row per player per week, and still produces a
+    // full board - one that is wrong in a direction nobody inspects.
+    const missing = missingOffenseColumns(table)
+    if (missing.length > 0) {
+      throw new Error(
+        `${path} is missing scoring columns: ${missing.join(', ')}. ` +
+          'Every player would be scored too low and the board would look fine. ' +
+          'Re-download the data with: npm run data:fetch -- --force',
+      )
+    }
     const c = {
       id: column(table, 'player_id'),
       type: optionalColumn(table, 'season_type'),
