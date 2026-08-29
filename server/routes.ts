@@ -211,11 +211,10 @@ api.get('/draft-pool', handle((req, res) => {
   }
 
   // Roster shape arrives as qb=1&rb=2&wr=3&te=1&flex=1, matching how a league
-  // describes itself rather than how the code stores it. LB, DB and DL are the
-  // individual defensive slots; a league that starts none of them gets no
-  // defensive players in the pool at all, because rankPool drops any position
-  // the league does not start.
-  for (const position of ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'LB', 'DB', 'DL']) {
+  // describes itself rather than how the code stores it. A position set to zero
+  // is dropped rather than set to zero, because rankPool treats any position
+  // the league does not start as undraftable.
+  for (const position of ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']) {
     const raw = req.query[position.toLowerCase()]
     if (raw === undefined) continue
     const parsed = Number.parseInt(String(raw), 10)

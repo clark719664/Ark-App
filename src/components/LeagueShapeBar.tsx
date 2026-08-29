@@ -26,18 +26,6 @@ const FIELDS: Field[] = [
   { key: 'def', label: 'D/ST', min: 0, max: 2 },
 ]
 
-/**
- * Individual defensive players are a separate row because most leagues start
- * none of them, and a league that starts none should not have the board
- * cluttered with four hundred linebackers. Set any of these above zero and the
- * position appears on the board.
- */
-const IDP_FIELDS: Field[] = [
-  { key: 'lb', label: 'LB', min: 0, max: 6 },
-  { key: 'db', label: 'DB', min: 0, max: 6 },
-  { key: 'dl', label: 'DL', min: 0, max: 6 },
-]
-
 export default function LeagueShapeBar({
   shape,
   onChange,
@@ -57,24 +45,10 @@ export default function LeagueShapeBar({
         </div>
       </div>
 
-      <div className="space-y-3 p-4">
-        <div className="flex flex-wrap gap-4">
-          {FIELDS.map((field) => (
-            <Spinner key={field.key} field={field} shape={shape} onChange={onChange} />
-          ))}
-        </div>
-
-        <div className="flex flex-wrap items-center gap-4 border-t border-ink-800 pt-3">
-          <span className="text-xs uppercase tracking-wide text-ink-500">
-            Individual defence
-          </span>
-          {IDP_FIELDS.map((field) => (
-            <Spinner key={field.key} field={field} shape={shape} onChange={onChange} />
-          ))}
-          <span className="text-xs text-ink-500">
-            Leave at zero unless your league starts individual defensive players.
-          </span>
-        </div>
+      <div className="flex flex-wrap gap-4 p-4">
+        {FIELDS.map((field) => (
+          <Spinner key={field.key} field={field} shape={shape} onChange={onChange} />
+        ))}
       </div>
     </div>
   )

@@ -19,18 +19,16 @@ import { points, positionTone } from '../lib/format'
  */
 
 /** Every position the board can show, in the order a board is usually read. */
-const ALL_POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF', 'LB', 'DB', 'DL'] as const
+const ALL_POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF'] as const
 
 /** Which league setting decides how many of a position a roster needs. */
 const SHAPE_KEY: Record<string, keyof LeagueShapeInput> = {
-  QB: 'qb', RB: 'rb', WR: 'wr', TE: 'te', K: 'k', DEF: 'def', LB: 'lb', DB: 'db', DL: 'dl',
+  QB: 'qb', RB: 'rb', WR: 'wr', TE: 'te', K: 'k', DEF: 'def',
 }
 
 /**
- * Only show positions the league actually starts.
- *
- * Most leagues start no individual defensive players, and a board carrying four
- * hundred linebackers nobody can draft is worse than one that leaves them out.
+ * Only show positions the league actually starts — a league with no kicker slot
+ * should not be offered kickers.
  */
 function boardPositions(shape: LeagueShapeInput): string[] {
   return ALL_POSITIONS.filter((position) => {
@@ -48,19 +46,19 @@ interface DraftState {
 const EMPTY_STATE: DraftState = { drafted: [], mine: [], order: [] }
 
 const DEFAULT_SHAPE: LeagueShapeInput = {
-  teams: 12, qb: 1, rb: 2, wr: 3, te: 1, flex: 1, k: 1, def: 1, lb: 0, db: 0, dl: 0,
+  teams: 12, qb: 1, rb: 2, wr: 3, te: 1, flex: 1, k: 1, def: 1,
 }
 
 export default function DraftBoard() {
-  // v2: the stored shape gained kicker, team defence and IDP slots, and a
-  // shape saved before that has none of them.
+  // v2: the stored shape gained kicker and team defence slots, and a shape
+  // saved before that has neither.
   const [shape, setShape] = useLocalStorage<LeagueShapeInput>('ark.leagueShape.v2', DEFAULT_SHAPE)
   const [state, setState, reset] = useLocalStorage<DraftState>('ark.draft.v2', EMPTY_STATE)
   const [search, setSearch] = useState('')
 
   const pool = useApi(() => api.draftPool(shape), [
     shape.teams, shape.qb, shape.rb, shape.wr, shape.te, shape.flex,
-    shape.k, shape.def, shape.lb, shape.db, shape.dl,
+    shape.k, shape.def,
   ])
 
   const positions = boardPositions(shape)
@@ -174,9 +172,8 @@ export default function DraftBoard() {
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        {/* Sticky, because a league starting individual defenders has nine
-            position cards to scroll and the overall board is what you pick
-            from. */}
+        {/* Sticky: the overall board is what you pick from, so it should stay
+            in view while scrolling the position cards. */}
         <Card
           title="Best available"
           subtitle="Ranked by value over replacement"
@@ -233,15 +230,12 @@ export default function DraftBoard() {
       <p className="px-1 text-xs leading-relaxed text-ink-500">
         Projections blend recent per-game production, regressed toward replacement by how many games
         support it, then adjusted by measured age curves and depth chart position. The open data
-        leaves fantasy totals blank for kickers and defenders, so both are scored here from the
-        underlying events: kickers from field goals by distance, team defences from sacks,
-        takeaways, return touchdowns and points allowed, and individual defenders from tackles,
-        sacks and turnovers. Defences are regressed harder than players, because a unit carried by a
-        takeaway rate that will not repeat looks elite in hindsight. Two caveats worth knowing: IDP
-        scoring varies between leagues more than any other position group, so a tackle-heavy
-        rulebook should rate linebackers above what is shown; and nothing here models target
-        competition, scheme changes or anything reported this week — where this disagrees sharply
-        with consensus, consensus is usually right.
+        leaves fantasy totals blank for kickers and defences, so both are scored here from the
+        underlying events: kickers from field goals by distance, defences from sacks, takeaways,
+        return touchdowns and points allowed. Defences are regressed harder than players, because a
+        unit carried by a takeaway rate that will not repeat looks elite in hindsight. Nothing here
+        models target competition, scheme changes or anything reported this week; where this
+        disagrees sharply with consensus, consensus is usually right.
       </p>
     </div>
   )

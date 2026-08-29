@@ -55,13 +55,6 @@ const REPLACEMENT: Record<string, number> = {
   TE: 3.5,
   K: 7,
   DEF: 5,
-  // Measured, not guessed: the 24th best player at each defensive group last
-  // season, which is the last starter in a twelve team league starting two of
-  // each. Defensive linemen score far less than linebackers under any tackle
-  // weighted ruleset, so a single IDP replacement level would misprice them.
-  LB: 6.7,
-  DB: 6.2,
-  DL: 3.9,
 }
 
 /** Season weights, most recent first. */
@@ -95,31 +88,6 @@ const DEPTH_MULTIPLIER: Record<string, number[]> = {
 }
 
 const FANTASY_POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K']
-
-/**
- * Individual defensive players, grouped the way fantasy leagues group them
- * rather than the way a depth chart does.
- */
-const IDP_GROUPS: Record<string, string> = {
-  LB: 'LB', OLB: 'LB', ILB: 'LB', MLB: 'LB',
-  CB: 'DB', SAF: 'DB', S: 'DB', FS: 'DB', SS: 'DB', DB: 'DB',
-  DE: 'DL', DT: 'DL', NT: 'DL', DL: 'DL',
-}
-
-export function idpGroup(position: string): string | null {
-  return IDP_GROUPS[position] ?? null
-}
-
-/**
- * Depth chart rank is deliberately not applied to defensive players.
- *
- * The measured gap is large — last season a second string linebacker averaged
- * 2.6 points a game against a starter's 5.2 — but almost all of that gap is
- * already inside his own production, which was earned on back-up snaps. The
- * multiplier exists to catch a *changed* role, and separating a promotion from
- * a player who was and remains a back-up needs two depth chart snapshots. Only
- * the current one is published, so this stays unapplied rather than guessed.
- */
 
 function ageAdjustment(position: string, age: number | null): number {
   if (age === null) return 0
@@ -240,19 +208,10 @@ export function buildProjections(opts: ProjectionOptions): ProjectedPlayer[] {
   const projections: ProjectedPlayer[] = []
 
   for (const player of roster) {
+    if (!FANTASY_POSITIONS.includes(player.position)) continue
     if (player.status !== 'ACT') continue
 
-    const group = idpGroup(player.position)
-    const offensive = FANTASY_POSITIONS.includes(player.position)
-    if (!offensive && group === null) continue
-
-    // Defensive players are projected under their fantasy group rather than
-    // their depth chart position, because a league starts linebackers, not
-    // weak side linebackers.
-    const subject = group === null ? player : { ...player, position: group }
-    const depthRank = group === null ? (depthChart.get(player.playerId)?.rank ?? null) : null
-
-    projections.push(projectOne(subject, byPlayer.get(player.playerId) ?? [], depthRank, history))
+    projections.push(projectOne(player, byPlayer.get(player.playerId) ?? [], depthChart.get(player.playerId)?.rank ?? null, history))
   }
 
   projections.push(...projectDefenses(opts))

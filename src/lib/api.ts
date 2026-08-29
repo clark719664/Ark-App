@@ -221,10 +221,6 @@ export interface LeagueShapeInput {
   flex: number
   k: number
   def: number
-  /** Individual defensive players. Zero in most leagues, so zero by default. */
-  lb: number
-  db: number
-  dl: number
 }
 
 export interface TeamOption {
@@ -366,9 +362,6 @@ export const api = {
       flex: String(shape.flex),
       k: String(shape.k),
       def: String(shape.def),
-      lb: String(shape.lb),
-      db: String(shape.db),
-      dl: String(shape.dl),
     })
     return request<DraftPoolResponse>(`/draft-pool?${query.toString()}`)
   },

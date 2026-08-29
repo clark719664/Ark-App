@@ -56,12 +56,7 @@ const POSITION_TONES: Record<string, string> = {
   WR: 'bg-chalk-500/15 text-chalk-400',
   TE: 'bg-flag-500/15 text-flag-400',
   K: 'bg-plum-500/15 text-plum-400',
-  // The defensive family shares one treatment: the label tells them apart, and
-  // a defender should read as a different kind of pick from a receiver.
   DEF: 'bg-ink-600/40 text-ink-200',
-  LB: 'bg-ink-600/40 text-ink-200',
-  DB: 'bg-ink-600/40 text-ink-200',
-  DL: 'bg-ink-600/40 text-ink-200',
 }
 
 export function positionTone(position: string): string {
