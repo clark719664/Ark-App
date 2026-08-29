@@ -2,11 +2,11 @@ import fs from 'node:fs'
 import { column, num, optionalColumn, parseCsv, str } from '../csv.js'
 import {
   loadLeagueScoring,
-  missingOffenseColumns,
   offenseColumns,
   offensePoints,
   type LeagueScoring,
 } from './scoring.js'
+import { auditPlayerStats } from '../verify.js'
 import { localPath } from '../fetch.js'
 
 /**
@@ -103,10 +103,14 @@ export function loadSeasonProduction(
     // Refuse rather than score what is there. A file without yardage columns
     // still parses, still has a row per player per week, and still produces a
     // full board - one that is wrong in a direction nobody inspects.
-    const missing = missingOffenseColumns(table)
-    if (missing.length > 0) {
+    const { absent, empty } = auditPlayerStats(table)
+    if (absent.length > 0 || empty.length > 0) {
+      const problems = [
+        absent.length > 0 ? `absent: ${absent.join(', ')}` : '',
+        empty.length > 0 ? `present but never populated: ${empty.join(', ')}` : '',
+      ].filter(Boolean)
       throw new Error(
-        `${path} is missing scoring columns: ${missing.join(', ')}. ` +
+        `${path} cannot be scored (${problems.join('; ')}). ` +
           'Every player would be scored too low and the board would look fine. ' +
           'Re-download the data with: npm run data:fetch -- --force',
       )
