@@ -3,6 +3,14 @@ import {
   type RosteredPlayer, type SeasonProduction,
 } from './pool.js'
 import { loadTeamDefense, summariseDefenses } from './defense.js'
+import { loadLeagueScoring } from './scoring.js'
+import {
+  loadDraftClass,
+  measureRookieCurve,
+  rookieBaseline,
+  rookieKey,
+  type RookieCurve,
+} from './rookies.js'
 
 /**
  * Projecting a season for every player on an NFL roster.
@@ -197,6 +205,8 @@ export function buildProjections(opts: ProjectionOptions): ProjectedPlayer[] {
   const roster = loadSeasonRoster(opts.season)
   const production = loadSeasonProduction(history)
   const depthChart = loadLatestDepthChart(opts.season)
+  const draftClass = loadDraftClass(opts.season)
+  const rookieCurve = measureRookieCurve(loadLeagueScoring().scoring, opts.season - 1)
 
   const byPlayer = new Map<string, SeasonProduction[]>()
   for (const row of production) {
@@ -211,7 +221,17 @@ export function buildProjections(opts: ProjectionOptions): ProjectedPlayer[] {
     if (!FANTASY_POSITIONS.includes(player.position)) continue
     if (player.status !== 'ACT') continue
 
-    projections.push(projectOne(player, byPlayer.get(player.playerId) ?? [], depthChart.get(player.playerId)?.rank ?? null, history))
+    const pick = draftClass.get(rookieKey(player.name, player.position)) ?? null
+    projections.push(
+      projectOne(
+        player,
+        byPlayer.get(player.playerId) ?? [],
+        depthChart.get(player.playerId)?.rank ?? null,
+        history,
+        pick,
+        rookieCurve,
+      ),
+    )
   }
 
   projections.push(...projectDefenses(opts))
@@ -224,9 +244,18 @@ function projectOne(
   seasons: SeasonProduction[],
   depthRank: number | null,
   history: number[],
+  rookiePick: number | null = null,
+  curve: RookieCurve | null = null,
 ): ProjectedPlayer {
-  const replacement = REPLACEMENT[player.position] ?? 5
   const notes: string[] = []
+
+  // A player with no snaps is priced at replacement unless the NFL draft says
+  // otherwise. Where it does, that is the only forecast of his role available.
+  const drafted =
+    rookiePick !== null && curve !== null
+      ? rookieBaseline(curve, player.position, rookiePick)
+      : null
+  const replacement = drafted ?? REPLACEMENT[player.position] ?? 5
 
   // Weighted blend of recent per-game production.
   let weightedPoints = 0
@@ -254,8 +283,12 @@ function projectOne(
   const basis: ProjectedPlayer['basis'] =
     totalGames === 0 ? 'no-history' : totalGames < 10 ? 'thin-history' : 'production'
 
-  if (basis === 'no-history') {
-    notes.push('No NFL production yet — projected at replacement level for the position')
+  if (basis === 'no-history' && drafted !== null && rookiePick !== null) {
+    notes.push(
+      `Rookie, no NFL snaps: valued from draft capital (pick ${rookiePick}), where ` +
+        `players at this position have averaged ${drafted.toFixed(1)} a game`,
+    )
+  } else if (basis === 'no-history') {
   } else if (basis === 'thin-history') {
     notes.push(`Only ${totalGames} career games, so heavily regressed toward replacement`)
   }
