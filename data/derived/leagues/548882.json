@@ -1,0 +1,57 @@
+{
+  "leagueId": "548882",
+  "leagueKey": "nfl.l.548882",
+  "name": "Big Daddy's league",
+  "season": 2026,
+  "linkedAt": "2026-08-29T18:07:21.585Z",
+  "scoring": {
+    "completions": 0.1,
+    "passingYards": 0.04,
+    "passingTds": 4,
+    "interceptions": -2,
+    "rushingYards": 0.1,
+    "rushingTds": 6,
+    "receptions": 0.5,
+    "receivingYards": 0.1,
+    "receivingTds": 6,
+    "returnTds": 6,
+    "twoPointConversions": 2,
+    "fumblesLost": -2,
+    "fieldGoals": {
+      "b0": 3,
+      "b20": 3,
+      "b30": 3,
+      "b40": 4,
+      "b50": 5,
+      "b60": 5
+    },
+    "fieldGoalMissed": -1,
+    "patMade": 1,
+    "patMissed": -1
+  },
+  "scoringLabel": "half PPR, 0.1 a completion",
+  "shape": {
+    "teams": 10,
+    "starters": {
+      "QB": 1,
+      "RB": 2,
+      "WR": 2,
+      "TE": 1,
+      "K": 1,
+      "DEF": 1
+    },
+    "flexShare": {
+      "RB": 0.4,
+      "WR": 0.5,
+      "TE": 0.1
+    }
+  },
+  "rounds": 15,
+  "seat": 4,
+  "teamId": "4",
+  "teamName": "Firmly grasp it",
+  "poolFile": "data\\derived\\leagues\\pool-2026-548882.json",
+  "unmapped": [
+    "Offensive Fumble Return TD = 6"
+  ]
+}

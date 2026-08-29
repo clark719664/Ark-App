@@ -48,7 +48,16 @@ function poolPath(season: number): string {
 }
 
 /** The newest committed pool, preferring the upcoming season. */
-export function loadDraftPool(): DraftPool | null {
+export function loadDraftPool(file?: string): DraftPool | null {
+  // A linked league has a board priced in its own scoring; without one this
+  // falls back to the single shared pool.
+  if (file) {
+    try {
+      return JSON.parse(fs.readFileSync(file, 'utf8')) as DraftPool
+    } catch {
+      return null
+    }
+  }
   const upcoming = currentNflSeason() + 1
   for (const season of [upcoming, upcoming - 1]) {
     if (cached && cachedSeason === season) return cached

@@ -27,7 +27,8 @@
     "sim:league": "tsx sim/runLeague.ts",
     "sim:replay": "tsx sim/runReplay.ts",
     "sim:draft-replay": "tsx sim/runDraftReplay.ts",
-    "draft:check": "tsx server/cli/preflight.ts"
+    "draft:check": "tsx server/cli/preflight.ts",
+    "league:link": "tsx server/cli/linkLeague.ts"
   },
   "dependencies": {
     "compression": "^1.8.1",

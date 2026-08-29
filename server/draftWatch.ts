@@ -274,9 +274,15 @@ export function positionCliffs(
   return output.sort((a, b) => b.drop - a.drop)
 }
 
-export function loadBoard(shape: LeagueShape): RankedPlayer[] {
-  const pool = loadDraftPool()
-  if (!pool) throw new Error('No draft pool. Run: npm run data:draft 2026')
+export function loadBoard(shape: LeagueShape, poolFile?: string): RankedPlayer[] {
+  const pool = loadDraftPool(poolFile)
+  if (!pool) {
+    throw new Error(
+      poolFile
+        ? `No board at ${poolFile}. Run: npm run league:link`
+        : 'No draft pool. Run: npm run data:draft 2026',
+    )
+  }
   return rankPool(pool, shape)
 }
 

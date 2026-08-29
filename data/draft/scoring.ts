@@ -54,7 +54,12 @@ export const PPR_SCORING: LeagueScoring = {
   patMissed: -1,
 }
 
-const DERIVED = path.resolve(process.cwd(), 'data/derived/league-scoring.json')
+// A board is priced per league, so the builder can be pointed at whichever
+// league's rules it is building for. Unset, this is the single-league default.
+const DERIVED = path.resolve(
+  process.cwd(),
+  process.env['LEAGUE_SCORING_FILE'] ?? 'data/derived/league-scoring.json',
+)
 
 /**
  * The league's own scoring if it has been exported, otherwise full PPR.

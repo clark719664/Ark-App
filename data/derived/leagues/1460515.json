@@ -1,0 +1,57 @@
+{
+  "leagueId": "1460515",
+  "leagueKey": "nfl.l.1460515",
+  "name": "Yahoo H2H-Pts 1460515",
+  "season": 2026,
+  "linkedAt": "2026-08-29T18:07:24.038Z",
+  "scoring": {
+    "completions": 0,
+    "passingYards": 0.04,
+    "passingTds": 4,
+    "interceptions": -1,
+    "rushingYards": 0.1,
+    "rushingTds": 6,
+    "receptions": 0.5,
+    "receivingYards": 0.1,
+    "receivingTds": 6,
+    "returnTds": 6,
+    "twoPointConversions": 2,
+    "fumblesLost": -2,
+    "fieldGoals": {
+      "b0": 3,
+      "b20": 3,
+      "b30": 3,
+      "b40": 4,
+      "b50": 5,
+      "b60": 5
+    },
+    "fieldGoalMissed": -1,
+    "patMade": 1,
+    "patMissed": -1
+  },
+  "scoringLabel": "half PPR",
+  "shape": {
+    "teams": 10,
+    "starters": {
+      "QB": 1,
+      "RB": 2,
+      "WR": 2,
+      "TE": 1,
+      "K": 1,
+      "DEF": 1
+    },
+    "flexShare": {
+      "RB": 0.4,
+      "WR": 0.5,
+      "TE": 0.1
+    }
+  },
+  "rounds": 15,
+  "seat": 0,
+  "teamId": "8",
+  "teamName": "Clark by 6",
+  "poolFile": "data\\derived\\leagues\\pool-2026-1460515.json",
+  "unmapped": [
+    "Offensive Fumble Return TD = 6"
+  ]
+}

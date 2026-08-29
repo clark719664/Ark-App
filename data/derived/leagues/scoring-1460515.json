@@ -1,0 +1,28 @@
+{
+  "leagueName": "Yahoo H2H-Pts 1460515",
+  "scoring": {
+    "completions": 0,
+    "passingYards": 0.04,
+    "passingTds": 4,
+    "interceptions": -1,
+    "rushingYards": 0.1,
+    "rushingTds": 6,
+    "receptions": 0.5,
+    "receivingYards": 0.1,
+    "receivingTds": 6,
+    "returnTds": 6,
+    "twoPointConversions": 2,
+    "fumblesLost": -2,
+    "fieldGoals": {
+      "b0": 3,
+      "b20": 3,
+      "b30": 3,
+      "b40": 4,
+      "b50": 5,
+      "b60": 5
+    },
+    "fieldGoalMissed": -1,
+    "patMade": 1,
+    "patMissed": -1
+  }
+}

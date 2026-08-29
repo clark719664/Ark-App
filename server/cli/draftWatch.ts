@@ -23,6 +23,7 @@ import {
   snakePicks,
 } from '../draftWatch.js'
 import { computeLiveState, writeLiveState, LIVE_FILE } from '../draftLive.js'
+import { loadLeague } from '../leagues.js'
 
 /**
  * Watch a live Yahoo draft and say what to do about it.
@@ -106,17 +107,33 @@ async function main(): Promise<void> {
 
     const leagueKey = `nfl.l.${leagueId}`
 
+    // A linked league already has its shape read and a board priced in its own
+    // scoring, which is the difference between a ranking that applies to this
+    // draft and one that applies to a different league's rules.
+    const linked = loadLeague(leagueId)
+    if (linked) {
+      console.log(`  Linked league: ${linked.name}, scored ${linked.scoringLabel}`)
+    } else {
+      console.log('  Not linked yet - using the shared board. Run: npm run league:link')
+    }
+
     // Ask the league what it is rather than trusting six environment variables
     // to still describe it. Anything set explicitly still wins.
     const setup = await fetchLeagueSetup(session.page, leagueKey)
-    shape = shapeFromEnv({ teams: setup.teams, starters: setup.starters, flex: setup.flex })
-    board = loadBoard(shape)
+    shape = shapeFromEnv({
+      teams: setup.teams || linked?.shape.teams,
+      starters: setup.starters ?? linked?.shape.starters,
+      flex: setup.flex,
+    })
+    board = loadBoard(shape, linked?.poolFile)
     rounds = Number.parseInt(process.env['DRAFT_ROUNDS'] ?? '', 10) || setup.rounds
     seatPosition = seatPosition || setup.seat
     lastStatus = setup.draftStatus
     statusChecked = true
     leagueName = process.env['LEAGUE_NAME'] ?? setup.leagueName
-    const teamId = foreign ? setup.myTeamId : config.yahoo.teamId || setup.myTeamId
+    const teamId = foreign
+      ? setup.myTeamId || linked?.teamId || ''
+      : config.yahoo.teamId || setup.myTeamId || linked?.teamId || ''
 
     teams = await fetchTeams(session.page, leagueKey)
     teamNames = new Map(teams.map((team) => [team.teamKey, team.name]))
@@ -124,7 +141,7 @@ async function main(): Promise<void> {
     myTeamKey = mine?.teamKey ?? ''
     // The league-level draft position is only there once an order is published;
     // the team carries its own, which is the one that is actually right.
-    seatPosition = seatPosition || mine?.draftPosition || setup.seat
+    seatPosition = seatPosition || mine?.draftPosition || setup.seat || linked?.seat || 0
 
     console.log(`  ${setup.leagueName}: ${shape.teams} teams, ${rounds} rounds`)
     console.log(
