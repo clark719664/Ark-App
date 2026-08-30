@@ -3,6 +3,7 @@ import { config } from '../config.js'
 import { openSession } from '../yahoo/browser.js'
 import {
   fetchDraftPicks,
+  fetchDraftPicksHtml,
   fetchDraftStatus,
   fetchLeagueSetup,
   fetchRosterPicks,
@@ -15,6 +16,7 @@ import {
   buildView,
   loadBoard,
   matchPlayers,
+  normalizeName,
   positionCliffs,
   fillsOpenSlot,
   flexCount,
@@ -48,6 +50,13 @@ const POSITIONS = ['QB', 'RB', 'WR', 'TE', 'K', 'DEF']
 function isDrafting(status: string): boolean {
   const value = status.toLowerCase()
   return value !== 'predraft' && value !== 'postdraft' && value !== 'unknown'
+}
+
+/** The first line of an error, since a stack trace in a draft log is noise. */
+function firstLine(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error)
+  const [first] = message.split(String.fromCharCode(10))
+  return first ?? message
 }
 
 function line(width = 72): string {
@@ -96,6 +105,7 @@ async function main(): Promise<void> {
   let lastStatus = 'unknown'
   let statusChecked = false
   let emptyWhileDrafting = 0
+  let apiThrottled = false
   let usingRosters = false
   const ROSTER_FALLBACK_AFTER = 3
   let leagueName = ''
@@ -206,12 +216,45 @@ async function main(): Promise<void> {
     let idle = 0
     for (;;) {
       let picks: DraftPick[] = []
+      let viaHtml = false
       try {
+        if (apiThrottled) throw new Error('Yahoo returned 999')
         picks = await fetchDraftPicks(session.page, leagueKey)
       } catch (err) {
-        console.log(`  (feed error: ${err instanceof Error ? err.message : String(err)})`)
-        await session.page.waitForTimeout(POLL_MS)
-        continue
+        // 999 is Yahoo refusing, and it does not clear quickly. The results
+        // page a human would read keeps working, so use that rather than sit
+        // there reporting nothing through somebody's draft.
+        if (firstLine(err).includes('999')) apiThrottled = true
+        if (apiThrottled) {
+          try {
+            const html = await fetchDraftPicksHtml(session.page, leagueId, shape.teams)
+            picks = html.map((entry) => ({
+              pick: entry.pick,
+              round: entry.round,
+              // The page truncates team names, so match on what it does show.
+              teamKey:
+                teams.find((team) =>
+                  entry.teamName.length > 3 &&
+                  team.name.startsWith(entry.teamName.replace(/\.\.\.$/, '')),
+                )?.teamKey ?? entry.teamName,
+              playerKey: `html:${normalizeName(entry.playerName)}`,
+            }))
+            viaHtml = true
+              } catch (htmlError) {
+            console.log(`  (results page failed: ${firstLine(htmlError)})`)
+            await session.page.waitForTimeout(POLL_MS)
+            continue
+          }
+        }
+      }
+      if (viaHtml) {
+        // Names are all the page gives, so join them to the board by name.
+        for (const pick of picks) {
+          if (byPlayerKey.has(pick.playerKey)) continue
+          const wanted = pick.playerKey.slice('html:'.length)
+          const found = board.find((player) => normalizeName(player.name) === wanted)
+          if (found) byPlayerKey.set(pick.playerKey, found)
+        }
       }
 
       // If the draft is running and the results endpoint is still empty, it is

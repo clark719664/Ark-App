@@ -32,15 +32,20 @@ export interface YahooPlayer {
 }
 
 export async function fetchJson(page: Page, url: string): Promise<unknown> {
-  const raw = await page.evaluate(async (target: string) => {
-    const response = await fetch(target, { credentials: 'include' })
-    return `${response.status} ${await response.text()}`
-  }, url)
-  const separator = raw.indexOf(' ')
-  const status = Number(raw.slice(0, separator))
-  const body = raw.slice(separator + 1)
-  if (status !== 200) throw new Error(`Yahoo returned ${status} for ${url}`)
-  return JSON.parse(body)
+  // Issued from the browser context rather than from inside the page.
+  //
+  // Running fetch() in the page worked until it did not: the call is
+  // cross-origin, and when the page's context decides to refuse it every
+  // request fails with "Failed to fetch" - a network-level error carrying no
+  // status, so there is nothing to retry against and nothing to report. It
+  // happened mid-draft. The context's own request API sends the same cookies,
+  // is not subject to the page's CORS rules, and returns a real status.
+  const response = await page.context().request.get(url, {
+    headers: { accept: 'application/json' },
+    timeout: config.browser.timeoutMs,
+  })
+  if (!response.ok()) throw new Error(`Yahoo returned ${response.status()} for ${url}`)
+  return JSON.parse(await response.text())
 }
 
 export function leagueNodes(payload: unknown): Record<string, unknown>[] {
@@ -283,4 +288,65 @@ export async function fetchLeagueSetup(page: Page, leagueKey: string): Promise<L
     flex,
     draftStatus: String(meta['draft_status'] ?? 'unknown'),
   }
+}
+
+/**
+ * Picks read from the draft results page instead of the API.
+ *
+ * The JSON API answers 999 when it has had enough, and it chose to do that
+ * during a live draft. The same page a human would look at kept working, so
+ * this reads that: pick number, player, and which team took him, matched by
+ * name against the board the same way the API path is.
+ *
+ * Slower and coarser - no player keys, so players are matched by name - but a
+ * coarse feed that answers beats a precise one that does not.
+ */
+export async function fetchDraftPicksHtml(
+  page: Page,
+  leagueId: string,
+  teams: number,
+): Promise<Array<{ pick: number; round: number; teamName: string; playerName: string; position: string }>> {
+  await page.goto(`https://football.fantasysports.yahoo.com/f1/${leagueId}/draftresults`, {
+    waitUntil: 'domcontentloaded',
+    timeout: config.browser.timeoutMs,
+  })
+
+  const rows = await page.evaluate(() => {
+    const out: Array<{ text: string; cells: string[] }> = []
+    for (const tr of Array.from(document.querySelectorAll('table tbody tr'))) {
+      const cells = Array.from(tr.querySelectorAll('td')).map((td) =>
+        (td.textContent ?? '').replace(/\s+/g, ' ').trim(),
+      )
+      out.push({ text: (tr.textContent ?? '').replace(/\s+/g, ' ').trim(), cells })
+    }
+    return out
+  })
+
+  const picks: Array<{ pick: number; round: number; teamName: string; playerName: string; position: string }> = []
+  const seen = new Set<number>()
+
+  for (const row of rows) {
+    // "12. Bijan Robinson (Atl - RB) Sean's Father"
+    const match = row.text.match(/^(\d+)\.\s+(.+?)\s+\(([A-Za-z]+)\s*-\s*([A-Z/]+)\)\s*(.*)$/)
+    if (!match) continue
+    const pick = Number(match[1])
+    const playerName = String(match[2] ?? '').trim()
+    if (!Number.isFinite(pick) || !playerName || playerName === '--empty--') continue
+
+    // The page repeats pick numbers per round column, so the round has to come
+    // from the overall position rather than being read off the row.
+    const overall = picks.length + 1
+    if (seen.has(overall)) continue
+    seen.add(overall)
+
+    picks.push({
+      pick: overall,
+      round: Math.floor((overall - 1) / Math.max(1, teams)) + 1,
+      teamName: String(match[5] ?? '').trim(),
+      playerName,
+      position: String(match[4] ?? '').trim(),
+    })
+  }
+
+  return picks
 }

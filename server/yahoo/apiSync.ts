@@ -303,6 +303,23 @@ export async function syncLeagueViaApi(opts: ApiSyncOptions = {}): Promise<Leagu
       }
     }
 
+    // Roster entries carry their own copy of a player, so the pool's numbers
+    // have to be merged back in. This ran before and was lost when the
+    // projection pass was rewritten: every rostered player came back with no
+    // points at all, which made assessDataQuality report "none" and turned
+    // start/sit, waivers and trades into rankings over nothing.
+    for (const entries of Object.values(rosters)) {
+      for (const entry of entries) {
+        const enriched = entry.player ? byKey.get(entry.player.id) : undefined
+        if (!entry.player || !enriched?.points) continue
+        entry.player.points = { ...entry.player.points, ...enriched.points }
+        if (enriched.points.projected !== undefined) entry.projected = enriched.points.projected
+        if (entry.player.byeWeek === undefined && enriched.byeWeek !== undefined) {
+          entry.player.byeWeek = enriched.byeWeek
+        }
+      }
+    }
+
     log('Reading matchups...')
     const matchups: Matchup[] = []
     // The whole schedule, not the weeks already played. Playoff odds simulate

@@ -235,9 +235,34 @@ export function computeLiveState(
 export function writeLiveState(state: LiveDraftState): void {
   fs.mkdirSync(path.dirname(LIVE_FILE), { recursive: true })
   const temporary = `${LIVE_FILE}.tmp`
+  const body = JSON.stringify(state)
+
   // Written then renamed, so a phone polling mid-write never reads half a file.
-  fs.writeFileSync(temporary, JSON.stringify(state))
-  fs.renameSync(temporary, LIVE_FILE)
+  //
+  // On Windows that rename fails with EPERM if the server happens to have the
+  // file open at that instant, which is a race the API path hits constantly by
+  // design. It threw during a live draft and took the watcher down with it, so
+  // it retries briefly and then writes in place: a torn read is recoverable on
+  // the next poll two seconds later, a dead watcher is not.
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      fs.writeFileSync(temporary, body)
+      fs.renameSync(temporary, LIVE_FILE)
+      return
+    } catch {
+      // Busy-wait rather than await: this runs inside the poll loop and a few
+      // milliseconds of blocking is cheaper than restructuring it.
+      const until = Date.now() + 40
+      while (Date.now() < until) { /* wait for the reader to let go */ }
+    }
+  }
+
+  try {
+    fs.writeFileSync(LIVE_FILE, body)
+  } catch {
+    // Nothing further to do. Losing one snapshot costs a poll; throwing here
+    // costs the rest of the draft.
+  }
 }
 
 export function readLiveState(): LiveDraftState | null {
