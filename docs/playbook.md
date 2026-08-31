@@ -94,10 +94,10 @@ Two rules and one opportunity:
 
 ## 7. Automation roadmap (built here, with Claude)
 
-- [ ] Uptime + SSL-expiry monitor for all client domains (Python, runs on a
-      cron, texts Clark on failure)
-- [ ] Domain-expiry watcher across the client portfolio
+- [x] Uptime + SSL-expiry monitor for all client domains (`tools/monitor.py`,
+      cron-ready, phone alerts via ntfy.sh)
+- [x] Domain-expiry watcher across the client portfolio (same tool, via RDAP)
+- [x] Intake form → config JSON → generated draft site pipeline (`intake/`)
 - [ ] Monthly client report generator (Lighthouse scores, uptime %, changes
       made) emailed automatically
 - [ ] Stripe subscription setup for the three care plans
-- [ ] Intake form → config JSON → generated draft site pipeline

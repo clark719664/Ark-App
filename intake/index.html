@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ark Client Intake</title>
+<style>
+:root {
+  --navy: #0b2136; --blue: #1f77b4; --teal: #2ea3a6;
+  --ink: #14202b; --ink-soft: #4e6172; --paper: #f7f8f9;
+  --white: #fff; --line: #e3e8ec; --radius: 10px;
+}
+* { box-sizing: border-box; }
+body {
+  margin: 0; background: var(--paper); color: var(--ink);
+  font: 16px/1.55 -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+}
+header { background: var(--navy); color: var(--white); padding: 18px 24px; }
+header h1 { margin: 0; font-size: 1.15rem; }
+header p { margin: 4px 0 0; font-size: 0.85rem; color: rgba(255,255,255,0.6); }
+main { max-width: 720px; margin: 0 auto; padding: 24px 16px 80px; }
+fieldset {
+  border: 1px solid var(--line); border-radius: var(--radius);
+  background: var(--white); padding: 18px; margin: 0 0 18px;
+}
+legend { font-weight: 700; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.08em; color: var(--teal); padding: 0 8px; }
+label { display: block; font-weight: 600; font-size: 0.86rem; margin: 14px 0 4px; }
+label:first-of-type { margin-top: 0; }
+label small { font-weight: 400; color: var(--ink-soft); }
+input[type=text], input[type=tel], input[type=email], input[type=url], textarea {
+  width: 100%; padding: 10px 12px; border: 1px solid var(--line); border-radius: 8px;
+  font: inherit; background: var(--paper);
+}
+textarea { min-height: 74px; resize: vertical; }
+input:focus, textarea:focus { outline: 2px solid var(--teal); outline-offset: 1px; }
+.row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+.colors { display: flex; gap: 20px; align-items: center; }
+.colors label { margin: 0; display: flex; align-items: center; gap: 8px; }
+input[type=color] { width: 44px; height: 34px; border: 1px solid var(--line); border-radius: 6px; padding: 2px; background: var(--white); }
+.svc { display: grid; grid-template-columns: 1fr 1.4fr auto; gap: 8px; margin-bottom: 8px; }
+.svc input { margin: 0; }
+button {
+  font: inherit; font-weight: 600; cursor: pointer; border: 0; border-radius: 999px;
+  padding: 10px 20px; background: var(--blue); color: var(--white);
+}
+button.ghost { background: transparent; color: var(--blue); box-shadow: inset 0 0 0 1.5px var(--blue); }
+button.small { padding: 6px 14px; font-size: 0.82rem; }
+button.danger { background: transparent; color: #b3402a; box-shadow: inset 0 0 0 1.5px #d9c4bf; padding: 6px 12px; }
+.actions { display: flex; gap: 12px; flex-wrap: wrap; margin-top: 8px; }
+.bar {
+  position: fixed; bottom: 0; left: 0; right: 0;
+  background: var(--navy); padding: 12px 16px;
+  display: flex; gap: 12px; justify-content: center;
+  box-shadow: 0 -6px 20px rgba(0,0,0,0.15);
+}
+pre {
+  background: var(--navy); color: #bfe3e3; border-radius: var(--radius);
+  padding: 16px; overflow-x: auto; font-size: 0.8rem; line-height: 1.5;
+}
+.hint { font-size: 0.82rem; color: var(--ink-soft); margin: 6px 0 0; }
+.ok { color: var(--teal); font-weight: 600; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>Ark Web Solutions — Client Intake</h1>
+  <p>Fill this out during the walk-in. Copy the JSON into <code>clients/&lt;slug&gt;.json</code> and run the generator.</p>
+</header>
+
+<main>
+  <fieldset>
+    <legend>Business</legend>
+    <label>Business name</label><input type="text" id="business_name" placeholder="Joe's HVAC">
+    <div class="row">
+      <div><label>Slug <small>(folder name, auto)</small></label><input type="text" id="slug" placeholder="joes-hvac"></div>
+      <div><label>City</label><input type="text" id="city" value="Muskegon, MI"></div>
+    </div>
+    <label>What should customers DO? <small>(call, book, visit — shapes the CTA)</small></label>
+    <input type="text" id="cta_label" placeholder="Call for a free estimate">
+  </fieldset>
+
+  <fieldset>
+    <legend>Voice &amp; copy</legend>
+    <label>Headline <small>(specific &gt; generic — their best claim)</small></label>
+    <input type="text" id="headline" placeholder="Your furnace quits at 2 a.m. We pick up at 2:03.">
+    <label>Tagline / slogan</label>
+    <input type="text" id="tagline" placeholder="Warm in January, cool in July, honest all year.">
+    <label>About <small>(2–3 sentences in THEIR voice — how did they start, what do they brag about?)</small></label>
+    <textarea id="about"></textarea>
+    <label>CTA band heading <small>(mid-page hook)</small></label>
+    <input type="text" id="cta_heading" placeholder="Furnace making that noise again?">
+    <label>Search description <small>(for Google — one sentence, services + city)</small></label>
+    <textarea id="meta_description"></textarea>
+  </fieldset>
+
+  <fieldset>
+    <legend>Services <small style="text-transform:none;letter-spacing:0">(3–6, in the customer's words)</small></legend>
+    <div id="services"></div>
+    <button type="button" class="ghost small" onclick="addService()">+ Add service</button>
+  </fieldset>
+
+  <fieldset>
+    <legend>Trust</legend>
+    <label>3 badges <small>(short chips under the hero buttons)</small></label>
+    <input type="text" id="badge0" placeholder="Licensed mechanical contractor">
+    <input type="text" id="badge1" placeholder="20 years in Muskegon" style="margin-top:8px">
+    <input type="text" id="badge2" placeholder="No after-hours upcharge" style="margin-top:8px">
+    <label>3 "why choose us" reasons</label>
+    <input type="text" id="why0">
+    <input type="text" id="why1" style="margin-top:8px">
+    <input type="text" id="why2" style="margin-top:8px">
+  </fieldset>
+
+  <fieldset>
+    <legend>Contact</legend>
+    <div class="row">
+      <div><label>Phone</label><input type="tel" id="phone" placeholder="(231) 555-0147"></div>
+      <div><label>Email</label><input type="email" id="email" placeholder="joe@joeshvac.com"></div>
+    </div>
+    <label>Address</label><input type="text" id="address" placeholder="1234 Apple Ave, Muskegon, MI 49442">
+    <label>Hours <small>(one line per range)</small></label>
+    <textarea id="hours" placeholder="Mon–Fri: 8am–6pm&#10;Sat: 9am–2pm&#10;Sun: Emergency calls only"></textarea>
+  </fieldset>
+
+  <fieldset>
+    <legend>Brand</legend>
+    <div class="colors">
+      <label>Primary <input type="color" id="color_primary" value="#175d8f"></label>
+      <label>Accent <input type="color" id="color_accent" value="#2ea3a6"></label>
+    </div>
+    <p class="hint">Pull these from their logo, truck, or storefront. Primary carries buttons and the hero; accent is highlights.</p>
+  </fieldset>
+
+  <fieldset>
+    <legend>Output</legend>
+    <pre id="preview">{}</pre>
+    <div class="actions">
+      <button type="button" onclick="copyJson(this)">Copy JSON</button>
+      <button type="button" class="ghost" onclick="downloadJson()">Download file</button>
+    </div>
+    <p class="hint">Then: save as <code>clients/&lt;slug&gt;.json</code> → <code>python3 new_client.py clients/&lt;slug&gt;.json</code> → preview → send the client a link the same day.</p>
+  </fieldset>
+</main>
+
+<script>
+var $ = function (id) { return document.getElementById(id); };
+
+function addService(name, desc) {
+  var div = document.createElement('div');
+  div.className = 'svc';
+  div.innerHTML = '<input type="text" placeholder="Service name" value="' + (name || '') + '">' +
+    '<input type="text" placeholder="One-liner a customer cares about" value="' + (desc || '') + '">' +
+    '<button type="button" class="danger" onclick="this.parentNode.remove(); build()">✕</button>';
+  div.querySelectorAll('input').forEach(function (i) { i.addEventListener('input', build); });
+  $('services').appendChild(div);
+}
+
+function slugify(s) {
+  return s.toLowerCase().replace(/&/g, 'and').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
+var slugTouched = false;
+$('slug').addEventListener('input', function () { slugTouched = true; });
+$('business_name').addEventListener('input', function () {
+  if (!slugTouched) $('slug').value = slugify(this.value);
+});
+
+function build() {
+  var services = [];
+  document.querySelectorAll('.svc').forEach(function (row) {
+    var inputs = row.querySelectorAll('input');
+    var name = inputs[0].value.trim(), desc = inputs[1].value.trim();
+    if (!name) return;
+    services.push(desc ? { name: name, desc: desc } : name);
+  });
+  var take = function (ids) {
+    return ids.map(function (id) { return $(id).value.trim(); }).filter(Boolean);
+  };
+  var config = {
+    slug: $('slug').value.trim(),
+    business_name: $('business_name').value.trim(),
+    tagline: $('tagline').value.trim(),
+    headline: $('headline').value.trim(),
+    meta_description: $('meta_description').value.trim(),
+    cta_label: $('cta_label').value.trim(),
+    cta_heading: $('cta_heading').value.trim() || 'Ready to get started?',
+    phone: $('phone').value.trim(),
+    email: $('email').value.trim(),
+    address: $('address').value.trim(),
+    maps_url: 'https://maps.google.com/?q=' + encodeURIComponent($('address').value.trim()),
+    city: $('city').value.trim(),
+    hours: $('hours').value.trim(),
+    about: $('about').value.trim(),
+    services: services,
+    color_primary: $('color_primary').value,
+    color_accent: $('color_accent').value
+  };
+  var badges = take(['badge0', 'badge1', 'badge2']);
+  var why = take(['why0', 'why1', 'why2']);
+  if (badges.length) config.badges = badges;
+  if (why.length) config.why_us = why;
+  $('preview').textContent = JSON.stringify(config, null, 2);
+  return config;
+}
+
+function copyJson(btn) {
+  navigator.clipboard.writeText($('preview').textContent).then(function () {
+    btn.textContent = 'Copied ✓';
+    setTimeout(function () { btn.textContent = 'Copy JSON'; }, 1500);
+  });
+}
+
+function downloadJson() {
+  var config = build();
+  var blob = new Blob([JSON.stringify(config, null, 2)], { type: 'application/json' });
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = (config.slug || 'client') + '.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+document.querySelectorAll('input, textarea').forEach(function (el) {
+  el.addEventListener('input', build);
+});
+addService(); addService(); addService();
+build();
+</script>
+
+</body>
+</html>

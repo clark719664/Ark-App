@@ -14,6 +14,8 @@ websites, hosting, DNS, and business email, sold as a monthly "it's handled" pla
 | `templates/business-site/` | Reusable client-site template with `{{PLACEHOLDERS}}` |
 | `clients/` | Generated client sites, one folder each |
 | `new_client.py` | Generates a new client site from a config JSON |
+| `intake/` | Client intake form — fill it out during a walk-in, get the config JSON |
+| `tools/monitor.py` | Uptime + SSL expiry + domain expiry monitor for all client sites |
 | `docs/playbook.md` | The business plan: pricing, go-to-market, legal setup |
 | `docs/runbooks/` | Step-by-step checklists for DNS/email setup and client onboarding |
 
@@ -29,10 +31,24 @@ cd site && python3 -m http.server 8000
 Create a new client site:
 
 ```bash
+# Option A: open intake/index.html in a browser, fill it out, download the JSON
+# Option B: copy the example and edit by hand
 cp templates/business-site/config.example.json clients/joes-hvac.json
-# edit the JSON with the client's details, then:
+# then:
 python3 new_client.py clients/joes-hvac.json
 # output lands in clients/joes-hvac/ — preview it the same way
+```
+
+Optional per-client fields: `hero_art` (an SVG file next to the config, inlined
+into the hero), `badges`, `why_us`, `cta_heading`, and services as
+`{"name", "desc"}` objects. See `clients/joes-hvac.json` for a full example.
+
+Monitor client sites (cron this every 15 min once clients are live):
+
+```bash
+cp tools/sites.example.json tools/sites.json   # then edit with real sites
+python3 tools/monitor.py                        # exit 1 + alert on any problem
+NTFY_TOPIC=your-secret-topic python3 tools/monitor.py   # push alerts to your phone via ntfy.sh
 ```
 
 ## Deploying (free tier)
