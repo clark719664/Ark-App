@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Joe's HVAC — Heating & cooling done right, the first time</title>
 <meta name="description" content="Furnace repair, AC installation, and 24/7 emergency HVAC service in Muskegon, MI. Licensed and insured. Call for a free estimate.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
@@ -12,24 +15,36 @@
 <header class="topbar">
   <div class="wrap topbar-inner">
     <span class="logo">Joe's HVAC</span>
-    <a class="btn btn-small" href="tel:+12315550147">Call (231) 555-0147</a>
+    <nav class="topnav">
+      <a href="#services">Services</a>
+      <a href="#about">About</a>
+      <a href="#contact">Contact</a>
+      <a class="btn btn-solid btn-sm" href="tel:+12315550147">(231) 555-0147</a>
+    </nav>
   </div>
 </header>
 
 <main>
   <section class="hero">
     <div class="wrap">
+      <p class="kicker">Muskegon, MI</p>
       <h1>Muskegon's honest heating & cooling crew</h1>
       <p class="lede">Heating & cooling done right, the first time</p>
       <div class="hero-actions">
-        <a class="btn" href="tel:+12315550147">Call for a free estimate</a>
-        <a class="btn btn-ghost" href="#contact">Hours &amp; location</a>
+        <a class="btn btn-solid btn-lg" href="tel:+12315550147">Call for a free estimate</a>
+        <a class="btn btn-outline-light btn-lg" href="#contact">Hours &amp; location</a>
       </div>
+      <ul class="badges">
+        <li>Licensed &amp; insured</li>
+        <li>Locally owned</li>
+        <li>Free estimates</li>
+      </ul>
     </div>
   </section>
 
-  <section class="section">
+  <section id="services" class="section">
     <div class="wrap">
+      <p class="eyebrow">Services</p>
       <h2>What we do</h2>
       <ul class="services">
         <li>Furnace repair & installation</li>
@@ -41,35 +56,64 @@
     </div>
   </section>
 
-  <section class="section section-alt">
-    <div class="wrap">
-      <h2>About us</h2>
-      <p class="about">Family-owned and operated since 2005, Joe's HVAC keeps Muskegon homes comfortable year-round. Licensed, insured, and straight with you about what needs fixing and what doesn't.</p>
+  <section id="about" class="section section-alt">
+    <div class="wrap about-grid">
+      <div>
+        <p class="eyebrow">About</p>
+        <h2>Who you’re calling</h2>
+        <p class="about">Family-owned and operated since 2005, Joe's HVAC keeps Muskegon homes comfortable year-round. Licensed, insured, and straight with you about what needs fixing and what doesn't.</p>
+      </div>
+      <div class="about-card">
+        <h3>Why customers choose us</h3>
+        <ul class="checks">
+          <li>Straight answers and upfront pricing</li>
+          <li>We show up when we say we will</li>
+          <li>Work done right the first time</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta-band">
+    <div class="wrap cta-inner">
+      <h2>Ready to get started?</h2>
+      <a class="btn btn-light btn-lg" href="tel:+12315550147">Call for a free estimate</a>
     </div>
   </section>
 
   <section id="contact" class="section">
-    <div class="wrap contact-grid">
-      <div>
-        <h2>Get in touch</h2>
-        <p><a class="big-link" href="tel:+12315550147">(231) 555-0147</a></p>
-        <p><a class="big-link" href="mailto:joe@joeshvac.com">joe@joeshvac.com</a></p>
-        <p>1234 Apple Ave, Muskegon, MI 49442<br>
-        <a href="https://maps.google.com/?q=1234+Apple+Ave+Muskegon+MI" target="_blank" rel="noopener">Get directions →</a></p>
-      </div>
-      <div>
-        <h2>Hours</h2>
-        <p class="hours">Mon–Fri: 8am–6pm
+    <div class="wrap">
+      <p class="eyebrow">Contact</p>
+      <h2>Get in touch</h2>
+      <div class="contact-grid">
+        <div class="contact-card">
+          <h3>Call or text</h3>
+          <a class="big-link" href="tel:+12315550147">(231) 555-0147</a>
+        </div>
+        <div class="contact-card">
+          <h3>Email</h3>
+          <a class="big-link" href="mailto:joe@joeshvac.com">joe@joeshvac.com</a>
+        </div>
+        <div class="contact-card">
+          <h3>Visit us</h3>
+          <p>1234 Apple Ave, Muskegon, MI 49442</p>
+          <a class="dir-link" href="https://maps.google.com/?q=1234+Apple+Ave+Muskegon+MI" target="_blank" rel="noopener">Get directions →</a>
+        </div>
+        <div class="contact-card">
+          <h3>Hours</h3>
+          <p class="hours">Mon–Fri: 8am–6pm
 Sat: 9am–2pm
 Sun: Emergency calls only</p>
+        </div>
       </div>
     </div>
   </section>
 </main>
 
 <footer>
-  <div class="wrap">
+  <div class="wrap footer-inner">
     <p>&copy; 2026 Joe's HVAC · Muskegon, MI</p>
+    <a href="tel:+12315550147">(231) 555-0147</a>
   </div>
 </footer>
 
