@@ -60,3 +60,13 @@ NTFY_TOPIC=your-secret-topic python3 tools/monitor.py   # push alerts to your ph
 
 See `docs/runbooks/dns-email-setup.md` for the domain/DNS/email checklist used
 on every new client.
+
+## Testing
+
+```bash
+python3 -m unittest discover tests -v     # generator unit tests (no dependencies)
+npm i playwright-core                      # once, for browser tests
+node tests/e2e/interact-test.js            # menus, scroll reveals, counters, no-JS fallback
+node tests/e2e/form-test.js                # drives the intake form like a real user
+node tests/e2e/overflow-test.js <page>     # horizontal-overflow probe at phone width
+```

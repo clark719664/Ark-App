@@ -8,6 +8,7 @@ Reads the config JSON, fills the {{PLACEHOLDERS}} in templates/business-site/,
 and writes the finished site to clients/<slug>/.
 """
 
+import html
 import json
 import re
 import sys
@@ -41,22 +42,27 @@ def phone_raw(phone: str) -> str:
     return "+" + digits
 
 
+def esc(text: str) -> str:
+    """Escape config text for safe HTML interpolation (elements and attributes)."""
+    return html.escape(str(text), quote=True)
+
+
 def services_html(services: list) -> str:
     """Items are either strings or {"name": ..., "desc": ...} objects."""
     lines = []
     for s in services:
         if isinstance(s, dict):
             lines.append(
-                f'        <li><span class="svc-name">{s["name"]}</span>'
-                f'<span class="svc-desc">{s["desc"]}</span></li>'
+                f'        <li><span class="svc-name">{esc(s["name"])}</span>'
+                f'<span class="svc-desc">{esc(s["desc"])}</span></li>'
             )
         else:
-            lines.append(f'        <li><span class="svc-name">{s}</span></li>')
+            lines.append(f'        <li><span class="svc-name">{esc(s)}</span></li>')
     return "\n".join(lines)
 
 
 def list_html(items: list[str], indent: str = "          ") -> str:
-    return "\n".join(f"{indent}<li>{i}</li>" for i in items)
+    return "\n".join(f"{indent}<li>{esc(i)}</li>" for i in items)
 
 
 def hero_art_html(config: dict, config_path: Path) -> tuple[str, str]:
@@ -82,28 +88,31 @@ def main() -> None:
     layout_class, art_block = hero_art_html(config, config_path)
 
     replacements = {
+        # Pre-built HTML / non-text values — inserted verbatim.
         "{{HERO_LAYOUT_CLASS}}": layout_class,
         "{{HERO_ART}}": art_block,
         "{{BADGES_HTML}}": list_html(config.get("badges", DEFAULT_BADGES)),
         "{{WHY_US_HTML}}": list_html(config.get("why_us", DEFAULT_WHY_US)),
-        "{{CTA_HEADING}}": config.get("cta_heading", "Ready to get started?"),
-        "{{BUSINESS_NAME}}": config["business_name"],
-        "{{TAGLINE}}": config["tagline"],
-        "{{HEADLINE}}": config["headline"],
-        "{{META_DESCRIPTION}}": config["meta_description"],
-        "{{CTA_LABEL}}": config["cta_label"],
-        "{{PHONE}}": config["phone"],
-        "{{PHONE_RAW}}": phone_raw(config["phone"]),
-        "{{EMAIL}}": config["email"],
-        "{{ADDRESS}}": config["address"],
-        "{{MAPS_URL}}": config["maps_url"],
-        "{{CITY}}": config["city"],
-        "{{HOURS}}": config["hours"],
-        "{{ABOUT}}": config["about"],
         "{{SERVICES_HTML}}": services_html(config["services"]),
-        "{{COLOR_PRIMARY}}": config["color_primary"],
-        "{{COLOR_ACCENT}}": config["color_accent"],
+        "{{PHONE_RAW}}": phone_raw(config["phone"]),
         "{{YEAR}}": str(date.today().year),
+        # Text from the config — HTML-escaped so names like "Bread & Butter"
+        # or quotes in copy can't break markup or inject tags.
+        "{{CTA_HEADING}}": esc(config.get("cta_heading", "Ready to get started?")),
+        "{{BUSINESS_NAME}}": esc(config["business_name"]),
+        "{{TAGLINE}}": esc(config["tagline"]),
+        "{{HEADLINE}}": esc(config["headline"]),
+        "{{META_DESCRIPTION}}": esc(config["meta_description"]),
+        "{{CTA_LABEL}}": esc(config["cta_label"]),
+        "{{PHONE}}": esc(config["phone"]),
+        "{{EMAIL}}": esc(config["email"]),
+        "{{ADDRESS}}": esc(config["address"]),
+        "{{MAPS_URL}}": esc(config["maps_url"]),
+        "{{CITY}}": esc(config["city"]),
+        "{{HOURS}}": esc(config["hours"]),
+        "{{ABOUT}}": esc(config["about"]),
+        "{{COLOR_PRIMARY}}": esc(config["color_primary"]),
+        "{{COLOR_ACCENT}}": esc(config["color_accent"]),
     }
 
     out_dir = CLIENTS_DIR / config["slug"]
