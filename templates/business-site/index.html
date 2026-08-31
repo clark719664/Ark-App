@@ -31,21 +31,22 @@
 <main>
   <section class="hero">
     <div class="aurora" aria-hidden="true"><i class="blob blob-a"></i><i class="blob blob-b"></i></div>
-    <div class="wrap hero-inner">
-      <p class="kicker">{{CITY}}</p>
-      <h1>{{HEADLINE}}</h1>
-      <p class="lede">{{TAGLINE}}</p>
-      <div class="hero-actions">
-        <a class="btn btn-solid btn-lg" href="tel:{{PHONE_RAW}}">{{CTA_LABEL}}
-          <svg class="btn-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h11M11 5.5L15.5 10 11 14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-        </a>
-        <a class="btn btn-outline-light btn-lg" href="#contact">Hours &amp; location</a>
+    <div class="wrap {{HERO_LAYOUT_CLASS}}">
+      <div class="hero-inner">
+        <p class="kicker">{{CITY}}</p>
+        <h1>{{HEADLINE}}</h1>
+        <p class="lede">{{TAGLINE}}</p>
+        <div class="hero-actions">
+          <a class="btn btn-solid btn-lg" href="tel:{{PHONE_RAW}}">{{CTA_LABEL}}
+            <svg class="btn-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h11M11 5.5L15.5 10 11 14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
+          <a class="btn btn-outline-light btn-lg" href="#contact">Hours &amp; location</a>
+        </div>
+        <ul class="badges">
+{{BADGES_HTML}}
+        </ul>
       </div>
-      <ul class="badges">
-        <li>Licensed &amp; insured</li>
-        <li>Locally owned</li>
-        <li>Free estimates</li>
-      </ul>
+{{HERO_ART}}
     </div>
   </section>
 
@@ -71,9 +72,7 @@
       <div class="about-card reveal">
         <h3>Why customers choose us</h3>
         <ul class="checks">
-          <li>Straight answers and upfront pricing</li>
-          <li>We show up when we say we will</li>
-          <li>Work done right the first time</li>
+{{WHY_US_HTML}}
         </ul>
       </div>
     </div>
@@ -81,7 +80,7 @@
 
   <section class="cta-band">
     <div class="wrap cta-inner reveal">
-      <h2>Ready to get started?</h2>
+      <h2>{{CTA_HEADING}}</h2>
       <a class="btn btn-light btn-lg" href="tel:{{PHONE_RAW}}">{{CTA_LABEL}}</a>
     </div>
   </section>

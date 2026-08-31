@@ -25,6 +25,14 @@ REQUIRED = [
 ]
 
 
+DEFAULT_BADGES = ["Licensed & insured", "Locally owned", "Free estimates"]
+DEFAULT_WHY_US = [
+    "Straight answers and upfront pricing",
+    "We show up when we say we will",
+    "Work done right the first time",
+]
+
+
 def phone_raw(phone: str) -> str:
     """(231) 555-0147 -> +12315550147"""
     digits = re.sub(r"\D", "", phone)
@@ -33,8 +41,31 @@ def phone_raw(phone: str) -> str:
     return "+" + digits
 
 
-def services_html(services: list[str]) -> str:
-    return "\n".join(f"        <li>{s}</li>" for s in services)
+def services_html(services: list) -> str:
+    """Items are either strings or {"name": ..., "desc": ...} objects."""
+    lines = []
+    for s in services:
+        if isinstance(s, dict):
+            lines.append(
+                f'        <li><span class="svc-name">{s["name"]}</span>'
+                f'<span class="svc-desc">{s["desc"]}</span></li>'
+            )
+        else:
+            lines.append(f'        <li><span class="svc-name">{s}</span></li>')
+    return "\n".join(lines)
+
+
+def list_html(items: list[str], indent: str = "          ") -> str:
+    return "\n".join(f"{indent}<li>{i}</li>" for i in items)
+
+
+def hero_art_html(config: dict, config_path: Path) -> tuple[str, str]:
+    """Returns (layout_class, art_block). hero_art names an SVG file next to the config."""
+    art_file = config.get("hero_art")
+    if not art_file:
+        return "hero-grid", ""
+    svg = (config_path.parent / art_file).read_text().strip()
+    return "hero-grid has-art", f'      <div class="hero-art" aria-hidden="true">\n{svg}\n      </div>'
 
 
 def main() -> None:
@@ -48,7 +79,14 @@ def main() -> None:
     if missing:
         sys.exit(f"Config is missing keys: {', '.join(missing)}")
 
+    layout_class, art_block = hero_art_html(config, config_path)
+
     replacements = {
+        "{{HERO_LAYOUT_CLASS}}": layout_class,
+        "{{HERO_ART}}": art_block,
+        "{{BADGES_HTML}}": list_html(config.get("badges", DEFAULT_BADGES)),
+        "{{WHY_US_HTML}}": list_html(config.get("why_us", DEFAULT_WHY_US)),
+        "{{CTA_HEADING}}": config.get("cta_heading", "Ready to get started?"),
         "{{BUSINESS_NAME}}": config["business_name"],
         "{{TAGLINE}}": config["tagline"],
         "{{HEADLINE}}": config["headline"],

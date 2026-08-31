@@ -13,12 +13,19 @@
   "hours": "Mon–Fri: 8am–6pm\nSat: 9am–2pm\nSun: Emergency calls only",
   "about": "Family-owned and operated since 2005, Joe's HVAC keeps Muskegon homes comfortable year-round. Licensed, insured, and straight with you about what needs fixing and what doesn't.",
   "services": [
-    "Furnace repair & installation",
+    {"name": "Furnace repair & installation", "desc": "Same-week service on all makes and models"},
     "Air conditioning service",
     "24/7 emergency calls",
     "Duct cleaning",
     "Free estimates"
   ],
+  "badges": ["Licensed & insured", "Family owned since 2005", "Free estimates"],
+  "why_us": [
+    "Straight answers and upfront pricing",
+    "We show up when we say we will",
+    "Work done right the first time"
+  ],
+  "cta_heading": "Ready to get started?",
   "color_primary": "#b3402a",
   "color_accent": "#e8a33d"
 }
