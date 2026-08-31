@@ -295,6 +295,42 @@ p { margin: 0 0 1em; }
 .grid { display: grid; gap: 22px; }
 .grid-3 { grid-template-columns: repeat(3, 1fr); }
 
+/* ---------- Service tabs ---------- */
+.tabs {
+  display: flex; gap: 10px; flex-wrap: wrap;
+  margin-bottom: 34px;
+}
+.tab {
+  font: inherit; font-weight: 600; font-size: 0.94rem;
+  padding: 10px 22px; border-radius: 999px;
+  border: 1.5px solid var(--line); background: var(--white);
+  color: var(--ink-soft); cursor: pointer;
+  transition: color 0.18s ease, border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+}
+.tab:hover { border-color: var(--teal-400); color: var(--navy-800); }
+.tab.active {
+  background: linear-gradient(135deg, var(--blue-500), var(--teal-400));
+  border-color: transparent; color: var(--white);
+  box-shadow: 0 6px 16px rgba(31, 119, 180, 0.3);
+}
+.js .tab-panel:not(.active) { display: none; }
+.js .tab-panel.active .card { animation: panel-in 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+.js .tab-panel.active .card:nth-child(2) { animation-delay: 0.06s; }
+.js .tab-panel.active .card:nth-child(3) { animation-delay: 0.12s; }
+.js .tab-panel.active .card:nth-child(4) { animation-delay: 0.18s; }
+@keyframes panel-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { .js .tab-panel.active .card { animation: none; } }
+/* No-JS fallback: all panels visible, stacked */
+html:not(.js) .tab-panel { margin-bottom: 34px; }
+html:not(.js) .tabs { display: none; }
+.tag {
+  display: inline-block; vertical-align: 2px;
+  margin-left: 8px; padding: 2px 10px;
+  font-size: 0.66rem; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--teal-400); background: rgba(46, 163, 166, 0.12);
+  border-radius: 999px;
+}
+
 /* ---------- Service cards ---------- */
 .card {
   background: var(--white);

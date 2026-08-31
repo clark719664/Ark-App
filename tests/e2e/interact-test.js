@@ -44,6 +44,22 @@ const { chromium } = require('playwright-core');
   check('cards reveal on scroll', parseFloat(afterReveal) >= 0.95, afterReveal);
   check('nav highlights active section', (await page.getAttribute('.topnav a[href="#plans"]', 'class') || '').includes('active'));
 
+  // --- Service tabs ---
+  await page.evaluate(() => document.querySelector('#services').scrollIntoView());
+  await page.waitForTimeout(800);
+  check('first tab active by default', await page.isVisible('#panel-websites .card'));
+  check('other panels hidden', !(await page.isVisible('#panel-security .card')));
+  await page.click('#tab-security');
+  await page.waitForTimeout(400);
+  check('clicking tab switches panel', await page.isVisible('#panel-security .card'));
+  check('previous panel hides', !(await page.isVisible('#panel-websites .card')));
+  check('aria-selected follows', (await page.getAttribute('#tab-security', 'aria-selected')) === 'true');
+  await page.focus('#tab-security');
+  await page.keyboard.press('ArrowRight');
+  await page.waitForTimeout(300);
+  check('arrow key wraps to first tab', await page.isVisible('#panel-websites .card'));
+  await page.click('#tab-websites');
+
   // --- FAQ toggle ---
   await page.evaluate(() => document.querySelector('#faq').scrollIntoView());
   await page.waitForTimeout(800);
