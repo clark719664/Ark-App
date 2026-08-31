@@ -1,8 +1,8 @@
 {
   "slug": "lakeside-lawn",
   "business_name": "Lakeside Lawn & Landscape",
-  "tagline": "Yards that make the neighbors slow down",
-  "headline": "Full-service lawn care & landscaping on the lakeshore",
+  "tagline": "Every yard cut like the whole street is watching",
+  "headline": "Sharp stripes and clean edges, from the channel to the dunes",
   "meta_description": "Lawn care, landscaping, mulching, and snow removal in Muskegon and the lakeshore. Weekly service, seasonal cleanups, free quotes.",
   "cta_label": "Get a free quote",
   "phone": "(231) 555-0182",
@@ -11,14 +11,41 @@
   "maps_url": "https://maps.google.com/?q=5678+Lakeshore+Dr+Muskegon+MI",
   "city": "Muskegon, MI",
   "hours": "Mon–Fri: 7am–6pm\nSat: 8am–3pm\nSun: Closed",
-  "about": "We've been mowing, trimming, and transforming lakeshore yards for over a decade. One crew, familiar faces every visit, and a yard you're proud to pull up to.",
+  "about": "A yard tells you who lives there before you ever knock. Our crew has been laying stripes from Bluffton to North Muskegon for twelve years — same faces every week, blades sharp, lines dead straight, gate latched on the way out. Lakeshore sand is a stubborn place to grow grass, and honestly, we love the argument.",
   "services": [
-    "Weekly mowing & edging",
-    "Landscape design & install",
-    "Mulch & bed maintenance",
-    "Spring & fall cleanups",
-    "Snow removal"
+    {
+      "name": "Weekly mowing & edging",
+      "desc": "Sharp blades, alternating stripe patterns, and edges cut like a chalk line."
+    },
+    {
+      "name": "Landscape design & install",
+      "desc": "Beds, borders, and plantings chosen to thrive in sandy lakeshore soil."
+    },
+    {
+      "name": "Mulch & bed maintenance",
+      "desc": "Fresh mulch, crisp bed lines, and weeds pulled before you ever see them."
+    },
+    {
+      "name": "Spring & fall cleanups",
+      "desc": "Leaves hauled, beds tucked in, lawn set up to green out early."
+    },
+    {
+      "name": "Snow removal",
+      "desc": "Driveways and walks cleared before your first coffee, all winter long."
+    }
   ],
+  "badges": [
+    "Blades sharpened daily",
+    "Same crew every visit",
+    "Lakeshore-owned since 2013"
+  ],
+  "why_us": [
+    "Same crew, same day, every week — you could set your watch by our trailer",
+    "Stripes dead straight, edges crisp, and clippings gone before we pull away",
+    "We grew up on this sand — we know what lakeshore grass needs to thrive"
+  ],
+  "cta_heading": "Let's put some stripes on that lawn",
+  "hero_art": "lakeside-lawn-art.svg",
   "color_primary": "#2e7d46",
   "color_accent": "#9bc53d"
 }

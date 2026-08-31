@@ -1,24 +1,51 @@
 {
   "slug": "joes-hvac",
   "business_name": "Joe's HVAC",
-  "tagline": "Heating & cooling done right, the first time",
-  "headline": "Muskegon's honest heating & cooling crew",
+  "tagline": "Warm in January, cool in July, honest all year.",
+  "headline": "Your furnace quits at 2 a.m. We pick up at 2:03.",
   "meta_description": "Furnace repair, AC installation, and 24/7 emergency HVAC service in Muskegon, MI. Licensed and insured. Call for a free estimate.",
   "cta_label": "Call for a free estimate",
+  "cta_heading": "Furnace making that noise again?",
   "phone": "(231) 555-0147",
   "email": "joe@joeshvac.com",
   "address": "1234 Apple Ave, Muskegon, MI 49442",
   "maps_url": "https://maps.google.com/?q=1234+Apple+Ave+Muskegon+MI",
   "city": "Muskegon, MI",
   "hours": "Mon–Fri: 8am–6pm\nSat: 9am–2pm\nSun: Emergency calls only",
-  "about": "Family-owned and operated since 2005, Joe's HVAC keeps Muskegon homes comfortable year-round. Licensed, insured, and straight with you about what needs fixing and what doesn't.",
+  "about": "Joe started this outfit in 2005 with one van and a stubborn habit of doing the job right. Twenty years on, there are three vans and the habit stuck. We'll tell you straight whether your furnace needs a part, a repair, or a funeral — and we've never sold anybody a system they didn't need.",
   "services": [
-    "Furnace repair & installation",
-    "Air conditioning service",
-    "24/7 emergency calls",
-    "Duct cleaning",
-    "Free estimates"
+    {
+      "name": "Furnace repair & installation",
+      "desc": "From cracked heat exchangers to full swap-outs, sized right for Michigan winters."
+    },
+    {
+      "name": "Air conditioning service",
+      "desc": "Tune-ups, refrigerant leaks, and full installs before the July heat shows up."
+    },
+    {
+      "name": "24/7 emergency calls",
+      "desc": "Dead furnace on a Sunday night? A real person picks up."
+    },
+    {
+      "name": "Duct cleaning",
+      "desc": "Twenty years of dust out of your vents, better air in."
+    },
+    {
+      "name": "Free estimates",
+      "desc": "We'll look it over, shoot straight, and the number won't move."
+    }
   ],
+  "badges": [
+    "Licensed mechanical contractor",
+    "NATE-certified techs",
+    "No after-hours upcharge"
+  ],
+  "why_us": [
+    "We repair what can be repaired instead of quoting you a new system",
+    "Twenty Muskegon winters on the job — lake-effect doesn't rattle us",
+    "Boot covers on, mess hauled out, thermostat explained before we go"
+  ],
+  "hero_art": "joes-hvac-art.svg",
   "color_primary": "#b3402a",
   "color_accent": "#e8a33d"
 }
