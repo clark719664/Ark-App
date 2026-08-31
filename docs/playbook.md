@@ -52,21 +52,42 @@ builds. Infrastructure cost at that scale: roughly $0–30/mo total
 5. **Monthly report = retention.** The automated Lighthouse/uptime report
    (roadmap below) is what makes the fee feel obviously worth it.
 
-## 4. The Pure Broadband question — handle this carefully
+## 4. The Pure Broadband question — a smaller risk than it looks, but handle it right
 
-Clark's employer serves the exact businesses this company would sell to.
-Two rules and one opportunity:
+Clark's role at Pure Broadband is **selling internet service** — an ISP
+subscription business. Ark sells websites, hosting, email, and IT services.
+Those are *different lines of business*, so Ark is not a competitor to Pure
+Broadband the way another ISP would be. That removes the biggest worry: a
+non-compete for an internet-sales role protects the company's interest in
+selling internet, not in web design or IT work. Direct-compete risk is low.
 
-- **Read your employment agreement before signing your first client.** Look
-  for non-compete, non-solicitation, and IP-assignment clauses. Don't build
-  this business on company time or company equipment — this repo and all
-  work on it should live on personal accounts and personal hardware only.
-- **Never poach a contact you met through work.** Besides the legal risk,
-  Muskegon is a small town.
-- **The opportunity:** pitch the IT Director / owner on a *partnership* —
-  Pure Broadband resells "website + email setup" to its business customers,
-  Clark fulfills it, revenue is shared. The ISP adds a product with zero
-  effort; Clark gets warm leads with permission instead of a conflict.
+What still applies regardless of role:
+
+- **Read your employment agreement anyway.** Look specifically at
+  non-solicitation and IP-assignment language, and whether any non-compete
+  is written broadly ("any competing business") rather than narrowly
+  ("selling internet/telecom service"). If it's narrow, you're clear; if
+  it's broad, that's the sentence to run past a lawyer.
+- **Don't solicit Pure Broadband's customers or leads.** This is the real
+  line, and it survives any job change. Don't sell Ark services to accounts
+  or contacts you were given or introduced to *through* the Pure Broadband
+  job, and don't use any customer list or lead info from work. Prospects you
+  find on your own — door-knocking, Chamber, referrals — are entirely fair.
+- **Keep it fully separate.** No selling on company time, no company laptop,
+  phone, email, or accounts. This repo and everything Ark lives on personal
+  hardware and personal accounts. (Already the case.)
+
+- **The opportunity is now cleaner, and complementary.** Because the two
+  businesses don't compete, a partnership is natural in *both* directions:
+  Pure Broadband's business customers need websites/email/IT (Ark fulfills,
+  revenue shared), and Ark's clients need business internet (refer them to
+  Pure Broadband). Pitch it that way — you're adding a product line for
+  them and a referral pipeline for you, with zero conflict. Get any such
+  arrangement in writing so it's clearly blessed by your employer.
+
+*(Not legal advice. A one-time consult with a Michigan employment attorney
+— roughly $200–400 — before your first client is cheap certainty, mainly to
+read the actual non-solicit/IP language in your agreement.)*
 
 ## 5. Legal & money setup (Michigan)
 
