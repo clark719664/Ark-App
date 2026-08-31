@@ -81,6 +81,35 @@ def check_domain(domain: str) -> dict:
         return {"ok": True, "days_left": None, "error": str(e)[:120]}
 
 
+def dns_query(name: str, rtype: str) -> list[str]:
+    """DNS-over-HTTPS via Cloudflare — no local resolver dependencies."""
+    url = f"https://cloudflare-dns.com/dns-query?name={name}&type={rtype}"
+    req = urllib.request.Request(url, headers={**UA, "Accept": "application/dns-json"})
+    with urllib.request.urlopen(req, timeout=TIMEOUT) as resp:
+        data = json.load(resp)
+    return [a["data"].strip('"') for a in data.get("Answer", []) if a.get("type") in (15, 16)]
+
+
+def check_email(domain: str) -> dict:
+    """Email deliverability posture: MX present, SPF record, DMARC policy."""
+    result = {"ok": True, "problems": []}
+    try:
+        if not dns_query(domain, "MX"):
+            result["problems"].append("no MX records — email to this domain bounces")
+        spf = [t for t in dns_query(domain, "TXT") if t.startswith("v=spf1")]
+        if not spf:
+            result["problems"].append("no SPF record — mail may be marked as spam")
+        elif len(spf) > 1:
+            result["problems"].append("multiple SPF records — SPF fails validation, merge them")
+        dmarc = [t for t in dns_query(f"_dmarc.{domain}", "TXT") if t.startswith("v=DMARC1")]
+        if not dmarc:
+            result["problems"].append("no DMARC record — spoofable, and Gmail/Yahoo now require it")
+        result["ok"] = not result["problems"]
+    except Exception as e:
+        result["error"] = str(e)[:120]  # lookup failure isn't an outage; report unknown
+    return result
+
+
 def notify(lines: list[str]) -> None:
     topic = os.environ.get("NTFY_TOPIC")
     if not topic or not lines:
@@ -111,8 +140,12 @@ def main() -> int:
             "ssl": check_ssl(domain),
             "domain": check_domain(domain),
         }
+        if site.get("email", False):
+            r["email"] = check_email(domain)
         results.append(r)
 
+        for problem in r.get("email", {}).get("problems", []):
+            alerts.append(f"EMAIL: {name} — {problem}")
         if not r["http"]["ok"]:
             alerts.append(f"DOWN: {name} ({url}) — {r['http'].get('error', 'HTTP ' + str(r['http']['status']))}")
         if not r["ssl"]["ok"]:
@@ -130,7 +163,12 @@ def main() -> int:
             ms = f"{h['ms']}ms" if h["ms"] is not None else "—"
             ssl_txt = f"ssl {s['days_left']}d" if s["days_left"] is not None else "ssl ?"
             dom_txt = f"dom {d['days_left']}d" if d["days_left"] is not None else "dom ?"
-            print(f"[{status}] {r['name']:<28} {ms:>7}  {ssl_txt:>9}  {dom_txt:>9}")
+            if "email" in r:
+                e = r["email"]
+                mail_txt = "mail ok" if e["ok"] else (f"mail {len(e['problems'])}!" if e.get("problems") else "mail ?")
+            else:
+                mail_txt = ""
+            print(f"[{status}] {r['name']:<28} {ms:>7}  {ssl_txt:>9}  {dom_txt:>9}  {mail_txt}")
 
     notify(alerts)
     if alerts:
