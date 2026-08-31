@@ -9,6 +9,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script src="script.js" defer></script>
 </head>
 <body>
 
@@ -21,6 +22,9 @@
       </svg>
       <span>Ark <b>Web Solutions</b></span>
     </a>
+    <button class="menu-btn" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
     <nav class="topnav">
       <a href="#services">Services</a>
       <a href="#process">How it works</a>
@@ -35,15 +39,18 @@
 
   <!-- ============ HERO ============ -->
   <section class="hero">
+    <div class="aurora" aria-hidden="true"><i class="blob blob-a"></i><i class="blob blob-b"></i><i class="blob blob-c"></i></div>
     <div class="wrap hero-grid">
       <div class="hero-copy">
         <p class="kicker">Muskegon’s managed web partner</p>
-        <h1>Everything your business needs to run online. <span>Handled.</span></h1>
+        <h1>Everything your business needs to run online. <span class="shimmer">Handled.</span></h1>
         <p class="lede">Website, domain, DNS, and business email — designed, launched,
         and managed by one local team for a flat monthly price. When something needs
         to change or something breaks, one call and it’s done.</p>
         <div class="hero-actions">
-          <a class="btn btn-solid btn-lg" href="#contact">Get a free site review</a>
+          <a class="btn btn-solid btn-lg" href="#contact">Get a free site review
+            <svg class="btn-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h11M11 5.5L15.5 10 11 14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </a>
           <a class="btn btn-outline-light btn-lg" href="#plans">View plans</a>
         </div>
         <p class="hero-note">No pressure, no jargon — a 15-minute look at your online
@@ -80,54 +87,64 @@
     </div>
     <div class="wrap">
       <ul class="stats">
-        <li><strong>99.9%</strong><span>uptime, monitored 24/7</span></li>
+        <li><strong><span data-count="99.9" data-suffix="%">99.9%</span></strong><span>uptime, monitored 24/7</span></li>
         <li><strong>Same-day</strong><span>response on support requests</span></li>
-        <li><strong>100%</strong><span>client-owned domains, always</span></li>
+        <li><strong><span data-count="100" data-suffix="%">100%</span></strong><span>client-owned domains, always</span></li>
         <li><strong>Local</strong><span>based in Muskegon, on-site when needed</span></li>
       </ul>
     </div>
   </section>
 
+  <!-- ============ MARQUEE ============ -->
+  <div class="marquee" aria-hidden="true">
+    <div class="marquee-track">
+      <span>Websites</span><i>◆</i><span>Managed hosting</span><i>◆</i><span>Domains &amp; DNS</span><i>◆</i><span>Business email</span><i>◆</i><span>Security</span><i>◆</i><span>SEO &amp; local search</span><i>◆</i><span>Monitoring</span><i>◆</i>
+      <span>Websites</span><i>◆</i><span>Managed hosting</span><i>◆</i><span>Domains &amp; DNS</span><i>◆</i><span>Business email</span><i>◆</i><span>Security</span><i>◆</i><span>SEO &amp; local search</span><i>◆</i><span>Monitoring</span><i>◆</i>
+    </div>
+  </div>
+
   <!-- ============ SERVICES ============ -->
   <section id="services" class="section">
     <div class="wrap">
-      <p class="eyebrow">Services</p>
-      <h2>One partner for your entire online presence</h2>
-      <p class="section-lede">Most agencies stop at the website. The website is the easy
-      part — it’s the domain, DNS, and email where businesses get burned. That
-      infrastructure is our specialty.</p>
-      <div class="grid grid-3">
-        <div class="card">
+      <div class="reveal">
+        <p class="eyebrow">Services</p>
+        <h2>One partner for your entire online presence</h2>
+        <p class="section-lede">Most agencies stop at the website. The website is the easy
+        part — it’s the domain, DNS, and email where businesses get burned. That
+        infrastructure is our specialty.</p>
+      </div>
+      <div class="grid grid-3" data-stagger>
+        <div class="card reveal">
           <div class="icon"><svg viewBox="0 0 24 24" fill="none"><rect x="2.5" y="4" width="19" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M2.5 8.5h19M8 21h8M12 18v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
           <h3>Website design &amp; development</h3>
           <p>A fast, mobile-first site built around what your customers actually do —
           call, book, or stop in. Most sites launch inside two weeks.</p>
         </div>
-        <div class="card">
+        <div class="card reveal">
           <div class="icon"><svg viewBox="0 0 24 24" fill="none"><path d="M6 16a4 4 0 1 1 .6-7.96 5.5 5.5 0 0 1 10.6 1.2A3.5 3.5 0 0 1 17 16H6z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M9 19h6M12 16v3" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg></div>
           <h3>Managed hosting &amp; SSL</h3>
           <p>Enterprise-grade hosting on a global network, with SSL, backups, and
           updates handled. Your site stays fast and stays up.</p>
         </div>
-        <div class="card">
+        <div class="card reveal">
           <div class="icon"><svg viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="1.7"/><path d="M3 12h18M12 3c2.5 2.4 3.8 5.6 3.8 9S14.5 18.6 12 21c-2.5-2.4-3.8-5.6-3.8-9S9.5 5.4 12 3z" stroke="currentColor" stroke-width="1.7"/></svg></div>
           <h3>Domain &amp; DNS management</h3>
           <p>Your domain, registered in <em>your</em> name — you own it, always. We
           manage records, renewals, and SSL so nothing ever lapses or breaks.</p>
         </div>
-        <div class="card">
+        <div class="card reveal">
           <div class="icon"><svg viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="14" rx="2" stroke="currentColor" stroke-width="1.7"/><path d="M3 7l9 6 9-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <h3>Business email that lands</h3>
           <p>you@yourbusiness.com on Google Workspace, configured with SPF, DKIM,
           and DMARC so your quotes reach the inbox — not the spam folder.</p>
         </div>
-        <div class="card">
+        <div class="card reveal">
           <div class="icon"><svg viewBox="0 0 24 24" fill="none"><path d="M12 3l7.5 3v5.5c0 4.6-3.2 8-7.5 9.5-4.3-1.5-7.5-4.9-7.5-9.5V6L12 3z" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"/><path d="M8.8 12l2.3 2.3 4.2-4.5" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <h3>Security &amp; monitoring</h3>
           <p>Uptime and SSL monitored around the clock, firewalled hosting, and
           off-site backups. If something goes down at 7am, we know before you do.</p>
         </div>
-        <div class="card">
+        <div class="card reveal">
           <div class="icon"><svg viewBox="0 0 24 24" fill="none"><path d="M4 19v-4M10 19V9M16 19v-7M22 19H2" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/><path d="M4 11l5-4 4 3 7-6" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
           <h3>Search &amp; local visibility</h3>
           <p>Google Business Profile, on-page SEO, and analytics — so people searching
@@ -139,25 +156,28 @@
 
   <!-- ============ PROCESS ============ -->
   <section id="process" class="section section-dark">
+    <div class="aurora aurora-soft" aria-hidden="true"><i class="blob blob-a"></i><i class="blob blob-b"></i></div>
     <div class="wrap">
-      <p class="eyebrow">How it works</p>
-      <h2>Live in two weeks. Managed for the long haul.</h2>
-      <div class="grid grid-3 steps">
-        <div class="step">
+      <div class="reveal">
+        <p class="eyebrow">How it works</p>
+        <h2>Live in two weeks. Managed for the long haul.</h2>
+      </div>
+      <div class="grid grid-3 steps" data-stagger>
+        <div class="step reveal">
           <span class="step-num">01</span>
           <h3>Free review</h3>
           <p>We audit your current site, Google listing, and email setup — or your
           competition’s, if you’re starting from zero — and give you a straight,
           written assessment. No charge.</p>
         </div>
-        <div class="step">
+        <div class="step reveal">
           <span class="step-num">02</span>
           <h3>Design &amp; launch</h3>
           <p>One 30-minute conversation is all we need from you. We design, write,
           and build the site, you review it once, and we launch — domain, DNS,
           and email included.</p>
         </div>
-        <div class="step">
+        <div class="step reveal">
           <span class="step-num">03</span>
           <h3>We manage it</h3>
           <p>Edits, renewals, monitoring, backups, and reporting are covered by your
@@ -171,12 +191,14 @@
   <!-- ============ PLANS ============ -->
   <section id="plans" class="section">
     <div class="wrap">
-      <p class="eyebrow">Plans</p>
-      <h2>Simple monthly pricing</h2>
-      <p class="section-lede">New websites start at $500 with a care plan. Every plan
-      includes hosting, SSL, and a real person answering the phone.</p>
-      <div class="grid grid-3 plans">
-        <div class="plan">
+      <div class="reveal">
+        <p class="eyebrow">Plans</p>
+        <h2>Simple monthly pricing</h2>
+        <p class="section-lede">New websites start at $500 with a care plan. Every plan
+        includes hosting, SSL, and a real person answering the phone.</p>
+      </div>
+      <div class="grid grid-3 plans" data-stagger>
+        <div class="plan reveal">
           <h3>Dock</h3>
           <p class="plan-tag">Keep it running</p>
           <p class="price">$49<span>/mo</span></p>
@@ -188,7 +210,7 @@
           </ul>
           <a class="btn btn-outline btn-block" href="#contact">Start with Dock</a>
         </div>
-        <div class="plan plan-featured">
+        <div class="plan plan-featured reveal">
           <p class="flag">Most popular</p>
           <h3>Harbor</h3>
           <p class="plan-tag">Running and improving</p>
@@ -201,7 +223,7 @@
           </ul>
           <a class="btn btn-solid btn-block" href="#contact">Start with Harbor</a>
         </div>
-        <div class="plan">
+        <div class="plan reveal">
           <h3>Lighthouse</h3>
           <p class="plan-tag">Growing your reach</p>
           <p class="price">$249<span>/mo</span></p>
@@ -220,7 +242,7 @@
   <!-- ============ COMPARISON ============ -->
   <section class="section section-alt">
     <div class="wrap compare">
-      <div class="compare-copy">
+      <div class="compare-copy reveal">
         <p class="eyebrow">Why not DIY?</p>
         <h2>Website builders give you a tool. We give you a result.</h2>
         <p>Squarespace and Wix are fine products — if you have the time to learn them,
@@ -231,7 +253,7 @@
         that stays online, email that gets delivered, and a person who picks up
         the phone.</p>
       </div>
-      <div class="compare-table" role="table" aria-label="Ark vs DIY builders">
+      <div class="compare-table reveal" role="table" aria-label="Ark vs DIY builders">
         <div class="ct-head" role="row"><span></span><span>DIY builder</span><span class="ct-ark">Ark</span></div>
         <div class="ct-row" role="row"><span>Design &amp; copywriting</span><span>You</span><span class="ct-ark">Done for you</span></div>
         <div class="ct-row" role="row"><span>Domain, DNS &amp; SSL</span><span>You</span><span class="ct-ark">Managed</span></div>
@@ -245,49 +267,54 @@
   <!-- ============ FAQ ============ -->
   <section id="faq" class="section">
     <div class="wrap wrap-narrow">
-      <p class="eyebrow">FAQ</p>
-      <h2>Common questions</h2>
-      <details>
-        <summary>Who owns my domain and website?</summary>
-        <p>You do — full stop. Your domain is registered in your name and stays yours
-        if we ever part ways. We act as the technical manager, and you always have
-        the keys. It’s the industry’s single ugliest dispute, and we designed our
-        service so it can’t happen to you.</p>
-      </details>
-      <details>
-        <summary>I already have a website. Can you take it over?</summary>
-        <p>Yes. Migrations are routine — we document your current setup, move hosting
-        and DNS carefully with zero email downtime, and either keep your existing
-        design or refresh it as part of onboarding.</p>
-      </details>
-      <details>
-        <summary>How fast can my site be live?</summary>
-        <p>Most single-location business sites launch within two weeks of our intake
-        conversation — including domain, email, and Google Business Profile.</p>
-      </details>
-      <details>
-        <summary>What happens if I cancel?</summary>
-        <p>No lock-in and no hostages. You keep your domain, your content, and a full
-        export of your site. We’ll even hand off cleanly to whoever comes next.</p>
-      </details>
-      <details>
-        <summary>Do you work with businesses outside Muskegon?</summary>
-        <p>We do — the lakeshore is home, but everything we manage works anywhere.
-        West Michigan businesses get the option of on-site visits.</p>
-      </details>
+      <div class="reveal">
+        <p class="eyebrow">FAQ</p>
+        <h2>Common questions</h2>
+      </div>
+      <div data-stagger>
+        <details class="reveal">
+          <summary>Who owns my domain and website?</summary>
+          <p>You do — full stop. Your domain is registered in your name and stays yours
+          if we ever part ways. We act as the technical manager, and you always have
+          the keys. It’s the industry’s single ugliest dispute, and we designed our
+          service so it can’t happen to you.</p>
+        </details>
+        <details class="reveal">
+          <summary>I already have a website. Can you take it over?</summary>
+          <p>Yes. Migrations are routine — we document your current setup, move hosting
+          and DNS carefully with zero email downtime, and either keep your existing
+          design or refresh it as part of onboarding.</p>
+        </details>
+        <details class="reveal">
+          <summary>How fast can my site be live?</summary>
+          <p>Most single-location business sites launch within two weeks of our intake
+          conversation — including domain, email, and Google Business Profile.</p>
+        </details>
+        <details class="reveal">
+          <summary>What happens if I cancel?</summary>
+          <p>No lock-in and no hostages. You keep your domain, your content, and a full
+          export of your site. We’ll even hand off cleanly to whoever comes next.</p>
+        </details>
+        <details class="reveal">
+          <summary>Do you work with businesses outside Muskegon?</summary>
+          <p>We do — the lakeshore is home, but everything we manage works anywhere.
+          West Michigan businesses get the option of on-site visits.</p>
+        </details>
+      </div>
     </div>
   </section>
 
   <!-- ============ CTA ============ -->
   <section id="contact" class="section cta-band">
+    <div class="aurora aurora-soft" aria-hidden="true"><i class="blob blob-a"></i><i class="blob blob-c"></i></div>
     <div class="wrap cta-inner">
-      <div>
+      <div class="reveal">
         <h2>Get a free review of your online presence</h2>
         <p>A 15-minute look at your website, Google listing, and email setup — and a
         straight answer about what we’d fix. No charge, no pressure, no jargon.</p>
       </div>
       <!-- TODO: replace with real business phone & email before launch -->
-      <div class="cta-actions">
+      <div class="cta-actions reveal">
         <a class="btn btn-light btn-lg" href="tel:+12310000000">Call or text (231) 000-0000</a>
         <a class="btn btn-outline-light btn-lg" href="mailto:hello@example.com">hello@example.com</a>
       </div>

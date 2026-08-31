@@ -9,12 +9,16 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<script src="script.js" defer></script>
 </head>
 <body>
 
 <header class="topbar">
   <div class="wrap topbar-inner">
     <span class="logo">Joe's HVAC</span>
+    <button class="menu-btn" aria-label="Menu" aria-expanded="false">
+      <span></span><span></span><span></span>
+    </button>
     <nav class="topnav">
       <a href="#services">Services</a>
       <a href="#about">About</a>
@@ -26,12 +30,15 @@
 
 <main>
   <section class="hero">
-    <div class="wrap">
+    <div class="aurora" aria-hidden="true"><i class="blob blob-a"></i><i class="blob blob-b"></i></div>
+    <div class="wrap hero-inner">
       <p class="kicker">Muskegon, MI</p>
       <h1>Muskegon's honest heating & cooling crew</h1>
       <p class="lede">Heating & cooling done right, the first time</p>
       <div class="hero-actions">
-        <a class="btn btn-solid btn-lg" href="tel:+12315550147">Call for a free estimate</a>
+        <a class="btn btn-solid btn-lg" href="tel:+12315550147">Call for a free estimate
+          <svg class="btn-arrow" viewBox="0 0 20 20" fill="none" aria-hidden="true"><path d="M4 10h11M11 5.5L15.5 10 11 14.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </a>
         <a class="btn btn-outline-light btn-lg" href="#contact">Hours &amp; location</a>
       </div>
       <ul class="badges">
@@ -44,9 +51,11 @@
 
   <section id="services" class="section">
     <div class="wrap">
-      <p class="eyebrow">Services</p>
-      <h2>What we do</h2>
-      <ul class="services">
+      <div class="reveal">
+        <p class="eyebrow">Services</p>
+        <h2>What we do</h2>
+      </div>
+      <ul class="services" data-stagger>
         <li>Furnace repair & installation</li>
         <li>Air conditioning service</li>
         <li>24/7 emergency calls</li>
@@ -58,12 +67,12 @@
 
   <section id="about" class="section section-alt">
     <div class="wrap about-grid">
-      <div>
+      <div class="reveal">
         <p class="eyebrow">About</p>
         <h2>Who you’re calling</h2>
         <p class="about">Family-owned and operated since 2005, Joe's HVAC keeps Muskegon homes comfortable year-round. Licensed, insured, and straight with you about what needs fixing and what doesn't.</p>
       </div>
-      <div class="about-card">
+      <div class="about-card reveal">
         <h3>Why customers choose us</h3>
         <ul class="checks">
           <li>Straight answers and upfront pricing</li>
@@ -75,7 +84,7 @@
   </section>
 
   <section class="cta-band">
-    <div class="wrap cta-inner">
+    <div class="wrap cta-inner reveal">
       <h2>Ready to get started?</h2>
       <a class="btn btn-light btn-lg" href="tel:+12315550147">Call for a free estimate</a>
     </div>
@@ -83,23 +92,25 @@
 
   <section id="contact" class="section">
     <div class="wrap">
-      <p class="eyebrow">Contact</p>
-      <h2>Get in touch</h2>
-      <div class="contact-grid">
-        <div class="contact-card">
+      <div class="reveal">
+        <p class="eyebrow">Contact</p>
+        <h2>Get in touch</h2>
+      </div>
+      <div class="contact-grid" data-stagger>
+        <div class="contact-card reveal">
           <h3>Call or text</h3>
           <a class="big-link" href="tel:+12315550147">(231) 555-0147</a>
         </div>
-        <div class="contact-card">
+        <div class="contact-card reveal">
           <h3>Email</h3>
           <a class="big-link" href="mailto:joe@joeshvac.com">joe@joeshvac.com</a>
         </div>
-        <div class="contact-card">
+        <div class="contact-card reveal">
           <h3>Visit us</h3>
           <p>1234 Apple Ave, Muskegon, MI 49442</p>
           <a class="dir-link" href="https://maps.google.com/?q=1234+Apple+Ave+Muskegon+MI" target="_blank" rel="noopener">Get directions →</a>
         </div>
-        <div class="contact-card">
+        <div class="contact-card reveal">
           <h3>Hours</h3>
           <p class="hours">Mon–Fri: 8am–6pm
 Sat: 9am–2pm
