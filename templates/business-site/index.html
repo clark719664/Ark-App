@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>{{BUSINESS_NAME}} — {{TAGLINE}}</title>
+<meta name="description" content="{{META_DESCRIPTION}}">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="wrap topbar-inner">
+    <span class="logo">{{BUSINESS_NAME}}</span>
+    <a class="btn btn-small" href="tel:{{PHONE_RAW}}">Call {{PHONE}}</a>
+  </div>
+</header>
+
+<main>
+  <section class="hero">
+    <div class="wrap">
+      <h1>{{HEADLINE}}</h1>
+      <p class="lede">{{TAGLINE}}</p>
+      <div class="hero-actions">
+        <a class="btn" href="tel:{{PHONE_RAW}}">{{CTA_LABEL}}</a>
+        <a class="btn btn-ghost" href="#contact">Hours &amp; location</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap">
+      <h2>What we do</h2>
+      <ul class="services">
+{{SERVICES_HTML}}
+      </ul>
+    </div>
+  </section>
+
+  <section class="section section-alt">
+    <div class="wrap">
+      <h2>About us</h2>
+      <p class="about">{{ABOUT}}</p>
+    </div>
+  </section>
+
+  <section id="contact" class="section">
+    <div class="wrap contact-grid">
+      <div>
+        <h2>Get in touch</h2>
+        <p><a class="big-link" href="tel:{{PHONE_RAW}}">{{PHONE}}</a></p>
+        <p><a class="big-link" href="mailto:{{EMAIL}}">{{EMAIL}}</a></p>
+        <p>{{ADDRESS}}<br>
+        <a href="{{MAPS_URL}}" target="_blank" rel="noopener">Get directions →</a></p>
+      </div>
+      <div>
+        <h2>Hours</h2>
+        <p class="hours">{{HOURS}}</p>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>&copy; {{YEAR}} {{BUSINESS_NAME}} · {{CITY}}</p>
+  </div>
+</footer>
+
+</body>
+</html>

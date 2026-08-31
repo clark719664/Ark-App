@@ -1,0 +1,82 @@
+/* Client-site template. Theme is driven by the two colors below —
+   set per client from their branding via config JSON. */
+
+:root {
+  --brand: {{COLOR_PRIMARY}};
+  --accent: {{COLOR_ACCENT}};
+  --ink: #1c2428;
+  --ink-soft: #4d5c64;
+  --paper: #fafaf8;
+  --white: #ffffff;
+  --line: #e4e4de;
+  --radius: 10px;
+}
+
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--ink);
+  background: var(--paper);
+}
+
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+
+h1, h2 { line-height: 1.15; margin: 0 0 0.5em; }
+h1 { font-size: clamp(2.1rem, 5.5vw, 3.2rem); letter-spacing: -0.02em; }
+h2 { font-size: clamp(1.5rem, 3.5vw, 2rem); }
+
+.topbar { position: sticky; top: 0; z-index: 10; background: var(--white); border-bottom: 1px solid var(--line); }
+.topbar-inner { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; }
+.logo { font-weight: 800; font-size: 1.15rem; color: var(--brand); }
+
+.btn {
+  display: inline-block;
+  background: var(--brand);
+  color: var(--white);
+  padding: 12px 24px;
+  border-radius: var(--radius);
+  text-decoration: none;
+  font-weight: 600;
+}
+.btn:hover { filter: brightness(0.9); }
+.btn-ghost { background: transparent; color: var(--brand); box-shadow: inset 0 0 0 2px var(--brand); }
+.btn-ghost:hover { background: var(--brand); color: var(--white); filter: none; }
+.btn-small { padding: 8px 16px; font-size: 0.9rem; }
+
+.hero { padding: 80px 0 64px; background: linear-gradient(180deg, var(--white), var(--paper)); }
+.lede { font-size: 1.15rem; color: var(--ink-soft); max-width: 600px; }
+.hero-actions { display: flex; gap: 14px; flex-wrap: wrap; margin-top: 28px; }
+
+.section { padding: 64px 0; }
+.section-alt { background: var(--white); border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+
+.services { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px; }
+.services li {
+  background: var(--white);
+  border: 1px solid var(--line);
+  border-left: 4px solid var(--accent);
+  border-radius: var(--radius);
+  padding: 16px 20px;
+  font-weight: 600;
+}
+
+.about { max-width: 660px; color: var(--ink-soft); }
+
+.contact-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+.big-link { font-size: 1.2rem; font-weight: 700; color: var(--brand); text-decoration: none; }
+.big-link:hover { text-decoration: underline; }
+.hours { white-space: pre-line; color: var(--ink-soft); }
+.contact-grid a { color: var(--brand); }
+
+footer { padding: 32px 0; }
+footer p { color: var(--ink-soft); font-size: 0.9rem; }
+
+@media (max-width: 640px) {
+  .hero { padding: 52px 0 44px; }
+  .section { padding: 48px 0; }
+  .contact-grid { grid-template-columns: 1fr; }
+}
