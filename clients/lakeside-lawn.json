@@ -1,0 +1,24 @@
+{
+  "slug": "lakeside-lawn",
+  "business_name": "Lakeside Lawn & Landscape",
+  "tagline": "Yards that make the neighbors slow down",
+  "headline": "Full-service lawn care & landscaping on the lakeshore",
+  "meta_description": "Lawn care, landscaping, mulching, and snow removal in Muskegon and the lakeshore. Weekly service, seasonal cleanups, free quotes.",
+  "cta_label": "Get a free quote",
+  "phone": "(231) 555-0182",
+  "email": "hello@lakesidelawn.com",
+  "address": "5678 Lakeshore Dr, Muskegon, MI 49441",
+  "maps_url": "https://maps.google.com/?q=5678+Lakeshore+Dr+Muskegon+MI",
+  "city": "Muskegon, MI",
+  "hours": "Mon–Fri: 7am–6pm\nSat: 8am–3pm\nSun: Closed",
+  "about": "We've been mowing, trimming, and transforming lakeshore yards for over a decade. One crew, familiar faces every visit, and a yard you're proud to pull up to.",
+  "services": [
+    "Weekly mowing & edging",
+    "Landscape design & install",
+    "Mulch & bed maintenance",
+    "Spring & fall cleanups",
+    "Snow removal"
+  ],
+  "color_primary": "#2e7d46",
+  "color_accent": "#9bc53d"
+}

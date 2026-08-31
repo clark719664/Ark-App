@@ -1,0 +1,24 @@
+{
+  "slug": "big-red-charters",
+  "business_name": "Big Red Charters",
+  "tagline": "Salmon, trout, and a boatload of good stories",
+  "headline": "Charter fishing out of Muskegon Lake",
+  "meta_description": "Guided salmon and trout charter fishing trips on Lake Michigan out of Muskegon. Licensed captain, all gear provided, morning and afternoon trips.",
+  "cta_label": "Book a trip",
+  "phone": "(231) 555-0195",
+  "email": "captain@bigredcharters.com",
+  "address": "Hartshorn Marina, Muskegon, MI 49440",
+  "maps_url": "https://maps.google.com/?q=Hartshorn+Marina+Muskegon+MI",
+  "city": "Muskegon, MI",
+  "hours": "Apr–Oct: daily trips at 6am & 1pm\nNov–Mar: off-season, book ahead",
+  "about": "Thirty years fishing these waters and still grinning every launch. USCG-licensed captain, top-end gear, and everything provided — you just bring the cooler and the crew.",
+  "services": [
+    "Morning & afternoon charters",
+    "Salmon & trout on Lake Michigan",
+    "All rods, tackle & bait included",
+    "Fish cleaning at the dock",
+    "Group & corporate trips"
+  ],
+  "color_primary": "#0e5a8a",
+  "color_accent": "#e0433d"
+}
