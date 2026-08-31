@@ -1,0 +1,18 @@
+{
+  "site_name": "Joe's HVAC — Main Office",
+  "client": "Joe's HVAC LLC",
+  "technician": "Ark Web Solutions / Tech: A. Reyes",
+  "cidrs": ["192.168.1.0/24"],
+  "extra_ports": [],
+  "timeout": 0.6,
+  "workers": 120,
+  "_help": {
+    "site_name": "Required. Shown on the report. The physical site/building.",
+    "client": "Optional. Legal client name for the report + invoice trail.",
+    "technician": "Optional. Who ran the audit. Defaults to Ark Web Solutions.",
+    "cidrs": "Required. List of PRIVATE (RFC-1918) ranges to scan, CIDR form. Public ranges are refused. Examples: 10.0.0.0/24, 172.16.5.0/24, 192.168.1.0/24.",
+    "extra_ports": "Optional. Extra TCP ports to probe on top of the built-in curated list (e.g. [1883, 5000]).",
+    "timeout": "Optional. Seconds to wait per TCP probe. Lower = faster but may miss slow devices. 0.6 is a good default on a LAN.",
+    "workers": "Optional. How many probes run at once. 120 is fine for a /24. Raise for large ranges, lower on flaky Wi-Fi."
+  }
+}

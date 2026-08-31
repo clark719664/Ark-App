@@ -1,0 +1,100 @@
+{
+  "_readme": "Copy this file to config.local.json, edit the values, then run: python3 netconfig.py config.local.json --platform mikrotik. Everything below is fill-in-the-blank. VLAN ids must be unique (1-4094). Subnets must be private (RFC-1918) and must not overlap. Gateways and DHCP ranges must sit inside their VLAN subnet. The 'firewall.intent' list is plain English describing who may reach whom; the tool turns it into real firewall rules and then verifies the generated rules actually enforce it.",
+  "site": "Maple Street Dental",
+  "operator": "Ark IT Services / tech: J. Rivera",
+  "wan": {
+    "interface": "ether1",
+    "notes": "Fiber ONT hands off DHCP on ether1. If the ISP uses PPPoE or a static IP, edit the WAN section of the generated config before pasting."
+  },
+  "lan": {
+    "bridge": "bridge-lan",
+    "trunk_ports": ["ether2", "ether3"],
+    "trunk_notes": "ether2 -> 24-port switch, ether3 -> ceiling AP. Both carry all VLANs tagged."
+  },
+  "vlans": [
+    {
+      "id": 10,
+      "name": "management",
+      "subnet": "10.10.10.0/24",
+      "gateway": "10.10.10.1",
+      "purpose": "Network gear + admin workstation (router, switch, AP, NVR admin)",
+      "internet": true,
+      "dhcp": {
+        "start": "10.10.10.100",
+        "end": "10.10.10.199",
+        "dns": ["10.10.10.1", "1.1.1.1"],
+        "lease": "1d"
+      }
+    },
+    {
+      "id": 20,
+      "name": "staff",
+      "subnet": "10.10.20.0/24",
+      "gateway": "10.10.20.1",
+      "purpose": "Front-desk and operatory workstations, practice-management PCs",
+      "internet": true,
+      "dhcp": {
+        "start": "10.10.20.50",
+        "end": "10.10.20.240",
+        "dns": ["10.10.20.1", "1.1.1.1", "9.9.9.9"],
+        "lease": "12h"
+      }
+    },
+    {
+      "id": 30,
+      "name": "cameras",
+      "subnet": "10.10.30.0/24",
+      "gateway": "10.10.30.1",
+      "purpose": "IP cameras + NVR. No internet, isolated from everything except staff viewing.",
+      "internet": false,
+      "dhcp": {
+        "start": "10.10.30.20",
+        "end": "10.10.30.120",
+        "dns": ["10.10.30.1"],
+        "lease": "7d"
+      }
+    },
+    {
+      "id": 40,
+      "name": "guest",
+      "subnet": "10.10.40.0/24",
+      "gateway": "10.10.40.1",
+      "purpose": "Waiting-room guest Wi-Fi. Internet only, no access to any internal VLAN.",
+      "internet": true,
+      "dhcp": {
+        "start": "10.10.40.10",
+        "end": "10.10.40.250",
+        "dns": ["1.1.1.1", "8.8.8.8"],
+        "lease": "2h"
+      }
+    }
+  ],
+  "guest_wifi": {
+    "ssid": "MapleGuest",
+    "vlan": 40,
+    "client_isolation": true,
+    "bandwidth_down_mbps": 25,
+    "bandwidth_up_mbps": 10
+  },
+  "firewall": {
+    "inter_vlan_default": "deny",
+    "intent": [
+      "guest cannot reach management",
+      "guest cannot reach staff",
+      "guest cannot reach cameras",
+      "cameras cannot reach the internet",
+      "cameras isolated",
+      "staff can reach cameras",
+      "management can reach everything"
+    ],
+    "extra_rules": [
+      {
+        "from": "staff",
+        "to": "cameras",
+        "action": "allow",
+        "ports": "tcp/554,tcp/80,tcp/443",
+        "note": "Staff view live camera streams (RTSP + NVR web UI) but nothing else on the camera VLAN"
+      }
+    ]
+  }
+}
