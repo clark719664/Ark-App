@@ -37,6 +37,10 @@ export const FRAGMENT_INFLATED_MAX = 8 * 1024 * 1024
  *  longevity note in the UI past 10 years. */
 export const MAX_HORIZON_YEARS = 30
 
+/** "Open when…" bundles: envelopes per bundle by tier. */
+export const FREE_BUNDLE_MAX_ENVELOPES = 4
+export const PRO_BUNDLE_MAX_ENVELOPES = 24
+
 // ─── drand quicknet chain constants ───────────────────────────────────────
 // These are world-public facts about the League of Entropy quicknet chain,
 // embedded so the app can compute rounds, verify beacons, and decrypt with

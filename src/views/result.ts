@@ -118,3 +118,94 @@ export function renderResult(
     ),
   )
 }
+
+// ─── bundle result ────────────────────────────────────────────────────────
+
+import { bundleRecoverySpec } from "../recovery"
+import type { BundlePayload } from "../bundle"
+
+/** Chromium refuses URLs past ~2MB; fragments beyond this many chars would
+ *  make dead links, so past it the bundle is file-only. */
+const LINK_FRAGMENT_CHAR_MAX = 1_800_000
+
+export function renderBundleResult(
+  root: HTMLElement,
+  bundle: BundlePayload,
+  onOpenNow: () => void,
+  onSealAnother: () => void,
+): void {
+  const locked = bundle.envelopes.filter((e) => e.kind === "timelock").length
+  const linkInput = h("input", { type: "text", readOnly: true, value: "building link…" })
+  let fragCache = ""
+  let linkable = true
+
+  const linkField = h("div", { class: "field" }, h("label", {}, "Bundle link"))
+  const linkRow = h("div", { class: "linkbox" }, linkInput,
+    h("button", {
+      class: "btn",
+      onclick: () => {
+        void navigator.clipboard.writeText(linkInput.value)
+          .then(() => toast("Bundle link copied — the letters travel in the #fragment, which browsers never send to any server"))
+          .catch(() => { linkInput.select(); toast("Press ⌘/Ctrl-C to copy") })
+      },
+    }, "Copy"))
+  linkField.append(linkRow)
+
+  void encodeFragment(bundle).then((frag) => {
+    if (frag.length > LINK_FRAGMENT_CHAR_MAX) {
+      linkable = false
+      linkRow.replaceWith(h("div", { class: "hint" },
+        "This bundle is too large for a link (browsers refuse multi-megabyte URLs). Deliver it as the self-contained file below — same bundle, same seals."))
+      return
+    }
+    fragCache = frag
+    linkInput.value = `${location.href.split("#")[0]}#${frag}`
+  })
+
+  function downloadHtmlBundle(): void {
+    try {
+      const html = injectCapsule(pristineHtml, bundle)
+      const name = bundle.to ? bundle.to.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "") : "bundle"
+      void saveOrCopy(`ark-open-when-${name || "bundle"}.html`, new Blob([html], { type: "text/html" }), toast)
+    } catch (e) {
+      toast(e instanceof Error ? e.message : "Could not build the bundle file")
+    }
+  }
+
+  root.append(
+    h("div", { class: "card" },
+      h("h2", {}, "Sealed."),
+      h("p", { style: "color: var(--ink-dim); font-size: 15px" },
+        h("b", { style: "color: var(--ink)" },
+          `${bundle.envelopes.length} ${bundle.envelopes.length === 1 ? "envelope" : "envelopes"}${bundle.to ? ` for ${bundle.to}` : ""}`),
+        locked > 0
+          ? h("span", {}, ` — ${locked} of them timelocked. Those cannot be opened early by anyone, including you.`)
+          : h("span", {}, " — sealed by promise, like paper. Whoever holds the bundle is trusted to wait for each moment."),
+      ),
+      linkField,
+      h("div", { class: "field" },
+        h("label", {}, "Keep it as a file"),
+        h("div", { class: "btn-row" },
+          h("button", { class: "btn btn-gold", onclick: downloadHtmlBundle }, "Download bundle (.html)"),
+          h("button", { class: "btn", onclick: () => void saveOrCopy("ark-bundle-recovery.txt", bundleRecoverySpec(bundle), toast) }, "Recovery spec (.txt)"),
+        ),
+        h("div", { class: "hint", style: "margin-top: 8px" },
+          "The .html bundle is this entire app with the envelopes sealed inside — one file that opens from a USB stick or an email attachment, decades from now."),
+      ),
+      h("details", { class: "acc" },
+        h("summary", {}, "Recovery spec — opening this without Ark, ever"),
+        h("div", { class: "acc-body" }, h("pre", { class: "spec" }, bundleRecoverySpec(bundle))),
+      ),
+      h("div", { class: "btn-row", style: "margin-top: 20px" },
+        h("button", {
+          class: "btn",
+          onclick: () => {
+            if (linkable && fragCache) location.hash = fragCache
+            else onOpenNow()
+          },
+        }, "View their shelf →"),
+        h("button", { class: "btn btn-ghost", onclick: onSealAnother }, "Seal another"),
+      ),
+    ),
+  )
+}

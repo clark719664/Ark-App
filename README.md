@@ -56,6 +56,22 @@ The `.html` capsule is the trick worth noticing: **product and output are the
 same file.** Every capsule *is* a full copy of Ark, including the sealer — a
 capsule can beget capsules.
 
+### “Open when…” bundles
+
+Ark also seals **bundles**: a shelf of wax-sealed envelopes for someone you
+love — *open when you can't sleep, open on the morning of the big day* — with
+21 curated moments and writing prompts, envelope colours, stationery, and a
+seal-cracking ritual (ported from the Open When sister product in
+`openwhen/`). Each envelope chooses its seal, honestly labelled:
+
+- **Sealed by promise** 🤞 — like paper. The letter travels privately in the
+  link, and the recipient is trusted to wait for the moment.
+- **Timelocked** 🔒 — a real Ark seal. The letter is tlock-encrypted to a
+  drand round and *cannot* be opened early, by anyone, including its author.
+
+A birthday envelope that mathematically refuses to open before the birthday
+is the feature neither the letter apps nor the crypto demos have.
+
 ## Quick start
 
 ```bash

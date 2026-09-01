@@ -8,11 +8,14 @@ import { toast } from "./ui/toast"
 import { APP_VERSION, REPO_URL } from "./config"
 import { roundAt } from "./drand"
 import { decodeFragment, readEmbeddedCapsule, type CapsulePayload } from "./capsule"
+import { isBundlePayload, type BundlePayload } from "./bundle"
 import { capturePristineHtml, isPro, runViewCleanup, setLicense, setProChangeListener } from "./state"
 import { storedLicense } from "./license"
 import { renderSealer } from "./views/sealer"
-import { renderResult } from "./views/result"
+import { renderComposer } from "./views/composer"
+import { renderResult, renderBundleResult } from "./views/result"
 import { renderViewer } from "./views/viewer"
+import { renderShelf } from "./views/shelf"
 import { DEMO_CAPSULE } from "./demo"
 
 // FIRST: capture this document exactly as shipped, before rendering anything.
@@ -50,8 +53,11 @@ function renderHeader(): HTMLElement {
 // ─── routing ───
 type Route =
   | { kind: "sealer" }
+  | { kind: "composer" }
   | { kind: "result"; payload: CapsulePayload }
+  | { kind: "bundleResult"; payload: BundlePayload }
   | { kind: "viewer"; payload: CapsulePayload; embedded: boolean; demo: boolean }
+  | { kind: "shelf"; payload: BundlePayload; embedded: boolean }
 
 function navigate(route: Route): void {
   runViewCleanup() // stop the old view's timers and pending unlock attempts
@@ -63,20 +69,30 @@ function navigate(route: Route): void {
     if (location.hash) history.replaceState(null, "", location.pathname + location.search)
     app.append(renderHero())
     renderSealer(app, (payload) => navigate({ kind: "result", payload }))
-    app.append(renderFooter())
+  } else if (route.kind === "composer") {
+    if (location.hash) history.replaceState(null, "", location.pathname + location.search)
+    renderComposer(app, (payload) => navigate({ kind: "bundleResult", payload }))
   } else if (route.kind === "result") {
     renderResult(app, route.payload,
       () => navigate({ kind: "viewer", payload: route.payload, embedded: false, demo: false }),
       () => navigate({ kind: "sealer" }))
-    app.append(renderFooter())
+  } else if (route.kind === "bundleResult") {
+    renderBundleResult(app, route.payload,
+      () => navigate({ kind: "shelf", payload: route.payload, embedded: false }),
+      () => navigate({ kind: "composer" }))
+  } else if (route.kind === "shelf") {
+    renderShelf(app, route.payload, {
+      embedded: route.embedded,
+      onSealAnother: route.embedded ? null : () => navigate({ kind: "composer" }),
+    })
   } else {
     renderViewer(app, route.payload, {
       embedded: route.embedded,
       demo: route.demo,
       onSealAnother: route.embedded ? null : () => navigate({ kind: "sealer" }),
     })
-    app.append(renderFooter())
   }
+  app.append(renderFooter())
   scrollTo({ top: 0 })
 }
 
@@ -96,6 +112,8 @@ function renderHero(): HTMLElement {
             navigate({ kind: "viewer", payload: demo, embedded: false, demo: true })
           } }, "Open a capsule sealed in the past →")
         : null,
+      h("a", { href: "#", onclick: (e: Event) => { e.preventDefault(); navigate({ kind: "composer" }) } },
+        "💌 Write an “open when…” bundle →"),
     ),
     h("div", { class: "trust" },
       h("span", {}, "encrypted in your browser"),
@@ -122,23 +140,25 @@ async function boot(): Promise<void> {
   setLicense(await storedLicense())
   refreshProBtn()
 
-  // 1. Am I a downloaded capsule file? (payload baked into this document)
+  // 1. Am I a downloaded capsule/bundle file? (payload baked into this document)
   try {
     const embedded = readEmbeddedCapsule(document)
     if (embedded) {
-      navigate({ kind: "viewer", payload: embedded, embedded: true, demo: false })
+      if (isBundlePayload(embedded)) navigate({ kind: "shelf", payload: embedded, embedded: true })
+      else navigate({ kind: "viewer", payload: embedded, embedded: true, demo: false })
       return
     }
   } catch (e) {
     toast(`This capsule file looks damaged: ${e instanceof Error ? e.message : String(e)}`)
   }
 
-  // 2. Was I opened through a capsule link? (payload in the #fragment)
+  // 2. Was I opened through a capsule/bundle link? (payload in the #fragment)
   if (location.hash.length > 1) {
     try {
       const fromLink = await decodeFragment(location.hash)
       if (fromLink) {
-        navigate({ kind: "viewer", payload: fromLink, embedded: false, demo: false })
+        if (isBundlePayload(fromLink)) navigate({ kind: "shelf", payload: fromLink, embedded: false })
+        else navigate({ kind: "viewer", payload: fromLink, embedded: false, demo: false })
         return
       }
     } catch (e) {

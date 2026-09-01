@@ -83,6 +83,7 @@ export function openProModal(): void {
     ),
     h("div", { class: "price" }, PRO_PRICE, h("small", {}, "  one-time, forever")),
     feature("Attach files", "seal photos, documents, and recordings — up to 20 MB per capsule"),
+    feature("Bigger bundles", "24 “open when…” envelopes per bundle instead of 4"),
     feature("Longer letters", "100,000 characters instead of 4,000"),
     feature("Your mark, not ours", "remove the Ark footer and set a custom accent colour"),
     feature("Same zero-trust crypto", "free and Pro capsules are cryptographically identical"),

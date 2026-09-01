@@ -1,6 +1,11 @@
 import { base64ToBytes, base64UrlToBytes, bytesToBase64, bytesToBase64Url } from "./armor"
 import { FRAGMENT_INFLATED_MAX, QUICKNET_CHAIN_HASH } from "./config"
 import type { Beacon } from "./drand"
+import { isBundlePayload, validateBundle, type BundlePayload } from "./bundle"
+
+/** Everything a fragment or .html capsule can carry: a single sealed capsule
+ *  or an "open when…" bundle of envelopes. */
+export type AnyPayload = CapsulePayload | BundlePayload
 
 /** Everything a capsule carries besides the ciphertext itself. The title and
  *  timestamps are deliberately plaintext — a capsule should say what it is
@@ -46,7 +51,7 @@ export function makePayload(args: {
 // to any server: a capsule link on a static host is zero-knowledge hosting.
 // Format:  #c1.<base64url(deflate-raw(JSON))>   (c0 = uncompressed fallback)
 
-export async function encodeFragment(payload: CapsulePayload): Promise<string> {
+export async function encodeFragment(payload: AnyPayload): Promise<string> {
   const json = new TextEncoder().encode(JSON.stringify(payload))
   if (typeof CompressionStream !== "undefined") {
     const deflated = await pipeThrough(json, new CompressionStream("deflate-raw"))
@@ -55,7 +60,7 @@ export async function encodeFragment(payload: CapsulePayload): Promise<string> {
   return "c0." + bytesToBase64Url(json)
 }
 
-export async function decodeFragment(fragment: string): Promise<CapsulePayload | null> {
+export async function decodeFragment(fragment: string): Promise<AnyPayload | null> {
   const frag = fragment.startsWith("#") ? fragment.slice(1) : fragment
   let jsonBytes: Uint8Array
   if (frag.startsWith("c1.")) {
@@ -65,7 +70,9 @@ export async function decodeFragment(fragment: string): Promise<CapsulePayload |
   } else {
     return null
   }
-  const payload = JSON.parse(new TextDecoder().decode(jsonBytes)) as CapsulePayload
+  const parsed = JSON.parse(new TextDecoder().decode(jsonBytes)) as unknown
+  if (isBundlePayload(parsed)) return validateBundle(parsed)
+  const payload = parsed as CapsulePayload
   validatePayload(payload)
   return payload
 }
@@ -117,7 +124,7 @@ export const PAYLOAD_MARKER_ID = "ark-payload"
 const MARKER_OPEN = `<script id="${PAYLOAD_MARKER_ID}" type="application/json">`
 const MARKER_CLOSE = `</script>`
 
-export function injectCapsule(pristineHtml: string, payload: CapsulePayload): string {
+export function injectCapsule(pristineHtml: string, payload: AnyPayload): string {
   const start = pristineHtml.indexOf(MARKER_OPEN)
   if (start === -1) throw new Error("Payload marker missing from document")
   const bodyStart = start + MARKER_OPEN.length
@@ -128,11 +135,13 @@ export function injectCapsule(pristineHtml: string, payload: CapsulePayload): st
   return pristineHtml.slice(0, bodyStart) + json + pristineHtml.slice(end)
 }
 
-export function readEmbeddedCapsule(doc: Document): CapsulePayload | null {
+export function readEmbeddedCapsule(doc: Document): AnyPayload | null {
   const el = doc.getElementById(PAYLOAD_MARKER_ID)
   if (!el?.textContent) return null
-  const parsed = JSON.parse(el.textContent) as CapsulePayload | null
+  const parsed = JSON.parse(el.textContent) as unknown
   if (parsed === null) return null
-  validatePayload(parsed)
-  return parsed
+  if (isBundlePayload(parsed)) return validateBundle(parsed)
+  const payload = parsed as CapsulePayload
+  validatePayload(payload)
+  return payload
 }
