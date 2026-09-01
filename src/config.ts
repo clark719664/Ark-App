@@ -17,7 +17,7 @@ export const PAYMENT_LINK = "https://buy.stripe.com/REPLACE_ME"
 export const LICENSE_PUBLIC_KEY_HEX =
   "REPLACE_WITH_KEYGEN_OUTPUT"
 
-export const PRO_PRICE = "$29"
+export const PRO_PRICE = "$4.99"
 export const PRO_TIER = "ARK-PRO"
 
 // ─── Product limits ───────────────────────────────────────────────────────

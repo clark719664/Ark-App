@@ -78,7 +78,7 @@ will do — just sooner.
 ## The business: Ark Pro
 
 Free tier seals letters (4,000 chars) with every cryptographic guarantee.
-**Ark Pro** ($29, one-time) unlocks file attachments up to 20 MB, 100k-char
+**Ark Pro** ($4.99, one-time) unlocks file attachments up to 20 MB, 100k-char
 letters, custom accent colour, and brand-free capsules.
 
 Licenses are **Ed25519-signed keys verified offline** in the browser — no
@@ -96,7 +96,7 @@ server/webhook.mjs      zero-dependency Stripe webhook → auto-mint → email
 1. `npm run keygen` → paste the printed public key into
    `LICENSE_PUBLIC_KEY_HEX` in `src/config.ts`. Back up `secrets/`.
 2. Create a [Stripe Payment Link](https://stripe.com/payments/payment-links)
-   for a $29 product → paste its URL into `PAYMENT_LINK` in `src/config.ts`.
+   for a $4.99 product → paste its URL into `PAYMENT_LINK` in `src/config.ts`.
 3. Fulfillment, pick one:
    - **Manual (day one):** Stripe emails you on each sale → run
      `npm run sign-license -- buyer@email.com` → reply with the key.
