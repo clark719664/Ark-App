@@ -1,0 +1,144 @@
+{
+  "schema": "ark-security-audit/1",
+  "module": "security-audit",
+  "generated": "2026-09-01 00:23:27 UTC",
+  "site_name": "Demo Site (self-test)",
+  "client": "Example Client LLC",
+  "contact_name": "Pat Example",
+  "technician": "Ark Web Solutions",
+  "authorization": "SELF-TEST - no real machine was audited",
+  "host": {
+    "ComputerName": "FRONT-DESK-01",
+    "UserName": "reception",
+    "Elevated": true,
+    "OS": "Microsoft Windows 11 Pro",
+    "OSVersion": "10.0.22631 (build 22631)",
+    "Manufacturer": "Dell Inc.",
+    "Model": "OptiPlex 7090"
+  },
+  "summary": {
+    "good": 5,
+    "warn": 3,
+    "critical": 3,
+    "unknown": 1
+  },
+  "findings": [
+    {
+      "id": "defender_rtp",
+      "title": "Endpoint protection (antivirus)",
+      "category": "Endpoint protection",
+      "severity": "good",
+      "status": "On, definitions current",
+      "explanation": "Microsoft Defender is running with real-time protection on and recent virus definitions.",
+      "recommendation": ""
+    },
+    {
+      "id": "firewall",
+      "title": "Host firewall",
+      "category": "Network protection",
+      "severity": "critical",
+      "status": "Disabled on: Public",
+      "explanation": "The Windows firewall is off for the Public profile, so the machine accepts unsolicited inbound connections on untrusted networks.",
+      "recommendation": "Enable the firewall on all profiles (Set-NetFirewallProfile -All -Enabled True)."
+    },
+    {
+      "id": "bitlocker",
+      "title": "Disk encryption at rest",
+      "category": "Encryption",
+      "severity": "critical",
+      "status": "System drive NOT encrypted (FullyDecrypted / protection Off)",
+      "explanation": "The system drive is not encrypted. If the device is lost or stolen its data can be read directly.",
+      "recommendation": "Enable BitLocker on the system drive and escrow the recovery key."
+    },
+    {
+      "id": "patching",
+      "title": "Patch cadence (Windows Update)",
+      "category": "Patch management",
+      "severity": "warn",
+      "status": "Last patched 61 days ago",
+      "explanation": "The machine has not installed an update in over 45 days. Patch cadence should be monthly.",
+      "recommendation": "Run Windows Update and enable automatic updates."
+    },
+    {
+      "id": "builtin_admin",
+      "title": "Built-in Administrator account",
+      "category": "Account hygiene",
+      "severity": "warn",
+      "status": "Built-in Administrator is ENABLED",
+      "explanation": "The predictable built-in Administrator account is active, a common brute-force target.",
+      "recommendation": "Disable the built-in Administrator and use named admin accounts."
+    },
+    {
+      "id": "local_admins",
+      "title": "Local administrator accounts",
+      "category": "Account hygiene",
+      "severity": "good",
+      "status": "2 local administrator account(s)",
+      "explanation": "The local Administrators group is a reasonable size.",
+      "recommendation": ""
+    },
+    {
+      "id": "rdp",
+      "title": "Remote Desktop (RDP) exposure",
+      "category": "Remote access",
+      "severity": "critical",
+      "status": "RDP is ENABLED with Network Level Authentication OFF",
+      "explanation": "Remote Desktop accepts inbound connections without Network Level Authentication. RDP is a leading ransomware entry point.",
+      "recommendation": "Disable RDP if unused; otherwise require NLA, restrict to a VPN/jump host, and add MFA."
+    },
+    {
+      "id": "smb1",
+      "title": "SMBv1 file-sharing protocol",
+      "category": "Legacy protocols",
+      "severity": "good",
+      "status": "SMBv1 is disabled",
+      "explanation": "The obsolete SMBv1 protocol is turned off.",
+      "recommendation": ""
+    },
+    {
+      "id": "screenlock",
+      "title": "Automatic screen lock",
+      "category": "Account hygiene",
+      "severity": "warn",
+      "status": "Locks after 30 minutes (over 15)",
+      "explanation": "The machine locks when idle but the timeout is longer than the recommended 15 minutes.",
+      "recommendation": "Reduce the inactivity lock to 15 minutes or less."
+    },
+    {
+      "id": "password_policy",
+      "title": "Password policy",
+      "category": "Account hygiene",
+      "severity": "good",
+      "status": "Minimum length 12, lockout enabled",
+      "explanation": "The local password policy meets the recommended baseline.",
+      "recommendation": ""
+    },
+    {
+      "id": "guest",
+      "title": "Guest account",
+      "category": "Account hygiene",
+      "severity": "good",
+      "status": "Guest account is disabled",
+      "explanation": "The Guest account is disabled, as recommended.",
+      "recommendation": ""
+    },
+    {
+      "id": "autorun",
+      "title": "AutoRun / AutoPlay for removable media",
+      "category": "Legacy protocols",
+      "severity": "unknown",
+      "status": "AutoRun is not fully disabled",
+      "explanation": "AutoRun/AutoPlay is not disabled for all drive types; a malicious USB device can auto-execute.",
+      "recommendation": "Set NoDriveTypeAutoRun to 255."
+    },
+    {
+      "id": "domain",
+      "title": "Domain / workgroup membership",
+      "category": "Management",
+      "severity": "warn",
+      "status": "Workgroup / standalone: WORKGROUP",
+      "explanation": "The machine is not domain-joined, so security settings are managed one-by-one and can drift.",
+      "recommendation": "Consider central management so policy is applied consistently."
+    }
+  ]
+}

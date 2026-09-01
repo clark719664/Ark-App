@@ -7,7 +7,9 @@ and the inter-VLAN firewall rules that enforce your isolation intent.
 You describe the policy in plain English (`"guest cannot reach management"`,
 `"cameras isolated"`). netconfig turns it into real firewall rules **and then
 sanity-checks the generated config to prove every isolation statement is
-actually enforced** on every platform.
+enforced as an inter-VLAN forwarding rule** on every platform. That check
+covers VLAN-to-VLAN transit (the forward chain / LAN_IN rules), **not**
+host-to-router access — see [Safety notes](#safety-notes).
 
 This tool **only generates text**. It never talks to a device, so it is always
 safe to run. It still prints the authorization banner (you're handling a
@@ -130,6 +132,11 @@ Example (from `config.example.json`):
 - The tool never weakens security silently. The MikroTik input chain's final
   "drop everything else" is left **commented with a warning** so a paste can't
   lock you out; you uncomment it once you've confirmed management access.
+  Until you do, hosts on any VLAN — guest included — can still reach the
+  router's **own** services (Winbox/SSH/API/WebFig/DNS) on every router IP,
+  including the management-VLAN gateway. The isolation verification proves
+  **inter-VLAN forwarding** isolation only; it does **not** cover that
+  host-to-router path, which is closed solely by uncommenting that input drop.
 - No Wi-Fi passphrases in the design file — set them on the device at runtime.
 
 ## Testing

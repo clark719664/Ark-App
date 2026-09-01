@@ -1,0 +1,17 @@
+{
+  "site_name": "Joe's HVAC — Main Office",
+  "client": "Joe's HVAC LLC",
+  "contact_name": "Joe Marconi",
+  "contact_email": "joe@joeshvac.example",
+  "technician": "Ark Web Solutions / Tech: A. Reyes",
+  "authorization": "Joe's HVAC LLC / signed 2026-01-04",
+  "_help": {
+    "site_name": "Required. Physical site / building this machine belongs to. Shown on the report.",
+    "client": "Optional. Legal client name for the report + invoice trail. Defaults to site_name.",
+    "contact_name": "Optional. Primary client contact for follow-up on remediation.",
+    "contact_email": "Optional. Where the deliverable / questionnaire answers get sent.",
+    "technician": "Optional. Who ran the audit. Defaults to Ark Web Solutions.",
+    "authorization": "Optional. Signed authorization note for the report footer / audit trail.",
+    "_note": "insurance-report.py reads this config plus the audit JSON produced by Invoke-SecurityAudit.ps1. The PowerShell scripts read the machine directly and do not need this file, but you pass site/authorization to them on the command line."
+  }
+}

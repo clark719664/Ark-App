@@ -93,17 +93,30 @@ def port_label(port: int) -> str:
     return f"{port}/{meta['svc']}" if meta else str(port)
 
 
+MAX_HOSTS = 65536  # refuse ranges larger than a /16 so a fat-fingered mask fails loudly
+
+
 def validate_cidrs(cidrs):
-    """Return list of (cidr, host_count); raise ValueError on bad/public range."""
+    """Return list of (cidr, host_count); raise ValueError on bad/public/oversized range."""
     import ipaddress
     out = []
     for cidr in cidrs:
+        if not isinstance(cidr, str):
+            raise ValueError(
+                f"cidrs entry must be a string like \"192.168.1.0/24\", got {cidr!r}.")
         net = ipaddress.ip_network(cidr, strict=False)
+        if net.version != 4:
+            raise ValueError(
+                f"{cidr} is not an IPv4 range — this tool scans IPv4 (RFC-1918) only.")
         if not net.is_private:
             raise ValueError(
                 f"{cidr} is not a private (RFC-1918) range — refusing to scan.")
-        # host count (usable addresses); /31 and /32 handled by hosts()
-        count = sum(1 for _ in net.hosts()) or net.num_addresses
+        # Count arithmetically (never iterate — a huge mask would hang the dry run).
+        count = net.num_addresses - (2 if net.prefixlen < 31 else 0) or net.num_addresses
+        if count > MAX_HOSTS:
+            raise ValueError(
+                f"{cidr} covers {count:,} hosts — larger than the {MAX_HOSTS:,} (a /16) "
+                f"cap. Narrow the range (scan one subnet at a time).")
         out.append((cidr, count))
     return out
 

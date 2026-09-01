@@ -14,7 +14,7 @@
   "vlans": [
     {
       "id": 10,
-      "name": "management",
+      "name": "Management",
       "subnet": "10.10.10.0/24",
       "gateway": "10.10.10.1",
       "purpose": "Network gear + admin workstation (router, switch, AP, NVR admin)",
@@ -28,7 +28,7 @@
     },
     {
       "id": 20,
-      "name": "staff",
+      "name": "Staff",
       "subnet": "10.10.20.0/24",
       "gateway": "10.10.20.1",
       "purpose": "Front-desk and operatory workstations, practice-management PCs",
@@ -42,7 +42,7 @@
     },
     {
       "id": 30,
-      "name": "cameras",
+      "name": "Cameras",
       "subnet": "10.10.30.0/24",
       "gateway": "10.10.30.1",
       "purpose": "IP cameras + NVR. No internet, isolated from everything except staff viewing.",
@@ -56,7 +56,7 @@
     },
     {
       "id": 40,
-      "name": "guest",
+      "name": "Guest",
       "subnet": "10.10.40.0/24",
       "gateway": "10.10.40.1",
       "purpose": "Waiting-room guest Wi-Fi. Internet only, no access to any internal VLAN.",

@@ -10,7 +10,10 @@ timestamped log + the generated config files to the field kit's reports folder.
 The star feature: you describe the inter-VLAN policy in plain English under
 firewall.intent (e.g. "guest cannot reach management", "cameras isolated") and
 this tool turns it into real firewall rules -- then SANITY-CHECKS the generated
-config to prove every isolation statement is actually enforced.
+config to prove every isolation statement is enforced as inter-VLAN FORWARDING
+rules. (Host-to-router access -- e.g. the MikroTik input chain reaching the
+router's own Winbox/SSH/DNS -- is out of scope of that check; see the README
+safety notes.)
 
 Standard library only. Runs on any laptop / WSL with nothing to install.
 
@@ -190,7 +193,33 @@ def validate_design(raw: dict) -> dict:
             "purpose": v.get("purpose", "") or "", "internet": internet, "dhcp": dhcp,
         })
 
-    name_to_vlan = {vl["name"].lower(): vl for vl in vlans}
+    # Generated device resources (MikroTik pool-/dhcp- names, Cisco ACL/DHCP-pool
+    # names) are derived from the VLAN name via slugify()/_ios_name(). Two names
+    # that differ only in punctuation or case can collapse to the same token and
+    # silently produce duplicate resources (e.g. 'cam a' and 'cam-a' both slugify
+    # to 'cam-a'), so detect the collision here and fail loudly naming both VLANs.
+    slug_seen, ios_seen = {}, {}
+    for vl in vlans:
+        s = vl["slug"]
+        if s in slug_seen:
+            raise ConfigError(
+                f"VLAN names '{slug_seen[s]}' and '{vl['name']}' both reduce to the "
+                f"MikroTik resource name 'pool-{s}'/'dhcp-{s}'. Rename one so they "
+                "differ by more than punctuation.")
+        slug_seen[s] = vl["name"]
+        ios = _ios_name(vl["name"])
+        if ios in ios_seen:
+            raise ConfigError(
+                f"VLAN names '{ios_seen[ios]}' and '{vl['name']}' both reduce to the "
+                f"Cisco resource name '{ios}' (ACL-{ios}-IN / DHCP pool). Rename one "
+                "so they differ by more than case or punctuation.")
+        ios_seen[ios] = vl["name"]
+
+    # Key by the EXACT VLAN name so these match the policy-matrix keys used by
+    # build_policy() and verify(); a separate lowercased alias map handles the
+    # case-insensitive resolution of user-typed intent / extra_rule endpoints.
+    name_to_vlan = {vl["name"]: vl for vl in vlans}
+    name_to_vlan_ci = {vl["name"].lower(): vl for vl in vlans}
     id_to_vlan = {vl["id"]: vl for vl in vlans}
 
     # --- guest wifi ---
@@ -221,6 +250,11 @@ def validate_design(raw: dict) -> dict:
     default = str(fw_raw.get("inter_vlan_default", "deny")).lower()
     if default not in ("deny", "allow"):
         raise ConfigError("firewall.inter_vlan_default must be \"deny\" or \"allow\".")
+    if default == "allow":
+        # CONVENTIONS.md #7: a blanket-allow posture must be surfaced, not silent.
+        warnings.append(
+            "inter_vlan_default=allow: all VLANs can reach each other unless "
+            "explicitly denied -- confirm this blanket-allow posture is intended.")
     intent = fw_raw.get("intent", []) or []
     if not isinstance(intent, list) or not all(isinstance(x, str) for x in intent):
         raise ConfigError("firewall.intent must be a list of plain-English strings.")
@@ -230,7 +264,8 @@ def validate_design(raw: dict) -> dict:
 
     design = {
         "site": site.strip(), "operator": operator, "wan": wan, "lan": lan,
-        "vlans": vlans, "name_to_vlan": name_to_vlan, "id_to_vlan": id_to_vlan,
+        "vlans": vlans, "name_to_vlan": name_to_vlan,
+        "name_to_vlan_ci": name_to_vlan_ci, "id_to_vlan": id_to_vlan,
         "guest_wifi": guest_wifi,
         "firewall": {"default": default, "intent": intent, "extra_rules": extra_rules},
         "warnings": warnings,
@@ -289,15 +324,20 @@ def _strip_target(tok: str) -> str:
 
 
 def _resolve_target(tok: str, design: dict):
-    """Return ('any',) | ('net',) | ('vlan', name) | None for a target phrase."""
-    raw = tok.strip()
+    """Return ('any',) | ('net',) | ('vlan', name) | None for a target phrase.
+
+    Case-insensitive: intent text arrives pre-lowercased via _normalize(), but
+    structured extra_rule endpoints arrive as raw JSON, so normalize the case
+    here in one place. Returns the VLAN's canonical (original-case) name.
+    """
+    raw = tok.strip().lower()
     t = _strip_target(raw)
     if raw in _ANY_WORDS or t in _ANY_WORDS:
         return ("any",)
     if raw in _NET_WORDS or t in _NET_WORDS:
         return ("net",)
-    if t in design["name_to_vlan"]:
-        return ("vlan", design["name_to_vlan"][t]["name"])
+    if t in design["name_to_vlan_ci"]:
+        return ("vlan", design["name_to_vlan_ci"][t]["name"])
     m = re.match(r"^vlan\s*0*(\d+)$", t)
     if m and int(m.group(1)) in design["id_to_vlan"]:
         return ("vlan", design["id_to_vlan"][int(m.group(1))]["name"])
@@ -1072,6 +1112,12 @@ def verify(design: dict, matrix: dict, generated: dict, log: fieldkit.Logger):
     else:
         log.log("[FAIL] One or more isolation rules are MISSING from a generated config. "
                 "Do NOT ship this until resolved.")
+    log.log("[note] Scope: this proves inter-VLAN FORWARDING isolation only (the forward")
+    log.log("       chain / LAN_IN rules). It does NOT prove a denied VLAN cannot reach the")
+    log.log("       router's OWN services (Winbox/SSH/API/WebFig/DNS) on the router IPs,")
+    log.log("       including the management gateway. On MikroTik that host-to-router")
+    log.log("       exposure is closed only once you uncomment the input-chain 'drop all")
+    log.log("       other input' line after confirming management access.")
     return all_ok, rows
 
 
@@ -1381,8 +1427,8 @@ def _self_test_asserts(design, log) -> bool:
 
     # guest is denied to management/staff/cameras in all three (isolation intent)
     def has_deny(src, dst):
-        s = design["name_to_vlan"][src]
-        d = design["name_to_vlan"][dst]
+        s = design["name_to_vlan_ci"][src]
+        d = design["name_to_vlan_ci"][dst]
         m = _text_denies("mikrotik", mk, s, d, design)
         c = _text_denies("cisco", cs, s, d, design)
         u = _text_denies("unifi", uni, s, d, design)
@@ -1394,7 +1440,7 @@ def _self_test_asserts(design, log) -> bool:
                              f"({m}/{c}/{u})")
 
     # cameras have no internet, everywhere
-    cam = design["name_to_vlan"]["cameras"]
+    cam = design["name_to_vlan_ci"]["cameras"]
     check(_text_denies("mikrotik", mk, cam, None, design), "cameras -> internet denied (mikrotik)")
     check(_text_denies("cisco", cs, cam, None, design), "cameras -> internet denied (cisco)")
     check(_text_denies("unifi", uni, cam, None, design), "cameras -> internet denied (unifi)")

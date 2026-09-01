@@ -1,0 +1,52 @@
+{
+  "site_name": "Joe's HVAC — Main Office",
+  "client": "Joe's HVAC LLC",
+  "technician": "Ark Web Solutions / Tech: A. Reyes",
+  "authorized": "Joe's HVAC — care plan / signed 2026-01-04",
+
+  "watch": [
+    { "name": "Gateway / firewall", "host": "192.168.1.1" },
+    { "name": "Line-of-business server (RDP)", "host": "192.168.1.10", "port": 3389 },
+    { "name": "Company website", "url": "https://example.com" },
+    { "name": "NAS admin panel", "host": "192.168.1.30", "port": 5001 }
+  ],
+
+  "disks": [
+    { "name": "System drive", "path": "C:\\", "min_free_pct": 10, "warn_free_pct": 20 },
+    { "name": "Backup volume", "path": "D:\\", "min_free_pct": 15 }
+  ],
+
+  "backups": [
+    { "name": "Nightly SQL dump", "path": "D:\\Backups\\sql", "max_age_hours": 26 },
+    { "name": "Weekly image", "path": "D:\\Backups\\image", "max_age_hours": 192, "min_size_bytes": 1000000 }
+  ],
+
+  "checks": {
+    "windows_firewall": true,
+    "pending_reboot": true
+  },
+
+  "reporting": {
+    "ntfy_topic_env": "ARK_NTFY_TOPIC",
+    "ntfy_server": "https://ntfy.sh",
+    "webhook_url_env": "ARK_WEBHOOK_URL",
+    "alert_on": "problem"
+  },
+
+  "http_timeout": 15,
+  "tcp_timeout": 5,
+  "ping_timeout": 4,
+
+  "_help": {
+    "site_name": "Required. Client site/building name — stamped on every report and alert.",
+    "client": "Optional. Legal client name for the deliverable + invoice trail.",
+    "technician": "Optional. Who set the agent up. Defaults to Ark Web Solutions.",
+    "authorized": "Optional. Free-text note of the signed authorization, logged each run. --authorized on the command line overrides it.",
+    "watch": "List of things to check for reachability. Each entry is one of: {\"url\": \"https://...\"} (HTTP GET, up = status < 400 or 401/403); {\"host\": \"1.2.3.4\", \"port\": 3389} (TCP connect); or {\"host\": \"1.2.3.4\"} (ping). Add \"name\" for a friendly label. HTTPS with a self-signed/internal cert (NAS, router, camera, iDRAC/ESXi) is reported as WARN 'up but cert untrusted', not a false outage — use the TCP-port form for a simple up/down check, or add \"insecure\": true to a url entry to skip cert verification.",
+    "disks": "List of local paths to check free space. min_free_pct = PROBLEM below this, warn_free_pct = WARN below this. Use the machine THIS agent runs on (C:\\, D:\\ on Windows; / or /mnt/... on Linux).",
+    "backups": "List of expected backup files/dirs. If a dir, the newest file inside is used. max_age_hours = PROBLEM when older (backup didn't run). Optional min_size_bytes = WARN if the newest backup is smaller than expected.",
+    "checks": "Best-effort Windows posture checks. windows_firewall and pending_reboot are automatically skipped (not failed) on non-Windows hosts.",
+    "reporting": "How alerts go out. SECRETS come from env vars: set ntfy_topic_env / webhook_url_env to the NAME of an environment variable holding the secret (preferred so it never lands on disk). You may instead put ntfy_topic / webhook_url directly here, but the agent will warn you. alert_on: 'problem' (default), 'warn' (also alert on warnings), or 'always' (heartbeat — send every run, useful as a dead-man's switch).",
+    "timeouts": "http_timeout / tcp_timeout / ping_timeout are optional seconds-per-check overrides."
+  }
+}

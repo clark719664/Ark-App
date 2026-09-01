@@ -1,0 +1,46 @@
+{
+  "site_name": "Joe's HVAC — Front Desk PC",
+  "client": "Joe's HVAC LLC",
+  "technician": "Ark Web Solutions / Tech: A. Reyes",
+
+  "upgrade_source": "installationassistant",
+  "iso_path": "",
+  "installation_assistant_url": "https://go.microsoft.com/fwlink/?linkid=2171764",
+  "min_free_gb": 25,
+
+  "computer_name": "HVAC-FRONT01",
+  "workgroup": "HVAC",
+  "domain": "",
+  "timezone": "Eastern Standard Time",
+  "power_plan": "Balanced",
+  "monitor_timeout_min": 15,
+  "winget_apps": [
+    "Google.Chrome",
+    "Mozilla.Firefox",
+    "7zip.7zip",
+    "Adobe.Acrobat.Reader.64-bit",
+    "Microsoft.PowerToys"
+  ],
+
+  "debloat_extra": [],
+  "debloat_keep": [],
+
+  "_help": {
+    "site_name": "Required for all scripts. Site/PC label shown on logs and reports.",
+    "client": "Optional. Legal client name for the invoice trail.",
+    "technician": "Optional. Who ran the work.",
+    "upgrade_source": "Win11-Upgrade: 'installationassistant' (download + run MS assistant) or 'iso' (use iso_path).",
+    "iso_path": "Win11-Upgrade: full path to a Windows 11 ISO when upgrade_source is 'iso'. Ignored otherwise.",
+    "installation_assistant_url": "Win11-Upgrade: override the assistant download URL if needed. Default is Microsoft's fwlink.",
+    "min_free_gb": "Win11-Upgrade: minimum free GB required on the system drive before upgrading (default 25).",
+    "computer_name": "New-PC-Setup: rename the PC to this. Leave empty to skip renaming.",
+    "workgroup": "New-PC-Setup: workgroup to join. Leave empty to skip. Ignored if 'domain' is set.",
+    "domain": "New-PC-Setup: AD domain to join. Prompts for credentials at runtime (never stored). Leave empty to skip.",
+    "timezone": "New-PC-Setup: Windows timezone Id, e.g. 'Eastern Standard Time'. List with: Get-TimeZone -ListAvailable.",
+    "power_plan": "New-PC-Setup: 'Balanced', 'High performance', or 'Power saver'.",
+    "monitor_timeout_min": "New-PC-Setup: minutes before the display (monitor) turns off on AC power. This is the monitor-off timeout only - it does not lock the screen or put the PC to sleep.",
+    "winget_apps": "New-PC-Setup: list of exact winget package IDs to install. Already-installed apps are skipped.",
+    "debloat_extra": "Debloat: extra Appx package name patterns to ADD to the curated removal list.",
+    "debloat_keep": "Debloat: Appx package name patterns to REMOVE from the removal list (keep them installed)."
+  }
+}
