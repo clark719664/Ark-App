@@ -1,4 +1,4 @@
-import { defineConfig } from "vite"
+import { configDefaults, defineConfig } from "vitest/config"
 import { viteSingleFile } from "vite-plugin-singlefile"
 
 // Ark ships as ONE self-contained HTML file. No CDN, no external fonts, no
@@ -12,5 +12,10 @@ export default defineConfig({
     // Everything must inline; never emit separate asset files.
     assetsInlineLimit: Number.MAX_SAFE_INTEGER,
     chunkSizeWarningLimit: 4096,
+  },
+  test: {
+    // Open When (openwhen/) ships its own zero-dependency Node test runner —
+    // `npm test` chains it after vitest.
+    exclude: [...configDefaults.exclude, "openwhen/**"],
   },
 })

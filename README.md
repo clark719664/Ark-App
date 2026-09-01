@@ -146,6 +146,21 @@ No framework, no analytics, no CDN, no cookies. Dependencies that ship to the
 browser: `tlock-js`, `drand-client`, `@noble/curves`, `@noble/ed25519` —
 audited primitives, ~280 KB total, inlined into the single file.
 
+## Also aboard: Open When 💌
+
+This repo carries a sister product in [`openwhen/`](openwhen/): **Open When** —
+bundles of sealed "open when…" letters (*open when you can't sleep, open on
+the morning of the big day*) delivered as a single private link, with a
+wax-seal-cracking ritual and stationery choices. Same philosophy, opposite
+temperament: the letters live inside the link itself (no server, no accounts),
+but its date locks are sealed by **trust**, like paper — where Ark's are sealed
+by mathematics. One warm, one cosmic; both are single HTML files that outlive
+their maker. `npm run test:openwhen` runs its suite; open
+`openwhen/index.html` to try it.
+
+A natural future integration: an Open When envelope whose date lock is a real
+Ark timelock — the paper ritual with the cryptographic padlock.
+
 ---
 
 *The future is a place. Ark is how you send something there.*

@@ -1,0 +1,1331 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="Write a bundle of sealed 'open when…' letters — open when you can't sleep, open on the morning of the big day — and send them as a single private link. No accounts, no server: the letters live inside the link itself.">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💌</text></svg>">
+<!-- ARTIFACT:HEAD:BEGIN -->
+<title>Open When</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Caveat:wght@500;600&family=Fraunces:opsz,wght@9..144,500;9..144,640&display=swap" rel="stylesheet">
+<style>
+/* ---------- tokens ---------- */
+:root{
+  --bg:#f5efe3;
+  --surface:#fdfaf2;
+  --surface-2:#f3ecdd;
+  --ink:#31271a;
+  --muted:#84765f;
+  --line:#e2d7c2;
+  --accent:#9c3b2a;          /* sealing wax */
+  --accent-ink:#fff6ee;
+  --accent-soft:#f0dfd0;
+  --gold:#b98a3c;
+  --shadow:0 2px 6px rgba(70,50,20,.08),0 12px 32px rgba(70,50,20,.10);
+  --paper-classic:#fffdf4; --paper-classic-ink:#33291b;
+  --paper-hand:#fffcf0;    --paper-hand-ink:#3c3221;
+  --paper-type:#f5eedb;    --paper-type-ink:#3a3126;
+  --paper-night:#252a3d;   --paper-night-ink:#e7eafb;
+  color-scheme:light dark;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#191310;
+    --surface:#231b15;
+    --surface-2:#2b221a;
+    --ink:#ece1cd;
+    --muted:#a2917a;
+    --line:#3b3123;
+    --accent:#c65b41;
+    --accent-ink:#fff3ea;
+    --accent-soft:#3d2a20;
+    --gold:#caa05a;
+    --shadow:0 2px 6px rgba(0,0,0,.35),0 14px 36px rgba(0,0,0,.45);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#191310;
+  --surface:#231b15;
+  --surface-2:#2b221a;
+  --ink:#ece1cd;
+  --muted:#a2917a;
+  --line:#3b3123;
+  --accent:#c65b41;
+  --accent-ink:#fff3ea;
+  --accent-soft:#3d2a20;
+  --gold:#caa05a;
+  --shadow:0 2px 6px rgba(0,0,0,.35),0 14px 36px rgba(0,0,0,.45);
+}
+
+/* ---------- base ---------- */
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--bg);color:var(--ink);
+  font:16px/1.55 system-ui,-apple-system,"Segoe UI",sans-serif;
+  min-height:100vh;
+}
+h1,h2,h3,.wordmark{font-family:"Fraunces",Georgia,"Times New Roman",serif;font-weight:640;letter-spacing:.005em;margin:0 0 .35em}
+h1{font-size:clamp(1.9rem,5.2vw,2.7rem);line-height:1.15}
+h2{font-size:1.35rem}
+h3{font-size:1.05rem}
+p{margin:.4em 0}
+a{color:var(--accent)}
+button{font:inherit;color:inherit;cursor:pointer}
+[hidden]{display:none!important}
+.container{max-width:820px;margin:0 auto;padding:0 18px 80px}
+.muted{color:var(--muted)}
+.small{font-size:.86rem}
+
+/* ---------- header ---------- */
+.top{display:flex;align-items:center;gap:10px;padding:18px 0 6px}
+.wordmark{font-size:1.25rem;text-decoration:none;color:var(--ink);display:flex;align-items:center;gap:8px;white-space:nowrap}
+@media (max-width:560px){.top .tag{display:none}}
+.wordmark .heart{font-size:1.3rem}
+.top .tag{margin-left:auto;color:var(--muted);font-size:.85rem;font-style:italic}
+
+/* ---------- hero ---------- */
+.hero{padding:26px 0 8px}
+.hero .lede{font-size:1.06rem;max-width:56ch}
+.hero .open-when{font-family:"Caveat",cursive;font-size:1.5em;color:var(--accent);white-space:nowrap}
+.how{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px;margin:22px 0 6px}
+.how .step{background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:12px 14px;font-size:.92rem}
+.how .step b{display:block;font-family:"Fraunces",Georgia,serif;margin-bottom:2px}
+.privacy-line{font-size:.88rem;color:var(--muted);margin-top:14px}
+
+/* ---------- cards & inputs ---------- */
+.card{background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px;margin:18px 0;box-shadow:var(--shadow)}
+.field{display:flex;flex-direction:column;gap:4px;margin:10px 0}
+.field label{font-size:.85rem;color:var(--muted)}
+input[type=text],input[type=date],textarea,select{
+  font:inherit;font-size:16px;color:var(--ink);
+  background:var(--surface-2);border:1px solid var(--line);border-radius:10px;
+  padding:10px 12px;width:100%;
+}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible,.chip:focus-visible,.envelope:focus-visible{
+  outline:2px solid var(--accent);outline-offset:2px;
+}
+textarea{resize:vertical;min-height:130px;white-space:pre-wrap}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+@media (max-width:560px){.two-col{grid-template-columns:1fr}}
+
+.btn{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:9px 14px;font-size:.95rem}
+.btn:hover{border-color:var(--muted)}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600}
+.btn-primary:hover{filter:brightness(1.07)}
+.btn-quiet{background:none;border:none;color:var(--muted);text-decoration:underline;padding:4px}
+.btn-row{display:flex;flex-wrap:wrap;gap:10px;margin-top:12px}
+
+/* ---------- moment chips ---------- */
+.mcat{margin:14px 0 4px;font-size:.8rem;text-transform:uppercase;letter-spacing:.12em;color:var(--muted)}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--surface-2);border:1px solid var(--line);border-radius:999px;padding:7px 13px;font-size:.92rem;display:inline-flex;gap:6px;align-items:center}
+.chip:hover{border-color:var(--accent)}
+.chip .n{background:var(--accent);color:var(--accent-ink);font-size:.72rem;border-radius:999px;min-width:17px;height:17px;line-height:17px;text-align:center;font-weight:700}
+
+/* ---------- letter editor cards ---------- */
+.letter-card{position:relative}
+.letter-card .lc-head{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.letter-card .lc-open-when{font-family:"Caveat",cursive;font-size:1.35rem;color:var(--accent);white-space:nowrap}
+.letter-card .lc-moment{flex:1;min-width:180px;font-family:"Fraunces",Georgia,serif;font-size:1.15rem;background:none;border:none;border-bottom:1px dashed var(--line);border-radius:0;padding:4px 2px;color:var(--ink)}
+.letter-card .lc-del{position:absolute;top:14px;right:14px;background:none;border:none;color:var(--muted);font-size:1.1rem;padding:4px 8px}
+.letter-card .lc-del:hover{color:var(--accent)}
+.hint{font-size:.88rem;color:var(--muted);font-style:italic;margin:6px 0 8px}
+.counter{font-size:.78rem;color:var(--muted);text-align:right;margin-top:2px}
+.counter.warn{color:var(--accent)}
+.opts{display:flex;flex-wrap:wrap;gap:18px;margin-top:12px;align-items:flex-start}
+.opt-group{display:flex;flex-direction:column;gap:6px}
+.opt-group>span{font-size:.78rem;color:var(--muted)}
+.swatches{display:flex;gap:7px}
+.swatch{width:30px;height:30px;border-radius:8px;border:2px solid transparent;padding:0}
+.swatch[aria-pressed="true"]{border-color:var(--ink);box-shadow:0 0 0 2px var(--surface)}
+.swatch.st{display:grid;place-items:center;font-size:.8rem;border:1px solid var(--line);width:34px;height:30px}
+.swatch.st[aria-pressed="true"]{border:2px solid var(--ink)}
+.datelock{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.datelock input[type=date]{width:auto}
+
+/* ---------- meter / seal / result ---------- */
+.meter{display:flex;align-items:center;gap:10px;font-size:.9rem;margin:8px 0 4px}
+.meter .dot{width:11px;height:11px;border-radius:50%;flex:none}
+.meter .dot.g{background:#4c8a52}.meter .dot.a{background:#c8922e}.meter .dot.o{background:#c2611f}.meter .dot.r{background:#ab2f25}
+.result .linkbox{width:100%;font-size:.82rem;color:var(--muted);background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:10px;word-break:break-all;max-height:96px;overflow:auto;user-select:all}
+.checklist{margin:12px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:6px;font-size:.92rem}
+.checklist li::before{content:"✉️ ";}
+.tip-card{margin-top:16px;padding:14px;border:1px dashed var(--gold);border-radius:12px;font-size:.92rem;background:var(--surface-2)}
+.tip-card a{color:var(--gold);font-weight:600}
+
+/* ---------- opener ---------- */
+.open-hero{padding:40px 0 20px;text-align:center}
+.open-hero .from-line{font-family:"Caveat",cursive;font-size:1.6rem;color:var(--accent)}
+.shelf-head{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin:8px 0 16px}
+.shelf-head .progress{margin-left:auto;font-size:.85rem;color:var(--muted)}
+.shelf{display:grid;grid-template-columns:repeat(auto-fill,minmax(158px,1fr));gap:16px}
+.mute-toggle{position:fixed;right:14px;bottom:14px;z-index:40;background:var(--surface);border:1px solid var(--line);border-radius:999px;width:42px;height:42px;font-size:1.1rem;box-shadow:var(--shadow)}
+
+/* ---------- envelopes ---------- */
+.envelope{
+  position:relative;aspect-ratio:5/4;border:none;border-radius:8px;
+  box-shadow:var(--shadow);padding:0;overflow:hidden;
+  transition:transform .18s ease;
+  color:#3a3026;
+}
+.envelope:hover{transform:translateY(-3px)}
+.env-flap{position:absolute;inset:0 0 auto 0;height:58%;clip-path:polygon(0 0,100% 0,50% 100%);transform-origin:top center;transition:transform .45s ease;z-index:2}
+.env-body{position:absolute;inset:0;z-index:1}
+.env-body::after{content:"";position:absolute;inset:0;background:linear-gradient(160deg,rgba(255,255,255,.16),rgba(0,0,0,.06) 70%)}
+.env-label{position:absolute;left:8%;right:8%;bottom:8%;z-index:3;text-align:center;font-size:.9rem;line-height:1.3}
+.env-label em{display:block;font-family:"Caveat",cursive;font-style:normal;font-size:1.05rem;opacity:.8}
+.env-lock{position:absolute;top:6px;right:8px;z-index:4;font-size:.68rem;background:rgba(40,30,20,.65);color:#f4ead9;border-radius:999px;padding:2px 8px}
+.envelope.opened .env-flap{transform:rotateX(178deg);opacity:.85}
+.envelope.opened{opacity:.82}
+.envelope.opened .env-label{opacity:.75}
+.envelope.locked{cursor:not-allowed}
+@keyframes wiggle{0%,100%{transform:rotate(0)}25%{transform:rotate(-2.2deg)}75%{transform:rotate(2.2deg)}}
+.envelope.wiggling{animation:wiggle .3s ease 2}
+
+/* env colors */
+.env-rose .env-body{background:#d9a7a3}.env-rose .env-flap{background:#c48a86}
+.env-sage .env-body{background:#b3c2a4}.env-sage .env-flap{background:#98ab88}
+.env-dusk .env-body{background:#a4b6cc}.env-dusk .env-flap{background:#8899b3}
+.env-sand .env-body{background:#dbc69d}.env-sand .env-flap{background:#c4ab7c}
+.env-plum .env-body{background:#b7a0c4}.env-plum .env-flap{background:#9d84ad}
+
+/* ---------- wax seal ---------- */
+.seal{position:absolute;left:50%;top:36%;translate:-50% -50%;width:44px;height:44px;z-index:3;pointer-events:none}
+.seal .half{
+  position:absolute;inset:0;border-radius:50%;
+  background:radial-gradient(circle at 34% 30%,#c05a44,#8e2f27 62%,#75251f);
+  box-shadow:inset 0 0 0 3px rgba(255,230,200,.18),0 1px 3px rgba(40,10,0,.4);
+  display:grid;place-items:center;color:#f2dcc8;font-family:"Fraunces",Georgia,serif;font-weight:640;font-size:1.05rem;
+  transition:transform .3s ease,opacity .3s ease;
+}
+.seal .half.l{clip-path:polygon(0 0,56% 0,44% 26%,58% 52%,46% 77%,53% 100%,0 100%)}
+.seal .half.r{clip-path:polygon(56% 0,100% 0,100% 100%,53% 100%,46% 77%,58% 52%,44% 26%)}
+.seal.cracked .half.l{transform:translate(-11px,4px) rotate(-14deg);opacity:0}
+.seal.cracked .half.r{transform:translate(11px,-3px) rotate(12deg);opacity:0}
+.seal .frag{position:absolute;width:5px;height:5px;border-radius:2px;background:#8e2f27;left:50%;top:50%;opacity:0}
+.seal.cracked .frag{animation:frag .5s ease forwards}
+.seal.cracked .frag.f2{animation-delay:.04s}
+.seal.cracked .frag.f3{animation-delay:.08s}
+@keyframes frag{
+  0%{opacity:1;transform:translate(0,0) rotate(0)}
+  100%{opacity:0;transform:translate(var(--fx,14px),var(--fy,18px)) rotate(160deg)}
+}
+
+/* ---------- opening ritual ---------- */
+.ritual{position:fixed;inset:0;z-index:50;display:grid;place-items:center;background:rgba(28,21,14,.45);background:color-mix(in srgb,var(--bg) 88%,black 4%);backdrop-filter:blur(3px);padding:14px;overflow:auto}
+.ritual-stage{position:relative;width:min(430px,92vw)}
+.ritual .envelope{width:100%;cursor:pointer}
+.ritual .seal{width:64px;height:64px;pointer-events:auto;cursor:pointer}
+.ritual .seal .half{font-size:1.5rem}
+.ritual .tap-hint{text-align:center;color:var(--muted);font-size:.9rem;margin-top:14px}
+.ritual .ritual-close{position:fixed;top:12px;right:14px;font-size:1.5rem;background:none;border:none;color:var(--muted);z-index:60;padding:6px 10px}
+.ritual.reading{place-items:start center}
+
+/* ---------- letter paper ---------- */
+.letter-paper{
+  width:min(560px,94vw);border-radius:6px;box-shadow:var(--shadow);
+  padding:34px 30px 28px;margin:36px auto 90px;position:relative;
+  background:var(--paper-classic);color:var(--paper-classic-ink);
+}
+.letter-paper::before{content:"";position:absolute;inset:0;border-radius:6px;pointer-events:none;
+  background:url('data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="140" height="140"><filter id="n"><feTurbulence type="fractalNoise" baseFrequency=".9" numOctaves="2"/><feColorMatrix values="0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 0 .05 0"/></filter><rect width="140" height="140" filter="url(%23n)"/></svg>');
+  opacity:.5}
+.letter-paper .lp-head{font-size:.8rem;text-transform:uppercase;letter-spacing:.16em;opacity:.6;margin-bottom:4px}
+.letter-paper .lp-moment{font-family:"Fraunces",Georgia,serif;font-size:1.45rem;line-height:1.2;margin-bottom:18px}
+.letter-paper .lp-body{white-space:pre-wrap;overflow-wrap:break-word;font-size:1.02rem;line-height:1.65}
+.letter-paper .lp-sign{margin-top:26px;font-family:"Caveat",cursive;font-size:1.5rem}
+.letter-paper .lp-lockednote{margin-top:18px;font-size:.8rem;opacity:.6;font-style:italic}
+.letter-paper.st-hand{background:var(--paper-hand);color:var(--paper-hand-ink)}
+.letter-paper.st-hand .lp-body{font-family:"Caveat",cursive;font-size:1.45rem;line-height:1.5}
+.letter-paper.st-type{background:var(--paper-type);color:var(--paper-type-ink)}
+.letter-paper.st-type .lp-body,.letter-paper.st-type .lp-moment{font-family:"Courier New",Courier,monospace}
+.letter-paper.st-night{background:var(--paper-night);color:var(--paper-night-ink)}
+.letter-paper .lp-back{margin-top:24px}
+@keyframes paper-rise{from{transform:translateY(46px);opacity:0}to{transform:translateY(0);opacity:1}}
+.letter-paper.rising{animation:paper-rise .5s ease}
+
+/* ---------- toast / footer / misc ---------- */
+.toast{position:fixed;left:50%;bottom:22px;translate:-50% 0;z-index:70;background:var(--ink);color:var(--bg);padding:10px 18px;border-radius:999px;font-size:.9rem;box-shadow:var(--shadow);max-width:88vw;text-align:center}
+.site-footer{margin-top:44px;padding-top:18px;border-top:1px solid var(--line);font-size:.85rem;color:var(--muted)}
+.site-footer a{color:var(--muted)}
+.loop-card{margin-top:26px;text-align:center;padding:22px}
+.loop-card .cta{font-family:"Caveat",cursive;font-size:1.5rem;color:var(--accent)}
+.err-card{text-align:center;padding:34px 20px}
+.err-card .torn{font-size:2rem}
+@media (prefers-reduced-motion: reduce){
+  *,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
+}
+@media print{
+  .top,.site-footer,.mute-toggle,.btn,.btn-row{display:none!important}
+}
+</style>
+<!-- ARTIFACT:HEAD:END -->
+</head>
+<body>
+<!-- ARTIFACT:BODY:BEGIN -->
+<div class="container">
+
+  <header class="top">
+    <a class="wordmark" href="#" id="home-link"><span class="heart">💌</span> Open When</a>
+    <span class="tag">letters for the moments that need them</span>
+  </header>
+
+  <!-- ============================== COMPOSER ============================== -->
+  <main id="view-compose" hidden>
+    <section class="hero">
+      <h1>Write the letters they'll need before they need them.</h1>
+      <p class="lede">
+        A beloved paper tradition, made sendable: a little bundle of sealed letters —
+        <span class="open-when">open when you can't sleep</span>,
+        <span class="open-when">open on the morning of the big day</span>,
+        <span class="open-when">open when you miss me</span> —
+        delivered as a single link. They get a shelf of wax-sealed envelopes and a reason to think of you on the days that matter.
+      </p>
+      <div class="how">
+        <div class="step"><b>1 · Write</b>Pick the moments, write a few short letters. Prompts help if the page feels blank.</div>
+        <div class="step"><b>2 · Seal</b>Your letters are folded into a single private link. Nothing is uploaded, ever.</div>
+        <div class="step"><b>3 · Send</b>Text it, email it, or tuck it in a card. They open each envelope when its moment comes.</div>
+      </div>
+      <p class="privacy-line">🔒 The letters live <em>inside the link itself</em> — this page has no server, no accounts, and never sees a word you write. It even works offline.</p>
+    </section>
+
+    <section class="card" id="sec-who">
+      <h2>Who is this for?</h2>
+      <div class="two-col">
+        <div class="field">
+          <label for="inp-to">Their name</label>
+          <input type="text" id="inp-to" maxlength="60" placeholder="Ana" autocomplete="off">
+        </div>
+        <div class="field">
+          <label for="inp-from">From (how you'd sign a letter)</label>
+          <input type="text" id="inp-from" maxlength="60" placeholder="Mom · Sam · your favorite brother" autocomplete="off">
+        </div>
+      </div>
+    </section>
+
+    <section class="card" id="sec-moments">
+      <h2>Choose their moments</h2>
+      <p class="muted small">Tap a moment to add a letter for it. Three to seven letters make a lovely bundle.</p>
+      <div id="moment-groups"></div>
+      <div class="btn-row">
+        <button class="btn" id="btn-add-custom">＋ your own moment</button>
+      </div>
+    </section>
+
+    <section id="letters-list" aria-live="polite"></section>
+
+    <section class="card" id="sec-seal">
+      <h2>Seal the bundle</h2>
+      <div class="meter" id="meter" hidden>
+        <span class="dot g" id="meter-dot"></span>
+        <span id="meter-text"></span>
+      </div>
+      <div class="btn-row">
+        <button class="btn btn-primary" id="btn-seal">🕯️ Seal it &amp; get the link</button>
+      </div>
+      <div class="result" id="result" hidden>
+        <p class="small muted" style="margin-top:16px">Their link — every letter is inside it:</p>
+        <div class="linkbox" id="result-link" tabindex="0"></div>
+        <p class="small muted" id="stale-note" hidden>✎ You've edited the letters since sealing — seal again to refresh the link.</p>
+        <div class="btn-row">
+          <button class="btn btn-primary" id="btn-copy">Copy link</button>
+          <button class="btn" id="btn-preview">Peek at what they'll see</button>
+          <button class="btn" id="btn-download">Download as a gift file</button>
+          <a class="btn" id="btn-mailto" href="#" style="text-decoration:none">Email it</a>
+        </div>
+        <ul class="checklist">
+          <li>Send it to yourself first — see the envelopes with your own eyes.</li>
+          <li>Keep a copy of the link (or the file). It's the only one in the world.</li>
+          <li>The gift file works forever, even offline — best for very long bundles.</li>
+        </ul>
+        <div class="tip-card" id="tip-card" hidden>
+          <span id="tip-text"></span> <a id="tip-link" href="#" target="_blank" rel="noopener"></a>
+        </div>
+      </div>
+    </section>
+
+    <footer class="site-footer">
+      <p>Open When is free, open-source, and quietly proud that your letters never touch a server.
+      <a href="#" id="footer-tip" hidden>Leave a tip</a></p>
+    </footer>
+  </main>
+
+  <!-- ============================== OPENER ============================== -->
+  <main id="view-open" hidden>
+    <section class="open-hero" id="open-intro">
+      <p class="from-line" id="intro-from"></p>
+      <h1 id="intro-title">Someone sealed letters for you.</h1>
+      <p class="muted" id="intro-sub">Each envelope is for a different moment. Open them when their moment comes — that's the whole magic.</p>
+      <div class="btn-row" style="justify-content:center">
+        <button class="btn btn-primary" id="btn-shelf">Open the shelf</button>
+      </div>
+    </section>
+
+    <section id="open-shelf" hidden>
+      <div class="shelf-head">
+        <h2 id="shelf-title">Your letters</h2>
+        <span class="progress" id="shelf-progress"></span>
+      </div>
+      <div class="shelf" id="shelf"></div>
+      <div class="card loop-card" id="loop-card" hidden>
+        <p>Someone made this for you, just because.</p>
+        <p><a class="cta" id="loop-link" href="#">make one for someone you love →</a></p>
+      </div>
+      <footer class="site-footer">
+        <p>Sealed with <a href="#" id="opener-home">Open When</a> — free letters for the moments that need them. Your letters live only in your link: keep it safe.</p>
+      </footer>
+    </section>
+
+    <section class="err-card card" id="open-error" hidden>
+      <div class="torn">💔</div>
+      <h2>This link seems torn</h2>
+      <p class="muted">Part of the bundle didn't survive the trip — some apps clip very long links.<br>
+      Ask the sender to re-send it (the “gift file” version always arrives whole).<br>
+      <span class="small">Very old browsers can't unpack sealed bundles either — an update usually fixes it.</span></p>
+      <div class="btn-row" style="justify-content:center">
+        <button class="btn" id="btn-err-compose">Write your own letters instead</button>
+      </div>
+    </section>
+  </main>
+
+  <button class="mute-toggle" id="btn-mute" hidden aria-label="Mute sounds" title="Mute sounds">🔊</button>
+
+  <!-- opening ritual overlay -->
+  <div class="ritual" id="ritual" hidden role="dialog" aria-modal="true" aria-label="Opening a letter">
+    <button class="ritual-close" id="ritual-close" aria-label="Put the letter back">✕</button>
+    <div class="ritual-stage" id="ritual-stage"></div>
+  </div>
+
+  <div class="toast" id="toast" hidden role="status"></div>
+</div>
+
+<noscript><div style="max-width:600px;margin:40px auto;font-family:serif;text-align:center">Open When needs JavaScript — the letters are decoded right here on your device, which is what keeps them private.</noscript>
+
+<!-- ============================ CORE (pure logic, no DOM) ============================ -->
+<script id="ow-core">
+"use strict";
+var OW = (function () {
+
+  var VERSION = 1;
+  var LIMITS = {
+    letters: 30,
+    letterChars: 6000,
+    nameChars: 60,
+    momentChars: 90,
+    emojiChars: 8,
+    payloadChars: 400000,    // refuse to even parse absurd payloads
+    maxBundleBytes: 1000000  // hard cap on decompressed size (bomb guard)
+  };
+
+  var STATIONERY = {
+    classic: { label: "Classic", swatch: "Aa" },
+    hand:    { label: "Handwritten", swatch: "✍️" },
+    type:    { label: "Typewriter", swatch: "⌨️" },
+    night:   { label: "Moonlight", swatch: "🌙" }
+  };
+  var ENVELOPES = ["rose", "sage", "dusk", "sand", "plum"];
+
+  var MOMENT_GROUPS = [
+    { name: "Comfort", moments: [
+      { key: "sleep",   emoji: "🌙", label: "you can't sleep",              hint: "Write like a whisper. A memory of a quiet night, and one small thing to try — three slow breaths, one song, warm milk." },
+      { key: "hardday", emoji: "🌧️", label: "you've had a hard day",        hint: "Don't fix anything. Just be there on paper. Remind them of one thing they already survived." },
+      { key: "missme",  emoji: "🫂", label: "you miss me",                  hint: "Describe exactly where you are as you write this — what you can see and hear. It makes the distance smaller." },
+      { key: "worried", emoji: "🍵", label: "you're worried",               hint: "Name the worry gently, then tell them about a time worry turned out to be lying." }
+    ]},
+    { name: "Courage", moments: [
+      { key: "doubt",   emoji: "🔥", label: "you doubt yourself",           hint: "List three moments you watched them be braver than they knew. Be specific." },
+      { key: "bigday",  emoji: "🌅", label: "it's the morning of the big day", hint: "Short and steady. One sentence they can carry in a pocket all day." },
+      { key: "walkin",  emoji: "🚪", label: "you're about to walk in",      hint: "They'll read this in a hallway with a racing heart. Two lines, max. Make them stand taller." },
+      { key: "push",    emoji: "🏔️", label: "you need a push",              hint: "Be the friend who says the true thing — kind, but with no escape hatch." }
+    ]},
+    { name: "Celebration", moments: [
+      { key: "news",    emoji: "🎉", label: "the good news arrives",        hint: "Write the toast you'd give with a glass in hand. Be embarrassing." },
+      { key: "birthday",emoji: "🎂", label: "it's your birthday",           hint: "Tell them your favorite thing that happened in their last year — the one they might not even remember." },
+      { key: "didit",   emoji: "🏆", label: "you did the thing",            hint: "Say what you knew back when you sealed this envelope." }
+    ]},
+    { name: "Distance", moments: [
+      { key: "land",    emoji: "✈️", label: "you land",                     hint: "First-day-somewhere-new instructions: eat this, call me when, don't be scared of that." },
+      { key: "homesick",emoji: "🏡", label: "you're homesick",              hint: "Home smells, home sounds, home nonsense — and when they can next expect the real thing." },
+      { key: "firstweek",emoji: "📦", label: "you finish your first week",  hint: "Predict, kindly, how it went. You'll be more right than you think." }
+    ]},
+    { name: "Love & laughter", moments: [
+      { key: "loved",   emoji: "💌", label: "you forget how loved you are", hint: "The evidence, plainly listed. Dates where possible." },
+      { key: "secret",  emoji: "🤫", label: "you want to know a secret",    hint: "Something true you've never quite said out loud. This is the envelope for it." },
+      { key: "laugh",   emoji: "😂", label: "you need a laugh",             hint: "The inside joke, told badly, in full. Footnotes welcome." },
+      { key: "hungry",  emoji: "🍜", label: "you're hungry at 2am",         hint: "A recipe you two owe to each other — or formal written permission for cereal." }
+    ]},
+    { name: "Hard days", moments: [
+      { key: "hurts",   emoji: "🕯️", label: "it hurts",                     hint: "You can't take it away. You can sit with them here. Say that, plainly." },
+      { key: "missthem",emoji: "🤍", label: "you're missing them",          hint: "For grief: share a memory of the person they miss — ideally one they've never heard." }
+    ]},
+    { name: "The end", moments: [
+      { key: "last",    emoji: "🎁", label: "you open the last letter",     hint: "Land the plane. What you hope for them next — and a promise there are more words where these came from." }
+    ]}
+  ];
+
+  function findMoment(key) {
+    for (var g = 0; g < MOMENT_GROUPS.length; g++) {
+      var ms = MOMENT_GROUPS[g].moments;
+      for (var i = 0; i < ms.length; i++) if (ms[i].key === key) return ms[i];
+    }
+    return null;
+  }
+
+  /* ---------- base64url ---------- */
+  function bytesToB64u(bytes) {
+    var bin = "";
+    for (var i = 0; i < bytes.length; i += 0x8000) {
+      bin += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000));
+    }
+    return btoa(bin).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+  }
+  function b64uToBytes(str) {
+    if (!/^[A-Za-z0-9_-]*$/.test(str)) throw new Error("bad base64url");
+    var b64 = str.replace(/-/g, "+").replace(/_/g, "/");
+    while (b64.length % 4) b64 += "=";
+    var bin = atob(b64);
+    var bytes = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+  }
+
+  /* ---------- compression (native streams; graceful fallback) ---------- */
+  function canCompress() {
+    return typeof CompressionStream !== "undefined" && typeof DecompressionStream !== "undefined"
+      && typeof Blob !== "undefined" && typeof Response !== "undefined";
+  }
+  function pump(bytes, stream, maxBytes) {
+    // read incrementally so a decompression bomb aborts instead of
+    // materializing hundreds of MB before any size check runs
+    var reader = new Blob([bytes]).stream().pipeThrough(stream).getReader();
+    var chunks = [], total = 0;
+    function step() {
+      return reader.read().then(function (r) {
+        if (r.done) {
+          var all = new Uint8Array(total), off = 0;
+          chunks.forEach(function (c) { all.set(c, off); off += c.length; });
+          return all;
+        }
+        total += r.value.length;
+        if (maxBytes && total > maxBytes) {
+          try { reader.cancel(); } catch (e) { /* already done */ }
+          throw new Error("bundle too large");
+        }
+        chunks.push(r.value);
+        return step();
+      });
+    }
+    return step();
+  }
+  function deflate(bytes) { return pump(bytes, new CompressionStream("deflate-raw"), 0); }
+  function inflate(bytes) { return pump(bytes, new DecompressionStream("deflate-raw"), LIMITS.maxBundleBytes); }
+
+  /* ---------- bundle validation ---------- */
+  function str(v, max) {
+    if (typeof v !== "string") return "";
+    // normalize Windows line endings, then strip control chars except
+    // newline and tab so letters keep their line breaks
+    v = v.replace(/\r\n?/g, "\n").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, "");
+    return v.length > max ? v.slice(0, max) : v;
+  }
+  function validDate(v) {
+    return (typeof v === "string" && /^\d{4}-\d{2}-\d{2}$/.test(v)) ? v : null;
+  }
+
+  /**
+   * Returns a sanitized copy of a bundle, or throws with a friendly message.
+   * Every field is coerced/clamped — decoded bundles come from a URL anyone
+   * could have crafted, so nothing is trusted.
+   */
+  function validateBundle(b) {
+    if (!b || typeof b !== "object") throw new Error("not a bundle");
+    if (b.v !== VERSION) throw new Error("unknown bundle version");
+    if (!Array.isArray(b.letters) || b.letters.length < 1) throw new Error("no letters");
+    if (b.letters.length > LIMITS.letters) throw new Error("too many letters");
+    var out = {
+      v: VERSION,
+      to: str(b.to, LIMITS.nameChars),
+      from: str(b.from, LIMITS.nameChars),
+      letters: []
+    };
+    for (var i = 0; i < b.letters.length; i++) {
+      var L = b.letters[i] || {};
+      var t = str(L.t, LIMITS.letterChars);
+      if (!t.trim()) throw new Error("empty letter");
+      out.letters.push({
+        m: str(L.m, LIMITS.momentChars) || "the moment is right",
+        e: str(L.e, LIMITS.emojiChars),
+        t: t,
+        s: STATIONERY[L.s] ? L.s : "classic",
+        c: ENVELOPES.indexOf(L.c) >= 0 ? L.c : ENVELOPES[i % ENVELOPES.length],
+        d: validDate(L.d)
+      });
+    }
+    return out;
+  }
+
+  /* ---------- encode / decode ----------
+   * payload grammar:  "1c.<b64u deflate-raw utf8-json>"  compressed
+   *                   "1p.<b64u utf8-json>"              plain fallback
+   */
+  function encodeBundle(bundle) {
+    var clean = validateBundle(bundle);
+    var json = JSON.stringify(clean);
+    var utf8 = new TextEncoder().encode(json);
+    var plain = "1p." + bytesToB64u(utf8);
+    if (!canCompress()) return Promise.resolve(plain);
+    return deflate(utf8).then(function (packed) {
+      var comp = "1c." + bytesToB64u(packed);
+      return comp.length < plain.length ? comp : plain;
+    }).catch(function () { return plain; });
+  }
+
+  function decodeBundle(payload) {
+    return Promise.resolve().then(function () {
+      if (typeof payload !== "string") throw new Error("no payload");
+      if (payload.length > LIMITS.payloadChars) throw new Error("payload too large");
+      var m = /^1([cp])\.([A-Za-z0-9_-]+)$/.exec(payload);
+      if (!m) throw new Error("unrecognized payload");
+      var bytes = b64uToBytes(m[2]);
+      if (m[1] === "p") return bytes;
+      if (!canCompress()) throw new Error("this browser can't unpack compressed letters");
+      return inflate(bytes);
+    }).then(function (utf8) {
+      if (utf8.length > LIMITS.maxBundleBytes) throw new Error("bundle too large");
+      var json = new TextDecoder("utf-8", { fatal: true }).decode(utf8);
+      return validateBundle(JSON.parse(json));
+    });
+  }
+
+  /* ---------- links ---------- */
+  function linkFor(baseUrl, payload) {
+    return baseUrl.split("#")[0] + "#g=" + payload;
+  }
+  function payloadFromHash(hash) {
+    var m = /[#&]g=([^&]+)/.exec(hash || "");
+    if (!m) return null;
+    // messengers love appending punctuation when auto-linking; shed it
+    return m[1].replace(/[^A-Za-z0-9_-]+$/, "");
+  }
+  function seedFromHash(hash) {
+    var m = /[#&]seed=([A-Za-z0-9_,-]+)/.exec(hash || "");
+    return m ? m[1].split(",").filter(Boolean) : null;
+  }
+
+  /* ---------- date locks ----------
+   * "d" is a local calendar date: the envelope unlocks at 00:00 local time
+   * on that day. `now` is injectable for tests.
+   */
+  function lockDate(letter) {
+    if (!letter.d) return null;
+    var p = letter.d.split("-");
+    return new Date(Number(p[0]), Number(p[1]) - 1, Number(p[2]), 0, 0, 0, 0);
+  }
+  function isLocked(letter, now) {
+    var d = lockDate(letter);
+    return d ? now.getTime() < d.getTime() : false;
+  }
+
+  /* ---------- link health ---------- */
+  function linkHealth(linkLength) {
+    if (linkLength <= 2000)  return { grade: "g", label: "sturdy — survives every messenger" };
+    if (linkLength <= 6000)  return { grade: "a", label: "fine in chat apps; long for SMS" };
+    if (linkLength <= 12000) return { grade: "o", label: "getting long — some apps clip links this size; the gift file is safer" };
+    return { grade: "r", label: "too long for a link — send the gift file instead" };
+  }
+
+  /* tiny stable hash for per-bundle localStorage keys */
+  function tinyHash(s) {
+    var h = 5381;
+    for (var i = 0; i < s.length; i++) h = ((h << 5) + h + s.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  }
+
+  return {
+    VERSION: VERSION, LIMITS: LIMITS,
+    STATIONERY: STATIONERY, ENVELOPES: ENVELOPES, MOMENT_GROUPS: MOMENT_GROUPS,
+    findMoment: findMoment,
+    bytesToB64u: bytesToB64u, b64uToBytes: b64uToBytes,
+    canCompress: canCompress,
+    validateBundle: validateBundle,
+    encodeBundle: encodeBundle, decodeBundle: decodeBundle,
+    linkFor: linkFor, payloadFromHash: payloadFromHash, seedFromHash: seedFromHash,
+    lockDate: lockDate, isLocked: isLocked,
+    linkHealth: linkHealth, tinyHash: tinyHash
+  };
+})();
+if (typeof module !== "undefined" && module.exports) module.exports = OW;
+</script>
+
+<!-- ============================ UI ============================ -->
+<script id="ow-ui">
+(function () {
+"use strict";
+
+/* ======== configure your links here (see README) ========================= */
+var CONFIG = {
+  TIP_URL: "",              // e.g. "https://buymeacoffee.com/yourname" or a Stripe Payment Link
+  TIP_TEXT: "Open When is free to make and always will be. If it carried something that mattered,",
+  TIP_LABEL: "leave a small tip for the letter-carrier ☕"
+};
+/* ========================================================================= */
+
+var $ = function (id) { return document.getElementById(id); };
+var reducedMotion = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+function el(tag, attrs, children) {
+  var node = document.createElement(tag);
+  if (attrs) for (var k in attrs) {
+    if (k === "text") node.textContent = attrs[k]; // all dynamic content goes through textContent — never innerHTML
+    else if (k.slice(0, 2) === "on") node.addEventListener(k.slice(2), attrs[k]);
+    else if (attrs[k] !== null && attrs[k] !== undefined) node.setAttribute(k, attrs[k]);
+  }
+  (children || []).forEach(function (c) { if (c) node.appendChild(c); });
+  return node;
+}
+function store(key, val) {
+  try {
+    if (val === undefined) return localStorage.getItem(key);
+    if (val === null) localStorage.removeItem(key); else localStorage.setItem(key, val);
+  } catch (e) { return null; }
+  return null;
+}
+var toastTimer = null;
+function toast(msg) {
+  var t = $("toast");
+  t.textContent = msg;
+  t.hidden = false;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(function () { t.hidden = true; }, 2600);
+}
+function baseUrl() { return location.href.split("#")[0]; }
+
+/* ============================== sound ==================================== */
+var audioCtx = null;
+var muted = store("openwhen.muted") === "1";
+function ac() {
+  if (!audioCtx) {
+    try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+  }
+  return audioCtx;
+}
+function playCrack() {
+  if (muted || reducedMotion) return;
+  var ctx = ac(); if (!ctx) return;
+  try {
+    var now = ctx.currentTime;
+    var len = Math.floor(ctx.sampleRate * 0.09);
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var data = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.pow(1 - i / len, 2.2);
+    var src = ctx.createBufferSource(); src.buffer = buf;
+    var filt = ctx.createBiquadFilter(); filt.type = "highpass"; filt.frequency.value = 900;
+    var gain = ctx.createGain(); gain.gain.setValueAtTime(0.5, now);
+    src.connect(filt); filt.connect(gain); gain.connect(ctx.destination);
+    src.start(now);
+  } catch (e) { /* sound is a garnish */ }
+}
+function playPaper() {
+  if (muted || reducedMotion) return;
+  var ctx = ac(); if (!ctx) return;
+  try {
+    var now = ctx.currentTime;
+    var len = Math.floor(ctx.sampleRate * 0.3);
+    var buf = ctx.createBuffer(1, len, ctx.sampleRate);
+    var data = buf.getChannelData(0);
+    for (var i = 0; i < len; i++) data[i] = (Math.random() * 2 - 1) * Math.sin((i / len) * Math.PI) * 0.4;
+    var src = ctx.createBufferSource(); src.buffer = buf;
+    var filt = ctx.createBiquadFilter(); filt.type = "lowpass"; filt.frequency.value = 1400;
+    var gain = ctx.createGain(); gain.gain.setValueAtTime(0.25, now);
+    src.connect(filt); filt.connect(gain); gain.connect(ctx.destination);
+    src.start(now);
+  } catch (e) { /* shrug */ }
+}
+
+/* ============================== composer ================================= */
+var DRAFT_KEY = "openwhen.draft.v1";
+var draft = { to: "", from: "", letters: [] };
+var nextId = 1;
+
+function loadDraft() {
+  try {
+    var raw = store(DRAFT_KEY);
+    if (!raw) return;
+    var d = JSON.parse(raw);
+    if (d && Array.isArray(d.letters)) {
+      draft.to = typeof d.to === "string" ? d.to : "";
+      draft.from = typeof d.from === "string" ? d.from : "";
+      draft.letters = d.letters.filter(function (L) { return L && typeof L === "object"; }).map(function (L) {
+        return {
+          id: nextId++,
+          momentKey: typeof L.momentKey === "string" ? L.momentKey : null,
+          moment: typeof L.moment === "string" ? L.moment.slice(0, OW.LIMITS.momentChars) : "",
+          emoji: typeof L.emoji === "string" ? L.emoji.slice(0, OW.LIMITS.emojiChars) : "",
+          text: typeof L.text === "string" ? L.text.slice(0, OW.LIMITS.letterChars) : "",
+          stationery: OW.STATIONERY[L.stationery] ? L.stationery : "classic",
+          envelope: OW.ENVELOPES.indexOf(L.envelope) >= 0 ? L.envelope : OW.ENVELOPES[0],
+          date: (typeof L.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(L.date)) ? L.date : ""
+        };
+      });
+    }
+  } catch (e) { /* a fresh page beats a broken draft */ }
+}
+function saveDraft() {
+  try { store(DRAFT_KEY, JSON.stringify(draft)); } catch (e) { /* private mode etc. */ }
+}
+
+function draftToBundle() {
+  return {
+    v: OW.VERSION,
+    to: draft.to.trim(),
+    from: draft.from.trim(),
+    letters: draft.letters
+      .filter(function (L) { return L.text.trim(); })
+      .map(function (L) {
+        return {
+          m: (L.moment || "").trim() || "the moment is right",
+          e: L.emoji || "",
+          t: L.text,
+          s: L.stationery,
+          c: L.envelope,
+          d: L.date || null
+        };
+      })
+  };
+}
+
+function addLetter(moment) {
+  var L = {
+    id: nextId++,
+    momentKey: moment ? moment.key : null,
+    moment: moment ? moment.label : "",
+    emoji: moment ? moment.emoji : "✉️",
+    text: "",
+    stationery: "classic",
+    envelope: OW.ENVELOPES[draft.letters.length % OW.ENVELOPES.length],
+    date: ""
+  };
+  draft.letters.push(L);
+  renderLetters();
+  renderChips();
+  saveDraft();
+  scheduleMeter();
+  var card = document.querySelector('[data-letter="' + L.id + '"]');
+  if (card) {
+    card.scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "center" });
+    var ta = card.querySelector("textarea");
+    if (ta) ta.focus({ preventScroll: true });
+  }
+}
+function removeLetter(id) {
+  draft.letters = draft.letters.filter(function (L) { return L.id !== id; });
+  renderLetters(); renderChips(); saveDraft(); scheduleMeter();
+}
+
+function renderChips() {
+  var wrap = $("moment-groups");
+  wrap.textContent = "";
+  OW.MOMENT_GROUPS.forEach(function (group) {
+    wrap.appendChild(el("div", { class: "mcat", text: group.name }));
+    var row = el("div", { class: "chips" });
+    group.moments.forEach(function (mo) {
+      var count = draft.letters.filter(function (L) { return L.momentKey === mo.key; }).length;
+      var chip = el("button", {
+        class: "chip", type: "button",
+        "aria-label": 'Add a letter: open when ' + mo.label,
+        onclick: function () { addLetter(mo); }
+      }, [
+        el("span", { text: mo.emoji + " " }),
+        el("span", { text: mo.label }),
+        count ? el("span", { class: "n", text: String(count) }) : null
+      ]);
+      row.appendChild(chip);
+    });
+    wrap.appendChild(row);
+  });
+}
+
+function letterCard(L, index) {
+  var hint = L.momentKey && OW.findMoment(L.momentKey) ? OW.findMoment(L.momentKey).hint :
+    "Write it the way you'd say it. Short is fine — sealed beats perfect.";
+
+  var counter = el("div", { class: "counter" });
+  function updateCounter() {
+    var n = L.text.length;
+    counter.textContent = n + " / " + OW.LIMITS.letterChars;
+    counter.className = "counter" + (n > OW.LIMITS.letterChars * 0.85 ? " warn" : "");
+  }
+  updateCounter();
+
+  var ta = el("textarea", {
+    maxlength: String(OW.LIMITS.letterChars),
+    placeholder: "Dear " + (draft.to.trim() || "you") + " …",
+    "aria-label": "Letter text: open when " + (L.moment || "…"),
+    oninput: function (e) { L.text = e.target.value; updateCounter(); saveDraft(); scheduleMeter(); }
+  });
+  ta.value = L.text;
+
+  var envSw = el("div", { class: "swatches", role: "group", "aria-label": "Envelope color" },
+    OW.ENVELOPES.map(function (c) {
+      return el("button", {
+        class: "swatch env-" + c, type: "button",
+        style: "background:" + ({ rose: "#d9a7a3", sage: "#b3c2a4", dusk: "#a4b6cc", sand: "#dbc69d", plum: "#b7a0c4" })[c],
+        "aria-label": c + " envelope", "aria-pressed": String(L.envelope === c),
+        onclick: function (e) {
+          L.envelope = c; saveDraft(); scheduleMeter();
+          envSw.querySelectorAll(".swatch").forEach(function (s) { s.setAttribute("aria-pressed", "false"); });
+          e.currentTarget.setAttribute("aria-pressed", "true");
+        }
+      });
+    }));
+
+  var stSw = el("div", { class: "swatches", role: "group", "aria-label": "Paper style" },
+    Object.keys(OW.STATIONERY).map(function (s) {
+      return el("button", {
+        class: "swatch st", type: "button", title: OW.STATIONERY[s].label,
+        "aria-label": OW.STATIONERY[s].label + " paper", "aria-pressed": String(L.stationery === s),
+        onclick: function (e) {
+          L.stationery = s; saveDraft(); scheduleMeter();
+          stSw.querySelectorAll(".swatch").forEach(function (x) { x.setAttribute("aria-pressed", "false"); });
+          e.currentTarget.setAttribute("aria-pressed", "true");
+        }
+      }, [el("span", { text: OW.STATIONERY[s].swatch })]);
+    }));
+
+  var dateInput = el("input", {
+    type: "date", "aria-label": "Keep sealed until date",
+    oninput: function (e) { L.date = e.target.value || ""; saveDraft(); scheduleMeter(); }
+  });
+  dateInput.value = L.date;
+
+  var momentInput = el("input", {
+    class: "lc-moment", type: "text", maxlength: String(OW.LIMITS.momentChars),
+    placeholder: "…the moment is right", "aria-label": "Open when…",
+    oninput: function (e) { L.moment = e.target.value; saveDraft(); scheduleMeter(); }
+  });
+  momentInput.value = L.moment;
+
+  return el("section", { class: "card letter-card", "data-letter": String(L.id) }, [
+    el("button", { class: "lc-del", type: "button", "aria-label": "Remove this letter", title: "Remove this letter", onclick: function () { removeLetter(L.id); }, text: "🗑" }),
+    el("div", { class: "lc-head" }, [
+      el("span", { class: "lc-open-when", text: (L.emoji ? L.emoji + " " : "") + "open when" }),
+      momentInput
+    ]),
+    el("p", { class: "hint", text: "✎ " + hint }),
+    ta,
+    counter,
+    el("div", { class: "opts" }, [
+      el("div", { class: "opt-group" }, [el("span", { text: "envelope" }), envSw]),
+      el("div", { class: "opt-group" }, [el("span", { text: "paper" }), stSw]),
+      el("div", { class: "opt-group" }, [
+        el("span", { text: "keep sealed until (optional)" }),
+        el("div", { class: "datelock" }, [
+          dateInput,
+          el("button", { class: "btn-quiet", type: "button", text: "clear", onclick: function () { L.date = ""; dateInput.value = ""; saveDraft(); scheduleMeter(); } })
+        ])
+      ])
+    ])
+  ]);
+}
+
+function renderLetters() {
+  var wrap = $("letters-list");
+  wrap.textContent = "";
+  draft.letters.forEach(function (L, i) { wrap.appendChild(letterCard(L, i)); });
+}
+
+/* ---------- link meter ---------- */
+var meterTimer = null;
+var meterSeq = 0;
+function scheduleMeter() {
+  clearTimeout(meterTimer);
+  meterTimer = setTimeout(updateMeter, 350);
+  if (lastLink) $("stale-note").hidden = false;
+}
+function updateMeter() {
+  var bundle = draftToBundle();
+  var meter = $("meter");
+  if (!bundle.letters.length) { meter.hidden = true; return; }
+  var seq = ++meterSeq;
+  OW.encodeBundle(bundle).then(function (payload) {
+    if (seq !== meterSeq) return; // a newer encode is in flight
+    var link = OW.linkFor(baseUrl(), payload);
+    var h = OW.linkHealth(link.length);
+    meter.hidden = false;
+    $("meter-dot").className = "dot " + h.grade;
+    $("meter-text").textContent =
+      bundle.letters.length + (bundle.letters.length === 1 ? " letter" : " letters") +
+      " · link is " + link.length.toLocaleString() + " characters — " + h.label;
+  }).catch(function () { meter.hidden = true; });
+}
+
+/* ---------- sealing ---------- */
+var lastLink = null;
+function sealBundle() {
+  var bundle = draftToBundle();
+  if (!bundle.letters.length) {
+    toast("Write at least one letter first — even a short one counts. 💛");
+    return;
+  }
+  if (!bundle.from) {
+    toast("Sign it! Add your name under “Who is this for?” — letters want signatures.");
+    $("inp-from").focus();
+    return;
+  }
+  var skipped = draft.letters.length - bundle.letters.length;
+  OW.encodeBundle(bundle).then(function (payload) {
+    lastLink = OW.linkFor(baseUrl(), payload);
+    $("result").hidden = false;
+    $("stale-note").hidden = true;
+    $("result-link").textContent = lastLink;
+    var mailtoBtn = $("btn-mailto");
+    if (lastLink.length <= 1800) {
+      var subject = "Someone sealed letters for you 💌";
+      var body = (bundle.to ? bundle.to + " — " : "") +
+        "these are “open when…” letters. Open each envelope when its moment comes.\n\n" + lastLink;
+      mailtoBtn.dataset.blocked = "";
+      mailtoBtn.href = "mailto:?subject=" + encodeURIComponent(subject) + "&body=" + encodeURIComponent(body);
+    } else {
+      // email clients truncate long mailto: URLs — steer to copy/file instead
+      mailtoBtn.dataset.blocked = "1";
+      mailtoBtn.href = "#";
+    }
+    if (skipped > 0) {
+      toast("Sealed " + bundle.letters.length + (bundle.letters.length === 1 ? " letter" : " letters") +
+        " — " + skipped + " empty envelope" + (skipped === 1 ? "" : "s") + " stayed behind.");
+    }
+    if (CONFIG.TIP_URL) {
+      $("tip-card").hidden = false;
+      $("tip-text").textContent = CONFIG.TIP_TEXT;
+      $("tip-link").textContent = CONFIG.TIP_LABEL;
+      $("tip-link").href = CONFIG.TIP_URL;
+    }
+    $("result").scrollIntoView({ behavior: reducedMotion ? "auto" : "smooth", block: "start" });
+    playPaper();
+  }).catch(function (e) {
+    toast("Couldn't seal the bundle: " + e.message);
+  });
+}
+
+function copyLink() {
+  if (!lastLink) return;
+  var done = function () { toast("Copied. Now go make someone's month. 💌"); };
+  var fail = function () {
+    var box = $("result-link");
+    var range = document.createRange(); range.selectNodeContents(box);
+    var sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+    toast("Select + copy the link above (your browser blocked auto-copy).");
+  };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(lastLink).then(done, fail);
+  } else fail();
+}
+
+function downloadGiftFile() {
+  if (!lastLink) return;
+  var payload = OW.payloadFromHash("#" + lastLink.split("#")[1]);
+  fetch(baseUrl(), { cache: "no-cache" }).then(function (res) {
+    if (!res.ok) throw new Error("fetch failed");
+    return res.text();
+  }).then(function (src) {
+    var inject = "<script>window.__GIFT__=" + JSON.stringify(payload).replace(/</g, "\\u003c") + "<\/script>";
+    // the closing tag is assembled at runtime so this function's own source
+    // can never match it — otherwise replace() would eat this very line
+    var TAG = "</bo" + "dy>";
+    var at = src.lastIndexOf(TAG);
+    src = at >= 0 ? src.slice(0, at) + inject + "\n" + src.slice(at) : src + inject;
+    var blob = new Blob([src], { type: "text/html" });
+    var name = "open-when" + (draft.to.trim() ? "-for-" + draft.to.trim().toLowerCase().replace(/[^a-z0-9]+/gi, "-").replace(/^-|-$/g, "") : "") + ".html";
+    var a = el("a", { href: URL.createObjectURL(blob), download: name });
+    document.body.appendChild(a); a.click();
+    setTimeout(function () { URL.revokeObjectURL(a.href); a.remove(); }, 4000);
+    toast("Gift file saved — it opens anywhere, forever, even offline.");
+  }).catch(function () {
+    toast("Couldn't build the file here — copy the link instead; it holds everything.");
+  });
+}
+
+function initComposer(seedKeys) {
+  loadDraft();
+  if (seedKeys && !draft.letters.length) {
+    seedKeys.forEach(function (k) {
+      var mo = OW.findMoment(k);
+      if (mo) addLetter(mo);
+    });
+    if (draft.letters.length) toast("The same moments, ready for your words.");
+  }
+  $("inp-to").value = draft.to;
+  $("inp-from").value = draft.from;
+  $("inp-to").addEventListener("input", function (e) { draft.to = e.target.value; saveDraft(); scheduleMeter(); });
+  $("inp-from").addEventListener("input", function (e) { draft.from = e.target.value; saveDraft(); scheduleMeter(); });
+  $("btn-add-custom").addEventListener("click", function () { addLetter(null); });
+  $("btn-seal").addEventListener("click", sealBundle);
+  $("btn-copy").addEventListener("click", copyLink);
+  $("btn-download").addEventListener("click", downloadGiftFile);
+  $("btn-preview").addEventListener("click", function () {
+    if (!lastLink) return;
+    var w = window.open(lastLink, "_blank", "noopener");
+    if (!w) toast("Your browser blocked the preview — copy the link and open it in a new tab.");
+  });
+  $("btn-mailto").addEventListener("click", function (e) {
+    if (e.currentTarget.dataset.blocked === "1") {
+      e.preventDefault();
+      toast("This bundle is too long for an email link — copy the link or send the gift file instead.");
+    }
+  });
+  if (CONFIG.TIP_URL) {
+    var ft = $("footer-tip");
+    ft.hidden = false; ft.href = CONFIG.TIP_URL; ft.target = "_blank"; ft.rel = "noopener";
+  }
+  renderChips();
+  renderLetters();
+  scheduleMeter();
+  $("view-compose").hidden = false;
+}
+
+/* ============================== opener =================================== */
+var gift = null;          // validated bundle
+var giftKey = null;       // localStorage key for opened-state
+var openedSet = {};       // index -> true
+
+function loadOpened() {
+  openedSet = {};
+  try {
+    var raw = store("openwhen.opened." + giftKey);
+    if (raw) JSON.parse(raw).forEach(function (i) { openedSet[i] = true; });
+  } catch (e) { /* fine */ }
+}
+function saveOpened() {
+  try { store("openwhen.opened." + giftKey, JSON.stringify(Object.keys(openedSet).map(Number))); } catch (e) { /* fine */ }
+}
+
+function fmtDate(iso) {
+  var d = OW.lockDate({ d: iso });
+  try {
+    return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: d.getFullYear() === (new Date()).getFullYear() ? undefined : "numeric" });
+  } catch (e) { return iso; }
+}
+
+function envelopeButton(L, index) {
+  var locked = OW.isLocked(L, new Date());
+  var opened = !!openedSet[index];
+  var initial = "✶";
+  if (gift.from) {
+    var chars = Array.from(gift.from.trim());
+    if (chars.length) initial = chars[0].toUpperCase();
+  }
+  var btn = el("button", {
+    class: "envelope env-" + L.c + (opened ? " opened" : "") + (locked ? " locked" : ""),
+    type: "button",
+    "aria-label": (opened ? "Opened letter: " : locked ? "Sealed until " + fmtDate(L.d) + ": " : "Sealed letter: ") + "open when " + L.m,
+    onclick: function () {
+      if (locked && !opened) {
+        btn.classList.remove("wiggling"); void btn.offsetWidth; btn.classList.add("wiggling");
+        toast("Sealed until " + fmtDate(L.d) + " — it'll be worth the wait. 🤍");
+        return;
+      }
+      startRitual(L, index, btn);
+    }
+  }, [
+    el("span", { class: "env-body" }),
+    el("span", { class: "env-flap" }),
+    opened ? null : el("span", { class: "seal" }, [
+      el("span", { class: "half l", text: initial }),
+      el("span", { class: "half r", text: initial })
+    ]),
+    el("span", { class: "env-label" }, [
+      el("em", { text: (L.e ? L.e + " " : "") + "open when" }),
+      el("span", { text: L.m })
+    ]),
+    (locked && !opened) ? el("span", { class: "env-lock", text: "until " + fmtDate(L.d) }) : null
+  ]);
+  return btn;
+}
+
+function renderShelf() {
+  var shelf = $("shelf");
+  shelf.textContent = "";
+  gift.letters.forEach(function (L, i) { shelf.appendChild(envelopeButton(L, i)); });
+  var opened = Object.keys(openedSet).length;
+  $("shelf-progress").textContent = opened + " of " + gift.letters.length + " opened";
+  $("shelf-title").textContent = gift.to ? "For " + gift.to : "Your letters";
+  $("loop-card").hidden = opened < gift.letters.length;
+  if (opened >= gift.letters.length) {
+    var keys = [];
+    gift.letters.forEach(function (L) {
+      OW.MOMENT_GROUPS.forEach(function (g) {
+        g.moments.forEach(function (mo) { if (mo.label === L.m) keys.push(mo.key); });
+      });
+    });
+    $("loop-link").href = baseUrl() + (keys.length ? "#seed=" + keys.join(",") : "");
+  }
+}
+
+/* the ritual: seal cracks → flap lifts → letter rises */
+var ritualState = null;
+function startRitual(L, index, sourceBtn) {
+  var stage = $("ritual-stage");
+  stage.textContent = "";
+  $("ritual").classList.remove("reading");
+  ritualState = { letter: L, index: index, sourceBtn: sourceBtn, phase: 0 };
+
+  var initial = "✶";
+  if (gift.from) {
+    var chars = Array.from(gift.from.trim());
+    if (chars.length) initial = chars[0].toUpperCase();
+  }
+  var alreadyOpened = !!openedSet[index];
+
+  var seal = el("span", { class: "seal" }, [
+    el("span", { class: "half l", text: initial }),
+    el("span", { class: "half r", text: initial }),
+    el("span", { class: "frag f1", style: "--fx:-16px;--fy:20px" }),
+    el("span", { class: "frag f2", style: "--fx:14px;--fy:24px" }),
+    el("span", { class: "frag f3", style: "--fx:4px;--fy:-18px" })
+  ]);
+  var env = el("div", {
+    class: "envelope env-" + L.c,
+    role: "button", tabindex: "0",
+    "aria-label": "Crack the seal"
+  }, [
+    el("span", { class: "env-body" }),
+    el("span", { class: "env-flap" }),
+    alreadyOpened ? null : seal,
+    el("span", { class: "env-label" }, [
+      el("em", { text: (L.e ? L.e + " " : "") + "open when" }),
+      el("span", { text: L.m })
+    ])
+  ]);
+  var hint = el("p", { class: "tap-hint", text: alreadyOpened ? "tap to unfold it again" : "tap the seal to crack it open" });
+  stage.appendChild(env);
+  stage.appendChild(hint);
+  $("ritual").hidden = false;
+  document.body.style.overflow = "hidden";
+  try { $("view-open").inert = true; } catch (e) { /* older browsers */ }
+  env.focus && env.focus();
+
+  var advance = function () {
+    if (!ritualState || ritualState.phase !== 0) return;
+    ritualState.phase = 1;
+    var token = ritualState; // closing mid-animation must abort the chain
+    if (reducedMotion || alreadyOpened) { showLetter(L, index, token); return; }
+    playCrack();
+    if (navigator.vibrate) { try { navigator.vibrate(18); } catch (e) {} }
+    seal.classList.add("cracked");
+    setTimeout(function () {
+      if (ritualState !== token) return;
+      env.querySelector(".env-flap").style.transform = "rotateX(178deg)";
+      playPaper();
+      setTimeout(function () { showLetter(L, index, token); }, 420);
+    }, 320);
+  };
+  env.addEventListener("click", advance);
+  env.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === " ") { e.preventDefault(); advance(); }
+  });
+}
+
+function showLetter(L, index, token) {
+  if (token && ritualState !== token) return; // ritual was closed meanwhile
+  var stage = $("ritual-stage");
+  stage.textContent = "";
+  $("ritual").classList.add("reading");
+  var wasLocked = !!L.d;
+  var paper = el("div", { class: "letter-paper st-" + L.s + (reducedMotion ? "" : " rising") }, [
+    el("div", { class: "lp-head", text: "open when" }),
+    el("div", { class: "lp-moment", text: L.m }),
+    el("div", { class: "lp-body", text: L.t }),
+    gift.from ? el("div", { class: "lp-sign", text: "— " + gift.from }) : null,
+    wasLocked ? el("div", { class: "lp-lockednote", text: "sealed until " + fmtDate(L.d) + " · opened right on time" }) : null,
+    el("div", { class: "lp-back btn-row" }, [
+      el("button", { class: "btn", type: "button", text: "↩ back to the shelf", onclick: closeRitual })
+    ])
+  ]);
+  stage.appendChild(paper);
+  if (!openedSet[index]) {
+    openedSet[index] = true;
+    saveOpened();
+  }
+}
+
+function closeRitual() {
+  var idx = ritualState ? ritualState.index : null;
+  $("ritual").hidden = true;
+  $("ritual-stage").textContent = "";
+  document.body.style.overflow = "";
+  try { $("view-open").inert = false; } catch (e) { /* older browsers */ }
+  ritualState = null;
+  renderShelf();
+  if (idx !== null) {
+    var envs = $("shelf").querySelectorAll(".envelope");
+    if (envs[idx] && envs[idx].focus) envs[idx].focus();
+  }
+}
+
+function initOpener(payload) {
+  document.title = "Open When 💌";
+  OW.decodeBundle(payload).then(function (bundle) {
+    gift = bundle;
+    giftKey = OW.tinyHash(payload);
+    loadOpened();
+    if (gift.to) document.title = "For " + gift.to + " — Open When";
+    $("intro-from").textContent = gift.from ? "from " + gift.from : "from someone who loves you";
+    $("intro-title").textContent = (gift.to ? gift.to + ", someone" : "Someone") + " sealed letters for you.";
+    $("btn-shelf").addEventListener("click", function () {
+      $("open-intro").hidden = true;
+      $("open-shelf").hidden = false;
+      renderShelf();
+    });
+    var mkUrl = baseUrl();
+    $("opener-home").href = mkUrl;
+    $("btn-mute").hidden = false;
+    $("btn-mute").textContent = muted ? "🔇" : "🔊";
+    $("btn-mute").addEventListener("click", function () {
+      muted = !muted;
+      store("openwhen.muted", muted ? "1" : null);
+      $("btn-mute").textContent = muted ? "🔇" : "🔊";
+      $("btn-mute").setAttribute("aria-label", muted ? "Unmute sounds" : "Mute sounds");
+    });
+    $("ritual-close").addEventListener("click", closeRitual);
+    document.addEventListener("keydown", function (e) {
+      if (e.key === "Escape" && !$("ritual").hidden) closeRitual();
+    });
+    $("view-open").hidden = false;
+  }).catch(function (e) {
+    $("view-open").hidden = false;
+    $("open-intro").hidden = true;
+    $("open-error").hidden = false;
+    $("btn-err-compose").addEventListener("click", function () {
+      location.hash = "";
+      location.reload();
+    });
+  });
+}
+
+/* ============================== boot ===================================== */
+function boot() {
+  var payload = (typeof window.__GIFT__ === "string" && window.__GIFT__) ||
+    OW.payloadFromHash(location.hash);
+  if (payload) {
+    initOpener(payload);
+  } else {
+    initComposer(OW.seedFromHash(location.hash));
+    if (location.hash) {
+      try { history.replaceState(null, "", baseUrl()); } catch (e) { /* fine */ }
+    }
+  }
+  $("home-link").addEventListener("click", function (e) {
+    e.preventDefault();
+    location.href = baseUrl();
+  });
+}
+if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+else boot();
+})();
+</script>
+<!-- ARTIFACT:BODY:END -->
+</body>
+</html>
