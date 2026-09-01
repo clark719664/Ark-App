@@ -1,0 +1,9 @@
+node_modules/
+dist/
+*.local
+.DS_Store
+
+# Secrets — never commit real keys. tools/keygen.mjs writes here.
+secrets/
+.env
+.env.*

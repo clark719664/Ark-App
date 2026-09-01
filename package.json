@@ -1,0 +1,32 @@
+{
+  "name": "ark",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Ark — cryptographic time capsules. Seal anything to a future date with a decryption key that does not exist yet.",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "keygen": "node tools/keygen.mjs",
+    "sign-license": "node tools/sign-license.mjs",
+    "seal-demo": "node tools/seal-demo.mjs",
+    "webhook": "node server/webhook.mjs"
+  },
+  "dependencies": {
+    "@noble/curves": "^1.9.7",
+    "@noble/ed25519": "^3.2.0",
+    "@noble/hashes": "^1.8.0",
+    "drand-client": "^1.2.6",
+    "tlock-js": "^0.9.0"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.0",
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vite-plugin-singlefile": "^2.3.3",
+    "vitest": "^4.1.11"
+  }
+}
