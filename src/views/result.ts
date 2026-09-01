@@ -143,11 +143,15 @@ export function renderBundleResult(
   const linkRow = h("div", { class: "linkbox" }, linkInput,
     h("button", {
       class: "btn",
-      onclick: () => {
-        void navigator.clipboard.writeText(linkInput.value)
-          .then(() => toast("Bundle link copied — the letters travel in the #fragment, which browsers never send to any server"))
-          .catch(() => { linkInput.select(); toast("Press ⌘/Ctrl-C to copy") })
-      },
+      onclick: () => void (async () => {
+        try {
+          await navigator.clipboard.writeText(linkInput.value)
+          toast("Bundle link copied — the letters travel in the #fragment, which browsers never send to any server")
+        } catch {
+          linkInput.select()
+          toast("Press ⌘/Ctrl-C to copy")
+        }
+      })(),
     }, "Copy"))
   linkField.append(linkRow)
 

@@ -113,8 +113,23 @@ export function renderShelf(root: HTMLElement, bundle: BundlePayload, ctx: Shelf
     }
   }
   grid.after(loopSlot)
-  // refresh lock badges / lockability as countdowns run out
-  timers.push(setInterval(renderGrid, 30_000))
+
+  // Refresh lock badges in place as countdowns run out — never tear the grid
+  // down under a click or a keyboard user's focus.
+  function refreshLockBadges(): void {
+    bundle.envelopes.forEach((env, i) => {
+      if (env.kind !== "timelock") return
+      const node = grid.children[i] as HTMLElement | undefined
+      const badge = node?.querySelector(".env-lock")
+      if (!node || !badge) return
+      const locked = Date.now() < timeOfRound(env.round)
+      badge.textContent = locked ? `🔒 ${shortUntil(timeOfRound(env.round))}` : "🔓 unlocked"
+      node.classList.toggle("locked", locked)
+    })
+  }
+  if (bundle.envelopes.some((e) => e.kind === "timelock")) {
+    timers.push(setInterval(refreshLockBadges, 30_000))
+  }
 
   renderGrid()
 
@@ -140,9 +155,20 @@ export function renderShelf(root: HTMLElement, bundle: BundlePayload, ctx: Shelf
 
   // ── the ritual overlay ──
   let ritualHost: HTMLElement | null = null
+  // Timers scoped to the OPEN ritual: cleared when it closes or reopens, so a
+  // countdown or crack delay never fires against a dismissed dialog.
+  let ritualTimers: Array<ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>> = []
+  function pushRitualTimer(t: ReturnType<typeof setInterval> | ReturnType<typeof setTimeout>): void {
+    ritualTimers.push(t)
+    timers.push(t) // navigation cleanup still catches everything
+  }
+  function clearRitualTimers(): void {
+    for (const t of ritualTimers) { clearInterval(t as never); clearTimeout(t as never) }
+    ritualTimers = []
+  }
 
   function openRitual(env: SealedEnvelope, index: number): void {
-    ritualHost?.remove()
+    closeRitual()
     const stage = h("div", { class: "ritual-stage" })
     const closeBtn = h("button", { class: "ritual-close", "aria-label": "Put the letter back" }, "✕")
     ritualHost = h("div", { class: "ritual", role: "dialog", "aria-modal": "true" }, closeBtn, stage)
@@ -152,11 +178,12 @@ export function renderShelf(root: HTMLElement, bundle: BundlePayload, ctx: Shelf
     if (env.kind === "trust" || Date.now() >= timeOfRound(env.round)) {
       showSealedEnvelope(env, index, stage)
     } else {
-      showLockedState(env, stage)
+      showLockedState(env, index, stage)
     }
   }
 
   function closeRitual(): void {
+    clearRitualTimers()
     ritualHost?.remove()
     ritualHost = null
   }
@@ -181,23 +208,34 @@ export function renderShelf(root: HTMLElement, bundle: BundlePayload, ctx: Shelf
       bigEnv.classList.add("opened")
       try { navigator.vibrate?.(18) } catch { /* not everywhere */ }
       hint.textContent = ""
-      const t = setTimeout(() => void revealLetter(env, index, stage), 620)
-      timers.push(t)
+      pushRitualTimer(setTimeout(() => void revealLetter(env, index, stage), 620))
     })
   }
 
-  function showLockedState(env: Extract<SealedEnvelope, { kind: "timelock" }>, stage: HTMLElement): void {
+  function showLockedState(env: Extract<SealedEnvelope, { kind: "timelock" }>, index: number, stage: HTMLElement): void {
     clear(stage)
     const unlockAt = timeOfRound(env.round)
     const countdown = h("div", { class: "cd-num", style: "font-size: clamp(28px, 6vw, 44px); padding: 10px 18px; text-align: center" })
+    let iv: ReturnType<typeof setInterval> | undefined
+    let done = false
     const tick = (): void => {
+      if (done) return
       const left = unlockAt - Date.now()
-      if (left <= 0) { showSealedEnvelope(env, bundle.envelopes.indexOf(env), stage); return }
+      if (left <= 0) {
+        // The moment arrived while they watched: stop the countdown FIRST so
+        // it can never wipe the crack ritual or the revealed letter.
+        done = true
+        if (iv !== undefined) clearInterval(iv)
+        showSealedEnvelope(env, index, stage)
+        return
+      }
       countdown.textContent = formatLeft(left)
     }
     tick()
-    const iv = setInterval(tick, 1000)
-    timers.push(iv)
+    if (!done) {
+      iv = setInterval(tick, 1000)
+      pushRitualTimer(iv)
+    }
 
     stage.append(
       h("div", { class: `envelope env-${env.color} locked`, style: "margin-bottom: 18px" },
@@ -236,13 +274,15 @@ export function renderShelf(root: HTMLElement, bundle: BundlePayload, ctx: Shelf
   }
 
   function showUnlockFallback(env: Extract<SealedEnvelope, { kind: "timelock" }>, index: number, stage: HTMLElement, err: unknown): void {
+    // A failed retry replaces the previous fallback card instead of stacking.
+    stage.querySelector(".unlock-fallback")?.remove()
     const beaconUrl = `${DRAND_RELAYS[0]}/${QUICKNET_CHAIN_HASH}/public/${env.round}`
     const pasteBox = h("textarea", { placeholder: `Paste the JSON from:\n${beaconUrl}`, style: "font-family: var(--mono); font-size: 12px; min-height: 100px" })
     const msg = err instanceof BeaconUnreachableError
       ? "No drand relay could be reached from here — fetch the key by hand below."
       : err instanceof Error ? err.message : String(err)
     stage.append(
-      h("div", { class: "card", style: "margin-top: 14px" },
+      h("div", { class: "card unlock-fallback", style: "margin-top: 14px" },
         h("div", { class: "error-box" }, msg),
         h("p", { class: "hint", style: "margin: 10px 0 6px" },
           "The key is public world data. Open ",
@@ -272,6 +312,10 @@ export function renderShelf(root: HTMLElement, bundle: BundlePayload, ctx: Shelf
   }
 
   function finishReveal(env: SealedEnvelope, index: number, stage: HTMLElement, letterText: string): void {
+    // The crack delay or an in-flight decrypt can outlive the dialog: if the
+    // ritual was closed meanwhile, drop the reveal and do NOT mark the
+    // envelope opened — its letter was never shown.
+    if (!ritualHost || !stage.isConnected) return
     opened.add(index)
     persistOpened()
     ritualHost?.classList.add("reading")

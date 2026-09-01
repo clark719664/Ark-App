@@ -13,7 +13,7 @@ import {
 import { roundForUnlock, timeOfRound } from "../drand"
 import { seal } from "../tlock"
 import { bytesToBase64 } from "../armor"
-import { isPro } from "../state"
+import { isPro, setProChangeListener } from "../state"
 import { ENVELOPE_COLORS, MOMENT_GROUPS, STATIONERY, type EnvelopeColor, type Stationery } from "../moments"
 import type { BundlePayload, SealedEnvelope } from "../bundle"
 
@@ -129,17 +129,21 @@ export function renderComposer(root: HTMLElement, onSealed: (payload: BundlePayl
     })
 
     const count = h("div", { class: "char-count" })
+    const refreshCount = (): void => {
+      const over = letter.value.length > letterMax()
+      count.textContent = `${fmtNum(letter.value.length)} / ${fmtNum(letterMax())}${over ? " — over the limit" : ""}`
+      count.classList.toggle("over", over)
+    }
     const letter = h("textarea", {
       placeholder: d.hint || "Write the letter they'll need in that moment…",
       style: "min-height: 120px",
       oninput: () => {
         d.letter = letter.value
-        const over = letter.value.length > letterMax()
-        count.textContent = `${fmtNum(letter.value.length)} / ${fmtNum(letterMax())}${over ? " — over the limit" : ""}`
-        count.classList.toggle("over", over)
+        refreshCount()
       },
     })
     letter.value = d.letter
+    refreshCount()
 
     const swatches = h("div", { class: "chips" },
       ...ENVELOPE_COLORS.map((c) =>
@@ -292,6 +296,10 @@ export function renderComposer(root: HTMLElement, onSealed: (payload: BundlePayl
   }
 
   refreshList()
+  // A license activated (or removed) from any surface mid-compose refreshes
+  // the tier counter and per-letter limits; drafts survive the re-render
+  // because their text lives in state, not only in the DOM.
+  setProChangeListener("composer", refreshList)
 
   root.append(
     h("div", { class: "card" },

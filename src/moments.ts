@@ -69,5 +69,6 @@ export function isEnvelopeColor(v: unknown): v is EnvelopeColor {
 }
 
 export function isStationery(v: unknown): v is Stationery {
-  return typeof v === "string" && v in STATIONERY
+  // Own keys only — `in` would also accept inherited names like "toString".
+  return typeof v === "string" && Object.hasOwn(STATIONERY, v)
 }
