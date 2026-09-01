@@ -28,7 +28,9 @@ Romailler: *Practical Timelock Encryption from Threshold BLS*) against the
 
 1. drand's League of Entropy publishes one BLS signature every 3 seconds —
    a signature over the round number itself. It has run without a missed beat
-   since 2019, and no quorum of its members can sign a *future* round early.
+   since 2019, and no coalition below the signing threshold can compute a
+   *future* round's signature — early decryption would take majority
+   collusion across those independent organisations.
 2. Your unlock date maps to a round number. Ark encrypts **to that round as
    an identity** (identity-based encryption over BLS12-381 pairings), entirely
    in your browser. Plaintext never leaves the tab.

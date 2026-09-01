@@ -25,6 +25,12 @@ export const FREE_LETTER_MAX = 4_000 // characters
 export const PRO_LETTER_MAX = 100_000
 export const PRO_FILES_MAX_BYTES = 20 * 1024 * 1024 // 20 MB per capsule
 export const LINK_CIPHERTEXT_SOFT_MAX = 24 * 1024 // beyond this, suggest the .html capsule
+/** Chromium refuses to navigate URLs beyond ~2MB. Past this ciphertext size
+ *  a capsule link would be a dead link, so we don't offer one at all. */
+export const LINK_CIPHERTEXT_HARD_MAX = 1_200_000
+/** Ceiling for inflating a c1. fragment — a legitimate link payload is under
+ *  ~3MB inflated; anything bigger is a decompression bomb, not a capsule. */
+export const FRAGMENT_INFLATED_MAX = 8 * 1024 * 1024
 
 /** Furthest allowed unlock date. The League of Entropy has run since 2019 and
  *  quicknet carries no announced end date, but honesty matters: we surface a

@@ -11,7 +11,7 @@ import {
 import { roundForUnlock, timeOfRound } from "../drand"
 import { seal, type CapsuleContent } from "../tlock"
 import { makePayload, type CapsulePayload } from "../capsule"
-import { isPro } from "../state"
+import { isPro, setProChangeListener } from "../state"
 import { bytesToBase64 } from "../armor"
 
 interface PendingFile { name: string; type: string; dataB64: string; size: number }
@@ -32,7 +32,6 @@ function addYears(n: number): number {
 }
 
 export function renderSealer(root: HTMLElement, onSealed: (payload: CapsulePayload) => void): void {
-  onProChangedCallbacks.length = 0 // drop hooks from any previous mount
   let unlockMs = PRESETS[3].ms() // default: 1 year
   let files: PendingFile[] = []
   let accent = ""
@@ -184,7 +183,7 @@ export function renderSealer(root: HTMLElement, onSealed: (payload: CapsulePaylo
 
   dropzone.addEventListener("click", () => {
     if (!isPro()) {
-      openProModal(() => { refreshDropzone(); refreshCounter(); refreshTheme() })
+      openProModal()
       return
     }
     fileInput.click()
@@ -195,7 +194,7 @@ export function renderSealer(root: HTMLElement, onSealed: (payload: CapsulePaylo
   dropzone.addEventListener("drop", (e) => {
     e.preventDefault()
     dropzone.classList.remove("drag")
-    if (!isPro()) { openProModal(() => { refreshDropzone(); refreshCounter(); refreshTheme() }); return }
+    if (!isPro()) { openProModal(); return }
     void addFiles(e.dataTransfer?.files ?? null)
   })
 
@@ -310,11 +309,7 @@ export function renderSealer(root: HTMLElement, onSealed: (payload: CapsulePaylo
     ),
   )
 
-  // expose a hook so main.ts can refresh gates after a Pro change
-  onProChangedCallbacks.push(() => { refreshDropzone(); refreshCounter(); refreshTheme() })
-}
-
-const onProChangedCallbacks: Array<() => void> = []
-export function notifySealerProChanged(): void {
-  for (const cb of onProChangedCallbacks) cb()
+  // refresh tier gates whenever a license is activated or removed, from any
+  // surface — the keyed slot means a re-mounted sealer replaces this hook
+  setProChangeListener("sealer", () => { refreshDropzone(); refreshCounter(); refreshTheme() })
 }

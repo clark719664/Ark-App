@@ -8,9 +8,9 @@ import { toast } from "./ui/toast"
 import { APP_VERSION, REPO_URL } from "./config"
 import { roundAt } from "./drand"
 import { decodeFragment, readEmbeddedCapsule, type CapsulePayload } from "./capsule"
-import { capturePristineHtml, isPro, setLicense } from "./state"
+import { capturePristineHtml, isPro, runViewCleanup, setLicense, setProChangeListener } from "./state"
 import { storedLicense } from "./license"
-import { renderSealer, notifySealerProChanged } from "./views/sealer"
+import { renderSealer } from "./views/sealer"
 import { renderResult } from "./views/result"
 import { renderViewer } from "./views/viewer"
 import { DEMO_CAPSULE } from "./demo"
@@ -24,14 +24,11 @@ const stars = document.getElementById("stars") as HTMLCanvasElement | null
 if (stars) startStarfield(stars)
 
 // ─── header ───
-const proBtn = h("button", { class: "btn btn-ghost", onclick: () => openProModal(onProChanged) })
+const proBtn = h("button", { class: "btn btn-ghost", onclick: () => openProModal() })
 function refreshProBtn(): void {
   proBtn.replaceChildren(isPro() ? h("span", { class: "pro-badge" }, "PRO") : "Ark Pro")
 }
-function onProChanged(): void {
-  refreshProBtn()
-  notifySealerProChanged()
-}
+setProChangeListener("header", refreshProBtn)
 
 const roundEl = h("b", {}, "…")
 setInterval(() => { roundEl.textContent = `#${fmtNum(roundAt(Date.now()))}` }, 1000)
@@ -57,6 +54,7 @@ type Route =
   | { kind: "viewer"; payload: CapsulePayload; embedded: boolean; demo: boolean }
 
 function navigate(route: Route): void {
+  runViewCleanup() // stop the old view's timers and pending unlock attempts
   clear(app)
   app.append(renderHeader())
 

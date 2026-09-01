@@ -1,5 +1,5 @@
 import { base64ToBytes, base64UrlToBytes, bytesToBase64, bytesToBase64Url } from "./armor"
-import { QUICKNET_CHAIN_HASH } from "./config"
+import { FRAGMENT_INFLATED_MAX, QUICKNET_CHAIN_HASH } from "./config"
 import type { Beacon } from "./drand"
 
 /** Everything a capsule carries besides the ciphertext itself. The title and
@@ -59,7 +59,7 @@ export async function decodeFragment(fragment: string): Promise<CapsulePayload |
   const frag = fragment.startsWith("#") ? fragment.slice(1) : fragment
   let jsonBytes: Uint8Array
   if (frag.startsWith("c1.")) {
-    jsonBytes = await pipeThrough(base64UrlToBytes(frag.slice(3)), new DecompressionStream("deflate-raw"))
+    jsonBytes = await pipeThrough(base64UrlToBytes(frag.slice(3)), new DecompressionStream("deflate-raw"), FRAGMENT_INFLATED_MAX)
   } else if (frag.startsWith("c0.")) {
     jsonBytes = base64UrlToBytes(frag.slice(3))
   } else {
@@ -72,7 +72,7 @@ export async function decodeFragment(fragment: string): Promise<CapsulePayload |
 
 export function validatePayload(p: CapsulePayload): void {
   if (p.v !== 1) throw new Error(`Unknown capsule version ${String(p.v)}`)
-  if (typeof p.round !== "number" || p.round < 1) throw new Error("Capsule has no valid round")
+  if (!Number.isSafeInteger(p.round) || p.round < 1) throw new Error("Capsule has no valid round")
   if (typeof p.ciphertext !== "string" || p.ciphertext.length === 0) {
     throw new Error("Capsule has no ciphertext")
   }
@@ -81,9 +81,31 @@ export function validatePayload(p: CapsulePayload): void {
   }
 }
 
-async function pipeThrough(bytes: Uint8Array, transform: GenericTransformStream): Promise<Uint8Array> {
-  const stream = new Blob([bytes as BlobPart]).stream().pipeThrough(transform)
-  return new Uint8Array(await new Response(stream).arrayBuffer())
+async function pipeThrough(
+  bytes: Uint8Array,
+  transform: GenericTransformStream,
+  maxBytes = Number.MAX_SAFE_INTEGER,
+): Promise<Uint8Array> {
+  const reader = new Blob([bytes as BlobPart]).stream().pipeThrough(transform).getReader()
+  const chunks: Uint8Array[] = []
+  let total = 0
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    total += value.length
+    if (total > maxBytes) {
+      void reader.cancel()
+      throw new Error("Fragment expands past any plausible capsule size — refusing to inflate it")
+    }
+    chunks.push(value)
+  }
+  const out = new Uint8Array(total)
+  let offset = 0
+  for (const c of chunks) {
+    out.set(c, offset)
+    offset += c.length
+  }
+  return out
 }
 
 // ─── Self-contained .html capsules ────────────────────────────────────────

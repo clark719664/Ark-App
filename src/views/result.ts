@@ -1,7 +1,7 @@
 import { h, fmtDateTime, saveOrCopy } from "../ui/dom"
 import { toast } from "../ui/toast"
 import { renderProof } from "../ui/proof"
-import { LINK_CIPHERTEXT_SOFT_MAX } from "../config"
+import { LINK_CIPHERTEXT_HARD_MAX, LINK_CIPHERTEXT_SOFT_MAX } from "../config"
 import { timeOfRound } from "../drand"
 import { armor } from "../armor"
 import { ciphertextBytes, encodeFragment, injectCapsule, type CapsulePayload } from "../capsule"
@@ -22,11 +22,18 @@ export function renderResult(
   const unlockAt = timeOfRound(payload.round)
   const linkInput = h("input", { type: "text", readOnly: true, value: "building link…" })
   const ctBytes = ciphertextBytes(payload)
+  // Chromium won't navigate URLs past ~2MB — past the hard cap a link would
+  // be a dead link, so the capsule is file-only.
+  const linkable = ctBytes.length <= LINK_CIPHERTEXT_HARD_MAX
+  let fragCache = ""
 
-  void encodeFragment(payload).then((frag) => {
-    const base = location.href.split("#")[0]
-    linkInput.value = `${base}#${frag}`
-  })
+  if (linkable) {
+    void encodeFragment(payload).then((frag) => {
+      fragCache = frag
+      const base = location.href.split("#")[0]
+      linkInput.value = `${base}#${frag}`
+    })
+  }
 
   async function copyLink(): Promise<void> {
     try {
@@ -57,14 +64,20 @@ export function renderResult(
         `. Until then it is mathematically sealed: the decryption key does not exist yet.`,
       ),
 
-      h("div", { class: "field" },
-        h("label", {}, "Capsule link"),
-        h("div", { class: "linkbox" }, linkInput, h("button", { class: "btn", onclick: () => void copyLink() }, "Copy")),
-        ctBytes.length > LINK_CIPHERTEXT_SOFT_MAX
-          ? h("div", { class: "hint", style: "margin-top: 6px" },
-              "This capsule is large for a link — prefer the self-contained file below.")
-          : null,
-      ),
+      linkable
+        ? h("div", { class: "field" },
+            h("label", {}, "Capsule link"),
+            h("div", { class: "linkbox" }, linkInput, h("button", { class: "btn", onclick: () => void copyLink() }, "Copy")),
+            ctBytes.length > LINK_CIPHERTEXT_SOFT_MAX
+              ? h("div", { class: "hint", style: "margin-top: 6px" },
+                  "This capsule is large for a link — prefer the self-contained file below.")
+              : null,
+          )
+        : h("div", { class: "field" },
+            h("label", {}, "Capsule link"),
+            h("div", { class: "hint" },
+              "This capsule is too large for a link (browsers refuse multi-megabyte URLs). Deliver it as the self-contained file below — same capsule, same crypto."),
+          ),
 
       h("div", { class: "field" },
         h("label", {}, "Keep it as a file"),
@@ -87,7 +100,15 @@ export function renderResult(
       ),
 
       h("div", { class: "btn-row", style: "margin-top: 20px" },
-        h("button", { class: "btn", onclick: onOpenNow }, "View the sealed capsule →"),
+        h("button", {
+          class: "btn",
+          onclick: () => {
+            // Navigate via the fragment when possible: the sealed capsule
+            // then survives a reload instead of living only in memory.
+            if (linkable && fragCache) location.hash = fragCache
+            else onOpenNow()
+          },
+        }, "View the sealed capsule →"),
         h("button", { class: "btn btn-ghost", onclick: onSealAnother }, "Seal another"),
       ),
       timeOfRound(payload.round) - Date.now() > 86_400_000

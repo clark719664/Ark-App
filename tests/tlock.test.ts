@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest"
 import { seal, unseal, unsealWithBeacon, type CapsuleContent } from "../src/tlock"
-import { staticClient, verifyBeaconSignature, roundAt, timeOfRound, roundForUnlock, type Beacon } from "../src/drand"
+import { normalizeBeacon, parsePastedBeacon, staticClient, verifyBeaconSignature, roundAt, timeOfRound, roundForUnlock, type Beacon } from "../src/drand"
 import fixtureBeacon from "./fixtures/beacon-31806951.json"
 
 // These tests run the REAL cryptography — BLS12-381 pairings, age format,
@@ -43,6 +43,28 @@ describe("beacon verification (explicit BLS)", () => {
   it("rejects tampered signatures and wrong rounds", () => {
     expect(verifyBeaconSignature({ ...beacon, signature: "00".repeat(48) })).toBe(false)
     expect(verifyBeaconSignature({ ...beacon, round: beacon.round + 1 })).toBe(false)
+  })
+})
+
+describe("beacon normalization", () => {
+  it("derives randomness = sha256(signature) when the field is missing", async () => {
+    const bare = { round: beacon.round, signature: beacon.signature }
+    const normalized = normalizeBeacon(bare)
+    expect(normalized.randomness).toBe(beacon.randomness)
+    // and the derived beacon actually decrypts (full drand-client validation)
+    const ciphertext = await seal(content, beacon.round)
+    expect(await unsealWithBeacon(ciphertext, normalized)).toEqual(content)
+  }, 30_000)
+
+  it("rejects a randomness field that contradicts the signature", () => {
+    expect(() => normalizeBeacon({ ...beacon, randomness: "ab".repeat(32) })).toThrow(/randomness/)
+  })
+
+  it("parses a hand-pasted beacon with surrounding noise", () => {
+    const pasted = parsePastedBeacon(`response was:\n ${JSON.stringify(beacon)} \nHTTP 200`)
+    expect(pasted).toEqual(beacon)
+    expect(() => parsePastedBeacon("no json here")).toThrow()
+    expect(() => parsePastedBeacon(`{"round": 1e999, "signature": "${beacon.signature}"}`)).toThrow(/round/)
   })
 })
 

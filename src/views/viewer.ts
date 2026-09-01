@@ -12,6 +12,7 @@ import { unsealOnline, unsealWithBeacon, type CapsuleContent } from "../tlock"
 import { ciphertextBytes, type CapsulePayload } from "../capsule"
 import { base64ToBytes } from "../armor"
 import { recoverySpec } from "../recovery"
+import { setViewCleanup } from "../state"
 
 export interface ViewerContext {
   /** true when this document IS a downloaded capsule file */
@@ -35,6 +36,9 @@ export function renderViewer(root: HTMLElement, payload: CapsulePayload, ctx: Vi
     if (countdownTimer) clearInterval(countdownTimer)
     unlockTimer = countdownTimer = null
   }
+  // When the user navigates away, the countdown must stop and any pending
+  // auto-unlock must never fire against the detached card.
+  setViewCleanup(clearTimers)
 
   function header(): HTMLElement {
     return h("div", { style: "text-align: center" },
@@ -196,6 +200,16 @@ export function renderViewer(root: HTMLElement, payload: CapsulePayload, ctx: Vi
                   const content = await unsealWithBeacon(ciphertextBytes(payload), beacon)
                   showUnlocked(content, { beacon, source: "pasted by hand (offline)", verified })
                 } catch (err) {
+                  // A valid beacon plus "too early" means the DEVICE clock is
+                  // behind the unlock time — the key is fine, the clock isn't.
+                  if (err instanceof Error && /too early/i.test(err.message)) {
+                    try {
+                      if (verifyBeaconSignature(parsePastedBeacon(pasteBox.value))) {
+                        toast("That beacon is valid, but this device's clock reads earlier than the unlock time — correct the clock and try again")
+                        return
+                      }
+                    } catch { /* fall through to the generic message */ }
+                  }
                   toast(err instanceof Error ? err.message : "That beacon did not unlock the capsule")
                 }
               })()

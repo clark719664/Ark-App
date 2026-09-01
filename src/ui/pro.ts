@@ -3,7 +3,7 @@ import { openModal } from "./modal"
 import { toast } from "./toast"
 import { PAYMENT_LINK, PRO_PRICE } from "../config"
 import { storeLicense, verifyLicenseKey, clearLicense } from "../license"
-import { isPro, license, setLicense } from "../state"
+import { emitProChange, isPro, license, setLicense } from "../state"
 
 function feature(title: string, detail: string): HTMLElement {
   return h(
@@ -14,7 +14,7 @@ function feature(title: string, detail: string): HTMLElement {
   )
 }
 
-export function openProModal(onChange: () => void): void {
+export function openProModal(): void {
   const status = h("div", {})
 
   function renderStatus(): void {
@@ -34,7 +34,7 @@ export function openProModal(onChange: () => void): void {
               clearLicense()
               setLicense(null)
               renderStatus()
-              onChange()
+              emitProChange()
               toast("License removed from this browser")
             },
           },
@@ -62,7 +62,7 @@ export function openProModal(onChange: () => void): void {
           storeLicense(keyInput.value)
           setLicense({ claim, key: keyInput.value.trim() })
           renderStatus()
-          onChange()
+          emitProChange()
           toast(`Welcome to Ark Pro, ${claim.email} — verified without a single network call`)
         } catch (e) {
           toast(e instanceof Error ? e.message : "That key did not verify")

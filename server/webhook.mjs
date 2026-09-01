@@ -53,10 +53,17 @@ function verifyStripeSignature(rawBody, header, tolerance = 300) {
   )
   const ts = Number(parts.t)
   if (!Number.isFinite(ts) || Math.abs(Date.now() / 1000 - ts) > tolerance) return false
-  const expected = createHmac("sha256", WEBHOOK_SECRET).update(`${parts.t}.${rawBody}`).digest("hex")
-  const given = Buffer.from(String(parts.v1 ?? ""), "utf8")
-  const want = Buffer.from(expected, "utf8")
-  return given.length === want.length && timingSafeEqual(given, want)
+  const expected = Buffer.from(
+    createHmac("sha256", WEBHOOK_SECRET).update(`${parts.t}.${rawBody}`).digest("hex"),
+    "utf8",
+  )
+  // During a secret rotation Stripe sends multiple v1= entries; accepting if
+  // ANY matches is what their docs require.
+  const candidates = header
+    .split(",")
+    .filter((kv) => kv.startsWith("v1="))
+    .map((kv) => Buffer.from(kv.slice(3), "utf8"))
+  return candidates.some((given) => given.length === expected.length && timingSafeEqual(given, expected))
 }
 
 async function emailKey(to, key) {
@@ -117,12 +124,21 @@ const server = createServer((req, res) => {
         res.writeHead(400).end("bad json")
         return
       }
-      // Acknowledge quickly; Stripe retries on non-2xx.
-      if (event.type !== "checkout.session.completed") {
+      // Acknowledge quickly; Stripe retries on non-2xx. Fulfil on completed
+      // checkouts AND on delayed payment methods (ACH/SEPA/OXXO) succeeding.
+      if (event.type !== "checkout.session.completed" && event.type !== "checkout.session.async_payment_succeeded") {
         res.writeHead(200).end("ignored")
         return
       }
       const session = event.data?.object ?? {}
+      // A completed session with payment_status "unpaid" is a delayed-method
+      // checkout whose payment may still FAIL — minting an irrevocable
+      // license now would fulfil unpaid orders. Wait for async_payment_succeeded.
+      if (session.payment_status !== "paid" && session.payment_status !== "no_payment_required") {
+        log(`DEFERRED ${session.id}: payment_status=${session.payment_status} — awaiting async payment result`)
+        res.writeHead(200).end("awaiting payment")
+        return
+      }
       const email = (session.customer_details?.email || session.customer_email || "").trim().toLowerCase()
       if (!email) {
         log(`ERROR session ${session.id}: no customer email on session`)

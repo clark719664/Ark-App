@@ -23,7 +23,7 @@ export function openHowItWorks(): void {
     step(
       "1",
       "A network that publishes keys on a clock",
-      "Roughly sixteen independent organisations — Cloudflare, EPFL, Kudelski Security, UCL and others, together the League of Entropy — jointly sign each round number: one BLS signature every 3 seconds, for years without a missed beat. No quorum of them can sign a future round early.",
+      "Roughly sixteen independent organisations — Cloudflare, EPFL, Kudelski Security, UCL and others, together the League of Entropy — jointly sign each round number: one BLS signature every 3 seconds, for years without a missed beat. No coalition smaller than the signing threshold can compute a future round's signature — opening a capsule early would take majority collusion across those independent organisations.",
     ),
     step(
       "2",

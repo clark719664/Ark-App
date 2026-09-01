@@ -41,6 +41,9 @@ describe("validatePayload", () => {
   })
   it("rejects bad rounds and missing ciphertext", () => {
     expect(() => validatePayload({ ...samplePayload(), round: 0 })).toThrow()
+    expect(() => validatePayload({ ...samplePayload(), round: Infinity })).toThrow()
+    expect(() => validatePayload({ ...samplePayload(), round: 1.5 })).toThrow()
+    expect(() => validatePayload({ ...samplePayload(), round: Number.NaN })).toThrow()
     expect(() => validatePayload({ ...samplePayload(), ciphertext: "" })).toThrow()
     expect(() => validatePayload({ ...samplePayload(), v: 2 as never })).toThrow()
   })

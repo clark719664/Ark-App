@@ -19,3 +19,33 @@ export function setLicense(l: License | null): void {
 export function isPro(): boolean {
   return license !== null
 }
+
+// ─── Pro-change broadcast ─────────────────────────────────────────────────
+// One keyed slot per interested surface (header, sealer, …) so a license
+// change refreshes ALL of them, wherever the Pro modal was opened from, and
+// re-mounted views overwrite their slot instead of stacking listeners.
+const proChangeListeners = new Map<string, () => void>()
+
+export function setProChangeListener(key: string, fn: () => void): void {
+  proChangeListeners.set(key, fn)
+}
+
+export function emitProChange(): void {
+  for (const fn of proChangeListeners.values()) fn()
+}
+
+// ─── View teardown ────────────────────────────────────────────────────────
+// The active view registers its cleanup (timers, pending unlock attempts);
+// navigation runs it so a dismissed countdown never keeps ticking or firing
+// network fetches against detached DOM.
+let viewCleanup: (() => void) | null = null
+
+export function setViewCleanup(fn: () => void): void {
+  viewCleanup = fn
+}
+
+export function runViewCleanup(): void {
+  const fn = viewCleanup
+  viewCleanup = null
+  if (fn) fn()
+}

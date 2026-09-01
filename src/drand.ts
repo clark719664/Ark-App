@@ -87,9 +87,9 @@ export function bytesToHex(bytes: Uint8Array): string {
 }
 
 /** Fetch one round's beacon from the public relays, trying each in order.
- *  Returns the first structurally sane response; cryptographic verification
- *  happens in the ChainClient layer (drand-client) AND again explicitly in
- *  the proof panel. */
+ *  A relay's answer only counts if it is FULLY valid — right round, matching
+ *  randomness, BLS signature verified — so one compromised or mangling relay
+ *  cannot poison the unlock; we fall through to the next one. */
 export async function fetchBeaconFromRelays(
   round: number,
   timeoutMs = 8000,
@@ -105,16 +105,33 @@ export async function fetchBeaconFromRelays(
       })
       clearTimeout(timer)
       if (!res.ok) throw new Error(`HTTP ${res.status}`)
-      const beacon = (await res.json()) as Beacon
-      if (typeof beacon.round !== "number" || typeof beacon.signature !== "string") {
-        throw new Error("malformed beacon")
-      }
+      const beacon = normalizeBeacon((await res.json()) as Partial<Beacon>)
+      if (beacon.round !== round) throw new Error(`answered round ${beacon.round}, wanted ${round}`)
+      if (!verifyBeaconSignature(beacon)) throw new Error("BLS signature invalid — relay answer rejected")
       return { beacon, relay }
     } catch (e) {
       errors.push(`${relay}: ${e instanceof Error ? e.message : String(e)}`)
     }
   }
   throw new BeaconUnreachableError(errors)
+}
+
+/** Validate shape and fill in the randomness field when absent. On quicknet,
+ *  randomness is DEFINED as sha256(signature) — deriving it lets someone
+ *  paste just {round, signature} (e.g. a key reconstructed from an archive)
+ *  and still satisfy drand-client's full validation downstream. */
+export function normalizeBeacon(b: Partial<Beacon>): Beacon {
+  if (typeof b.round !== "number" || !Number.isSafeInteger(b.round) || b.round < 1) {
+    throw new Error("Beacon is missing a valid round number")
+  }
+  if (typeof b.signature !== "string" || b.signature.length !== 96) {
+    throw new Error("Beacon is missing a valid 48-byte signature")
+  }
+  const derived = bytesToHex(sha256(hexToBytes(b.signature)))
+  if (typeof b.randomness === "string" && b.randomness.length > 0 && b.randomness !== derived) {
+    throw new Error("Beacon randomness does not match its signature")
+  }
+  return { round: b.round, randomness: derived, signature: b.signature }
 }
 
 export class BeaconUnreachableError extends Error {
@@ -165,19 +182,11 @@ export function relayClient(): ChainClient {
 }
 
 /** Parse a beacon JSON pasted by a human: tolerant of surrounding text,
- *  quotes and whitespace, strict about the fields themselves. */
+ *  quotes and whitespace, strict about the fields themselves. A paste with
+ *  only {round, signature} works — randomness is derived. */
 export function parsePastedBeacon(text: string): Beacon {
   const start = text.indexOf("{")
   const end = text.lastIndexOf("}")
   if (start === -1 || end === -1 || end <= start) throw new Error("No JSON object found — paste the whole {…} response")
-  const parsed = JSON.parse(text.slice(start, end + 1)) as Partial<Beacon>
-  if (typeof parsed.round !== "number") throw new Error("Beacon JSON is missing its round number")
-  if (typeof parsed.signature !== "string" || parsed.signature.length !== 96) {
-    throw new Error("Beacon JSON is missing a valid 48-byte signature")
-  }
-  return {
-    round: parsed.round,
-    randomness: typeof parsed.randomness === "string" ? parsed.randomness : "",
-    signature: parsed.signature,
-  }
+  return normalizeBeacon(JSON.parse(text.slice(start, end + 1)) as Partial<Beacon>)
 }
